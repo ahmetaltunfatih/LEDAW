@@ -18,11 +18,12 @@
 - LEDAW plots finally heat maps for all the LED interaction energy matrices.
 
 ## How to Run
-- Download ledaw_package directory, example input python files crystal.py and boat.py, and example ORCA output files directory ORCA-OUT into your working directory.
-- Run crystal.py to perform N-body, two-body, and cooperativity HFLD/LED analysis of the interaction of a central monomer of a crsytal with its environment.
-- Run boat.py to perform additionaly CPS and CBS extrapolations
-- The generic crystal.py and boat.py can be easily personalzed for the user's use case. In addition to the workflow, they contain detailed explanations of all necessary parameters. If you do not want to perform some parts of the analyses, the related parts can be commented or removed. 
+- Download the ledaw_package directory, the example input Python files (crystal.py and boat.py), and the example ORCA output files directory (ORCA-OUT) into your working directory.
+- Run crystal.py to perform N-body, two-body, and cooperativity HFLD/LED analysis of the interaction of a central monomer in a crystal with its environment.
+- Run boat.py to additionally perform CPS and CBS extrapolations.
+- The generic crystal.py and boat.py scripts can be easily personalized for your specific use case. In addition to the workflow, they contain detailed explanations of all necessary parameters. If you do not wish to perform some parts of the analysis, the related sections can be commented out or removed.
+
 ## Reference
-- If you use any part of this code, in addition to            original LED, CPS, and CBS studies, please cite: 
+- If you use any part of this code, in addition to original LED, CPS, and CBS studies, please cite: 
     - https://github.com/ahmetaltunfatih/LEDAW
     - https://chemrxiv.org/engage/chemrxiv/article-details/6698104e01103d79c547414c
