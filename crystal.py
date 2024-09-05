@@ -22,8 +22,8 @@
 ### The following is an automated LEDAW procedure for obtaining LED interactoin energy matrices and heat maps 
 ### on the interaction of a central monomer in a crystal with its environment from ORCA output files.
 ### For more details, see https://chemrxiv.org/engage/chemrxiv/article-details/6698104e01103d79c547414c
-### N-body, two-body, and cpooperativty LED maps are generated within standard and fp-LED schemes,
-### followed by the plot of coresponding heat maps for a given computational setting.
+### N-body, two-body, and cooperativty LED maps are generated within standard and fp-LED schemes,
+### followed by the plot of coresponding heat maps.
 
 from ledaw_package import *
 
