@@ -14,7 +14,7 @@
 - LEDAW allows relabeling of fragments if you are not satisfied with the fragment labeling in supersystem ORCA output file.
 - LEDAW allows specifying an alternative file in the case that an ORCA output file does not contain all necessary energy terms. 
 - Method-specific (DLPNO-CCSD(T), DLPNO-CCSD, and HFLD) collection of LED terms, such as London dispersion, are done automatically.
-- Standard and fp-LED interaction energy maps are written for separate excel files.
+- Standard and fp-LED interaction energy maps are written on separate excel files (each on a seperate sheet).
 - LEDAW plots finally heat maps for all the LED interaction energy matrices.
 
 ## How to Run
