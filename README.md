@@ -20,7 +20,7 @@
 ## How to Run
 - Download the ledaw_package directory, the example input Python files (crystal.py and boat.py), and the example ORCA output files directory (ORCA-OUT) into your working directory.
 - The generic crystal.py and boat.py scripts can be easily personalized for your specific use case. In addition to the workflow, they contain detailed explanations of all necessary parameters. If you do not wish to perform some parts of the analysis, the related sections can be commented or removed.
-- In pesonalizing the generic crystal.py and boat.py scripts, you typically just need to specify the path/name of ORCA output files, and of where to write LEDAW output files, and comment/delete the parts that you do not have necessary ORCA output files.
+- In pesonalizing the generic crystal.py and boat.py scripts, you typically just need to specify the path/name of ORCA output files and of where to write LEDAW output files. The parts that you do not have necessary ORCA output files can be commented or deleted.
 - To get used to the logic of LEDAW, it is best to start with "crystal.py". It is for performing N-body, two-body, and cooperativity HFLD/LED analysis of the interaction of a central monomer in a crystal with its environment.
 - "boat.py" is for running all modules of LEDAW, and thus it is a bit more crowded, due to several file path specifications and multiple calls of engine functions. It performs CPS and CBS extrapolations on the DLPNO-CCSD(T)/LED terms for the interaction energy of boat conformer of water hexamer in addition to N-body, two-body, and cooperativity analyses from standard settings in ORCA output files.
 
