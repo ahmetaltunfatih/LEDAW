@@ -24,7 +24,7 @@
 ### For more details, see https://chemrxiv.org/engage/chemrxiv/article-details/6698104e01103d79c547414c
 ### N-body, two-body, and cpooperativty LED maps are generated within standard and fp-LED schemes for each 
 ### computational setting. At the same time, LED terms are extrapolated to CPS and CBS limits. 
-# Finally, standard and fp-LED LED heat maps are generated for all cases.
+### Finally, standard and fp-LED LED heat maps are generated for all cases.
  
 from ledaw_package import *
 
