@@ -62,7 +62,7 @@ nbody_title='''
 ##############################################################################################################
 '''
 
-### Specify ORCA Output FilesNeeded For N-Body LED Analysis
+### Specify ORCA Output Files Needed For N-Body LED Analysis
 # Below specify main and alternative filenames with their paths as lists. 
 # Note 1: Always specify the output file for the entire system (super system) first in main_filenames and
 # alternative_filenames lists. Where necessary, the code differentiate the super system and its subsystems 
