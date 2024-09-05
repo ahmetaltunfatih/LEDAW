@@ -23,7 +23,7 @@
 ### on the interaction of a central monomer in a crystal with its environment from ORCA output files.
 ### For more details, see https://chemrxiv.org/engage/chemrxiv/article-details/6698104e01103d79c547414c
 ### N-body, two-body, and cooperativty LED maps are generated within standard and fp-LED schemes,
-### followed by the plot of coresponding heat maps.
+### followed by the plot of the corresponding heat maps.
 
 from ledaw_package import *
 
@@ -92,9 +92,9 @@ nbody_title='''
 
 print(nbody_title)
 
-main_filenames = [r'.\ORCA-OUT\CRYSTAL\MULTIFRAG\dimer.mpi4.out', 
-                          r'.\ORCA-OUT\CRYSTAL\MULTIFRAG\env.mpi2.out',
-                          r'.\ORCA-OUT\CRYSTAL\ONEBODY\mono1.mpi16.out',
+main_filenames = [r'./ORCA-OUT/CRYSTAL/MULTIFRAG/dimer.mpi4.out', 
+                          r'./ORCA-OUT/CRYSTAL/MULTIFRAG/env.mpi2.out',
+                          r'./ORCA-OUT/CRYSTAL/ONEBODY/mono1.mpi16.out',
                  ]
 
 alternative_filenames = ['', '', '']
@@ -102,7 +102,7 @@ alternative_filenames = ['', '', '']
 
 ### Specify the Directories where LEDAW will write N-Body LED Matrices, which will be
 # read from ORCA output files
-LEDAW_output_path = r'.\LEDAW-OUT\CRYSTAL\NBODY'
+LEDAW_output_path = r'./LEDAW-OUT/CRYSTAL/NBODY'
 
 ### Run N-Body LED engine for all computational settings.
 # Standard and fp-LED N-body matrices will be written to excel files in specified LEDAW output directory
@@ -140,25 +140,25 @@ print(twobody_title)
 # labels will be reordered.
 # Note: onebody_out_directory directory must contain only the necessary one-body ORCA output files.
 
-supersystem_file = r'.\ORCA-OUT\CRYSTAL\MULTIFRAG\dimer.mpi4.out'
-onebody_out_directory = r'.\ORCA-OUT\CRYSTAL\ONEBODY'
+supersystem_file = r'./ORCA-OUT/CRYSTAL/MULTIFRAG/dimer.mpi4.out'
+onebody_out_directory = r'./ORCA-OUT/CRYSTAL/ONEBODY'
 one_body_orcaout_filenames = extract_one_body_orcaout_filenames(supersystem_file, onebody_out_directory)
 
 ## Second Way ##
 # You can manually specify one-boy output files with the order consistent with the original supersystem labelling.
 # relabel_mapping from N-body ([1,6,4,5,3,2,7,8,9,10,11]) is still active. Thus final LED maps will have reordered labels. 
 #
-# one_body_orcaout_filenames = [r'.\ORCA-OUT\CRYSTAL\ONEBODY\mono1.mpi16.out',
-#                               r'.\ORCA-OUT\CRYSTAL\ONEBODY\mono2.mpi16.out',
-#                               r'.\ORCA-OUT\CRYSTAL\ONEBODY\mono3.mpi16.out',
-#                               r'.\ORCA-OUT\CRYSTAL\ONEBODY\mono4.mpi16.out',
-#                               r'.\ORCA-OUT\CRYSTAL\ONEBODY\mono5.mpi16.out',
-#                               r'.\ORCA-OUT\CRYSTAL\ONEBODY\mono6.mpi16.out',
-#                               r'.\ORCA-OUT\CRYSTAL\ONEBODY\mono7.mpi16.out',
-#                               r'.\ORCA-OUT\CRYSTAL\ONEBODY\mono8.mpi16.out',
-#                               r'.\ORCA-OUT\CRYSTAL\ONEBODY\mono9.mpi16.out',
-#                               r'.\ORCA-OUT\CRYSTAL\ONEBODY\mono10.mpi16.out',
-#                               r'.\ORCA-OUT\CRYSTAL\ONEBODY\mono11.mpi16.out',
+# one_body_orcaout_filenames = [r'./ORCA-OUT/CRYSTAL/ONEBODY/mono1.mpi16.out',
+#                               r'./ORCA-OUT/CRYSTAL/ONEBODY/mono2.mpi16.out',
+#                               r'./ORCA-OUT/CRYSTAL/ONEBODY/mono3.mpi16.out',
+#                               r'./ORCA-OUT/CRYSTAL/ONEBODY/mono4.mpi16.out',
+#                               r'./ORCA-OUT/CRYSTAL/ONEBODY/mono5.mpi16.out',
+#                               r'./ORCA-OUT/CRYSTAL/ONEBODY/mono6.mpi16.out',
+#                               r'./ORCA-OUT/CRYSTAL/ONEBODY/mono7.mpi16.out',
+#                               r'./ORCA-OUT/CRYSTAL/ONEBODY/mono8.mpi16.out',
+#                               r'./ORCA-OUT/CRYSTAL/ONEBODY/mono9.mpi16.out',
+#                               r'./ORCA-OUT/CRYSTAL/ONEBODY/mono10.mpi16.out',
+#                               r'./ORCA-OUT/CRYSTAL/ONEBODY/mono11.mpi16.out',
 #                              ]
 
 ## Third Way ##
@@ -166,28 +166,28 @@ one_body_orcaout_filenames = extract_one_body_orcaout_filenames(supersystem_file
 # Then you need to set relabel_mapping=None in order not to reorder twice.
 
 # relabel_mapping=None
-# one_body_orcaout_filenames = [r'.\ORCA-OUT\CRYSTAL\ONEBODY\mono1.mpi16.out',
-#                               r'.\ORCA-OUT\CRYSTAL\ONEBODY\mono6.mpi16.out',
-#                               r'.\ORCA-OUT\CRYSTAL\ONEBODY\mono5.mpi16.out',
-#                               r'.\ORCA-OUT\CRYSTAL\ONEBODY\mono3.mpi16.out',
-#                               r'.\ORCA-OUT\CRYSTAL\ONEBODY\mono4.mpi16.out',
-#                               r'.\ORCA-OUT\CRYSTAL\ONEBODY\mono2.mpi16.out',
-#                               r'.\ORCA-OUT\CRYSTAL\ONEBODY\mono7.mpi16.out',
-#                               r'.\ORCA-OUT\CRYSTAL\ONEBODY\mono8.mpi16.out',
-#                               r'.\ORCA-OUT\CRYSTAL\ONEBODY\mono9.mpi16.out',
-#                               r'.\ORCA-OUT\CRYSTAL\ONEBODY\mono10.mpi16.out',
-#                               r'.\ORCA-OUT\CRYSTAL\ONEBODY\mono11.mpi16.out',
+# one_body_orcaout_filenames = [r'./ORCA-OUT/CRYSTAL/ONEBODY/mono1.mpi16.out',
+#                               r'./ORCA-OUT/CRYSTAL/ONEBODY/mono6.mpi16.out',
+#                               r'./ORCA-OUT/CRYSTAL/ONEBODY/mono5.mpi16.out',
+#                               r'./ORCA-OUT/CRYSTAL/ONEBODY/mono3.mpi16.out',
+#                               r'./ORCA-OUT/CRYSTAL/ONEBODY/mono4.mpi16.out',
+#                               r'./ORCA-OUT/CRYSTAL/ONEBODY/mono2.mpi16.out',
+#                               r'./ORCA-OUT/CRYSTAL/ONEBODY/mono7.mpi16.out',
+#                               r'./ORCA-OUT/CRYSTAL/ONEBODY/mono8.mpi16.out',
+#                               r'./ORCA-OUT/CRYSTAL/ONEBODY/mono9.mpi16.out',
+#                               r'./ORCA-OUT/CRYSTAL/ONEBODY/mono10.mpi16.out',
+#                               r'./ORCA-OUT/CRYSTAL/ONEBODY/mono11.mpi16.out',
 #                              ]
 
 
 ### Specify the two-boy ORCA output file directory
 # Note: This directory must contain only the necessary two-body ORCA output files.
 # The code will automatically read the files in this directory and label the fragments consistent with the order you specified fragments in "one_body_orcaout_filenames" variables above. 
-two_body_orcaout_directory = r'.\ORCA-OUT\CRYSTAL\TWOBODY'
+two_body_orcaout_directory = r'./ORCA-OUT/CRYSTAL/TWOBODY'
 
 
 ### Specify the Directory where LEDAW will write Two-Body LED Matrices
-LEDAW_output_path_twobody = r'.\LEDAW-OUT\CRYSTAL\TWOBODY'
+LEDAW_output_path_twobody = r'./LEDAW-OUT/CRYSTAL/TWOBODY'
 
 
 ### Run two-body LED engine
@@ -212,7 +212,7 @@ print(coop_title)
 # Calculate cooperativity LED matrices from the excel files under the base_path/NBODY and base_path/TWOBODY directories
 # and save them to the base_path/COOPERATIVITY directory generated (if directory_level=1),
 # or its second or third level subdirectories (directory_level= 2 or 3): Default = 1
-cooperativity_engine(base_path=r'.\LEDAW-OUT\CRYSTAL', nbody_dir_name='NBODY', twobody_dir_name='TWOBODY', directory_level=1)
+cooperativity_engine(base_path=r'./LEDAW-OUT/CRYSTAL', nbody_dir_name='NBODY', twobody_dir_name='TWOBODY', directory_level=1)
 
 
 
@@ -252,7 +252,7 @@ plot_params_for_fp_led_matrices = {
 # Generate heat maps from Summary_Standard_LED_matrices.xlsx and Summary_fp_LED_matrices.xlsx.
 # Save them to HEAT-MAP-STD-LED and HEAT-MAP-fp-LED directories generated in base_path (if directory_level=0),
 # or its first or second level subdirectories (directory_level= 1 or 2): Default = 0
-heatmap_plot_engine(base_path=r'.\LEDAW-OUT\CRYSTAL', 
+heatmap_plot_engine(base_path=r'./LEDAW-OUT/CRYSTAL', 
                     plot_params_for_std_led_matrices=plot_params_for_std_led_matrices,
                     plot_params_for_fp_led_matrices=plot_params_for_fp_led_matrices,
                     show_diag_cells_for_fp_led=False,
