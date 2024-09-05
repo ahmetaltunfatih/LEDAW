@@ -20,7 +20,7 @@
 ## How to Run
 - Download the ledaw_package directory, the example input Python files (crystal.py and boat.py), and the example ORCA output files directory (ORCA-OUT) into your working directory.
 - Run crystal.py to perform N-body, two-body, and cooperativity HFLD/LED analysis of the interaction of a central monomer in a crystal with its environment.
-- Run boat.py to additionally perform CPS and CBS extrapolations.
+- Run boat.py to perform CPS and CBS extrapolations on the DLPNO-CCSD(T)/LED terms for the interaction energy of boat conformer of water hexamer in addition to N-body, two-body, and cooperativity analyses from standard settings in ORCA output files.
 - The generic crystal.py and boat.py scripts can be easily personalized for your specific use case. In addition to the workflow, they contain detailed explanations of all necessary parameters. If you do not wish to perform some parts of the analysis, the related sections can be commented out or removed.
 
 ## Reference
