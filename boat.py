@@ -77,7 +77,7 @@ nbody_title='''
 print(nbody_title)
 
 
-### Specify ORCA Output FilesNeeded For N-Body LED Analysis
+### Specify ORCA Output Files Needed For N-Body LED Analysis
 # Below specify main and alternative filenames with their paths as lists. 
 # Note 1: Always specify the output file for the entire system (super system) first in main_filenames and
 # alternative_filenames lists. Where necessary, the code differentiate the super system and its subsystems 
@@ -94,7 +94,7 @@ print(nbody_title)
 # Note 5: You do not have to specify any file name for alternative_filenames. But an empty list with the length of main_filenames must be initiated. 
 # Note 6: If you specified the same fragment with different labels in supersystem and subsystem ORCA output files, 
 # the code automatically labels subsystem fragment labels as in the supersystem output file.
-# Note 7: The code only accepts seperate ORCA output files for each system (supersystem and subsystems) and computational setting 
+# Note 7: The code only accepts separate ORCA output files for each system (supersystem and subsystems) and computational setting 
 # If you have compound job output, you need to split this file to seperate files for each job.  
 # Note 8: Optionally, you can perform Complete PNO Space (CPS) and Complete Basis Set (CBS) extrapolations.
 # In this case, you need to specify the path of each ORCA output file with each computational setting.
@@ -259,7 +259,7 @@ print(twobody_title)
 
 ### Get the one-body ORCA output files and their labels
 
-# Compare the labels of supersystem file with onebody files and automatically 
+# The code compares the labels of supersystem file with onebody files and automatically 
 # standardize the labeling of monomers to the original supersystem labeling.
 # In this example, as relabel_mapping is initiated at the beginning of this file ([1,3,2,4,6,5]), labels will be reordered.
 # Note: onebody_out_directory directory must contain only the necessary one-body ORCA output files.
@@ -316,7 +316,8 @@ one_body_orcaout_filenames_LB_TPNO = extract_one_body_orcaout_filenames(supersys
 ### Specify the two-body ORCA output file directories for each computational setting.
 # Note: These directories must contain only the necessary two-body ORCA output files.
 # The code will automatically read the files in this directory and label the fragments
-# consistent with the labeling in "one_body_orcaout_filenames" variables above. 
+# consistent first with the labeling in "one_body_orcaout_filenames" variables above and
+# then with that in supersystem files. 
 two_body_orcaout_directory_SB_LPNO = r'./ORCA-OUT/BOAT/aTZ/PNO6/TWOBODY'
 two_body_orcaout_directory_SB_TPNO = r'./ORCA-OUT/BOAT/aTZ/PNO7/TWOBODY'
 two_body_orcaout_directory_LB_LPNO = r'./ORCA-OUT/BOAT/aQZ/PNO6/TWOBODY'
