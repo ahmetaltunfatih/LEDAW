@@ -2,8 +2,7 @@
 ## A Python-Based Program Package for Automating Local Energy Decomposition Analysis Using Data in ORCA Outputs 
 ## Author
 
-- Prof. Dr. Ahmet Altun, Max-Planck-Institut für Kohlenforshung, Department of Molecular Theory and Spectroscopy, https://github.com/ahmetaltunfatih/
-
+- Prof. Dr. Ahmet Altun, Max-Planck-Institut für Kohlenforshung, Department of Molecular Theory and Spectroscopy
 
 ## Features
 
