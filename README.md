@@ -24,7 +24,29 @@
 - To get used to the logic of LEDAW, it is best to start with "crystal.py". It is for performing N-body, two-body, and cooperativity HFLD/LED analysis of the interaction of a central monomer in a crystal with its environment.
 - "boat.py" is for running all modules of LEDAW, and thus it is a bit more crowded, due to several file path specifications and multiple calls of engine functions. It performs CPS and CBS extrapolations on the DLPNO-CCSD(T)/LED terms for the interaction energy of boat conformer of water hexamer in addition to N-body, two-body, and cooperativity analyses from standard settings in ORCA output files.
 
-## Reference
+## MIT License
+
+Copyright (c) 2024 Ahmet Altun
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+## References
 - If you use any part of this code, in addition to original LED, CPS, and CBS studies, please cite: 
     - https://github.com/ahmetaltunfatih/LEDAW (DOI: 10.13140/RG.2.2.35160.30729)
     - https://chemrxiv.org/engage/chemrxiv/article-details/6698104e01103d79c547414c
