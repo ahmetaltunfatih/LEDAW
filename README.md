@@ -11,7 +11,7 @@
 - LEDAW calculates N-body, two-body, and cooperativity LED interaction energy matrices for both standard and fragment pairwise (fp)-LED schemes from ORCA output files irrespective of the number of fragments in the adduct (supersystem) and its subsystems in seconds.
 - LEDAW performs complete PNO space (CPS) and complete basis set (CBS) extrapolations based on the unextrapolated LED terms in ORCA output files and provides corresponding matrices.
 - LEDAW standardizes fragment labels to those in the supersystem file automatically if they are different in supersystem and subsystem ORCA output files.
-- LEDAW allows relabeling of fragments if you are not satisfied with the fragment labeling in supersystem ORCA output file.
+- LEDAW allows relabeling of fragments if the user is not satisfied with the fragment labeling in supersystem ORCA output file.
 - LEDAW allows specifying an alternative file in the case that an ORCA output file does not contain all necessary energy terms. 
 - Method-specific (DLPNO-CCSD(T), DLPNO-CCSD, and HFLD) collection of LED terms, such as London dispersion, are done automatically.
 - Standard and fp-LED interaction energy maps are written on separate excel files (each on a seperate sheet).
