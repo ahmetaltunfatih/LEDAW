@@ -26,5 +26,5 @@
 
 ## Reference
 - If you use any part of this code, in addition to original LED, CPS, and CBS studies, please cite: 
-    - https://github.com/ahmetaltunfatih/LEDAW
+    - https://github.com/ahmetaltunfatih/LEDAW (DOI: 10.13140/RG.2.2.35160.30729)
     - https://chemrxiv.org/engage/chemrxiv/article-details/6698104e01103d79c547414c
