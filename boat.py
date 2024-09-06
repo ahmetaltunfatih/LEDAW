@@ -288,7 +288,7 @@ one_body_orcaout_filenames_LB_TPNO = extract_one_body_orcaout_filenames(supersys
 #                                       r'./ORCA-OUT/BOAT/aTZ/PNO6/ONEBODY/frag5.mpi4.out',
 #                                      ]
 # ... (for the other computational settings, onebody orcaout file names must be given as separate lists.)   
-# As relabel_mapping is initiated at the beginning of this file, these will then be reordered.
+# as relabel_mapping is initiated at the beginning of this file, the labels will then be reordered.
 # (b) If you provide the order of the files consistent with the outcome of relabel_mapping intiated at the beginning of this file,
 # then you need to reset relabel_mapping to None or False (avoid double reordering) to get exact same result as those obtained with
 # the above two ways.
