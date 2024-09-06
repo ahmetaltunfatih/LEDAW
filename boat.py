@@ -257,11 +257,11 @@ twobody_title='''
 print(twobody_title)
 
 
-### Get the one-body ORCA output files and their labels
+### Specifying the one-body ORCA output files and their labels
 
-# The code compares the labels of supersystem file with onebody files and automatically 
-# standardize the labeling of monomers to the original supersystem labeling.
-# In this example, as relabel_mapping is initiated at the beginning of this file ([1,3,2,4,6,5]), labels will be reordered.
+# If onebody ORA output directory is specified without any file name, the code compares the labels of the supersystem file with 
+# onebody files and automatically standardize the labeling of monomers to the original supersystem labeling.
+# In this example, as relabel_mapping is initiated at the beginning of this file ([1,3,2,4,6,5]), labels will then be reordered.
 # Note: onebody_out_directory directory must contain only the necessary one-body ORCA output files.
 # In the following it is assumed that fragment labeling in all supersystem files are the same.
 # Otherwise, you need to specify all the supersystem files that has differing labeling schemes.
@@ -278,8 +278,8 @@ one_body_orcaout_filenames_LB_LPNO = extract_one_body_orcaout_filenames(supersys
 one_body_orcaout_filenames_LB_TPNO = extract_one_body_orcaout_filenames(supersystem_file, onebody_out_directory=onebody_out_directory_LB_TPNO)
 
 
-# Alternatively, you can enter the list of ORCA output files manually. But, in this approach, you need to
-# provide the order of the files consistent with the order in the supersystem output file. For example:
+# Alternatively, you can enter the list of ORCA output files manually. But, in this approach, the order you specify the file names
+# matters: (a) if it is as in the supersystem output file, i.e.,:
 # one_body_orcaout_filenames_SB_LPNO = [r'./ORCA-OUT/BOAT/aTZ/PNO6/ONEBODY/frag1.mpi4.out',
 #                                       r'./ORCA-OUT/BOAT/aTZ/PNO6/ONEBODY/frag3.mpi4.out',
 #                                       r'./ORCA-OUT/BOAT/aTZ/PNO6/ONEBODY/frag2.mpi4.out',
@@ -287,30 +287,11 @@ one_body_orcaout_filenames_LB_TPNO = extract_one_body_orcaout_filenames(supersys
 #                                       r'./ORCA-OUT/BOAT/aTZ/PNO6/ONEBODY/frag6.mpi4.out',
 #                                       r'./ORCA-OUT/BOAT/aTZ/PNO6/ONEBODY/frag5.mpi4.out',
 #                                      ]
-    
-# one_body_orcaout_filenames_SB_TPNO = [r'./ORCA-OUT/BOAT/aTZ/PNO7/ONEBODY/frag1.mpi4.out',
-#                                       r'./ORCA-OUT/BOAT/aTZ/PNO7/ONEBODY/frag3.mpi4.out',
-#                                       r'./ORCA-OUT/BOAT/aTZ/PNO7/ONEBODY/frag2.mpi4.out',
-#                                       r'./ORCA-OUT/BOAT/aTZ/PNO7/ONEBODY/frag4.mpi4.out',
-#                                       r'./ORCA-OUT/BOAT/aTZ/PNO7/ONEBODY/frag6.mpi4.out',
-#                                       r'./ORCA-OUT/BOAT/aTZ/PNO7/ONEBODY/frag5.mpi4.out',
-#                                      ]
-
-# one_body_orcaout_filenames_LB_LPNO = [r'./ORCA-OUT/BOAT/aQZ/PNO6/ONEBODY/frag1.mpi4.out',
-#                                       r'./ORCA-OUT/BOAT/aQZ/PNO6/ONEBODY/frag3.mpi4.out',
-#                                       r'./ORCA-OUT/BOAT/aQZ/PNO6/ONEBODY/frag2.mpi4.out',
-#                                       r'./ORCA-OUT/BOAT/aQZ/PNO6/ONEBODY/frag4.mpi4.out',
-#                                       r'./ORCA-OUT/BOAT/aQZ/PNO6/ONEBODY/frag6.mpi4.out',
-#                                       r'./ORCA-OUT/BOAT/aQZ/PNO6/ONEBODY/frag5.mpi4.out',
-#                                      ]
-
-# one_body_orcaout_filenames_LB_TPNO = [r'./ORCA-OUT/BOAT/aQZ/PNO7/ONEBODY/frag1.mpi4.out',
-#                                       r'./ORCA-OUT/BOAT/aQZ/PNO7/ONEBODY/frag3.mpi4.out',
-#                                       r'./ORCA-OUT/BOAT/aQZ/PNO7/ONEBODY/frag2.mpi4.out',
-#                                       r'./ORCA-OUT/BOAT/aQZ/PNO7/ONEBODY/frag4.mpi4.out',
-#                                       r'./ORCA-OUT/BOAT/aQZ/PNO7/ONEBODY/frag6.mpi4.out',
-#                                       r'./ORCA-OUT/BOAT/aQZ/PNO7/ONEBODY/frag5.mpi4.out',
-#                                      ]
+# ... (for the other computational settings, onebody orcaout file names must be seperated as separate lists.)   
+# As relabel_mapping is initiated at the beginning of this file, these will then be reordered.
+# (b) If you provide the order of the files consistent with the outcome of relabel_mapping intiated at the beginning of this file,
+# then you need to reset relabel_mapping to None or False (avoid double reordering) to get exact same result as those obtained with
+# the above two ways.
 
 
 ### Specify the two-body ORCA output file directories for each computational setting.
