@@ -95,7 +95,7 @@ print(nbody_title)
 # Note 6: If you specified the same fragment with different labels in supersystem and subsystem ORCA output files, 
 # the code automatically labels subsystem fragment labels as in the supersystem output file.
 # Note 7: The code only accepts separate ORCA output files for each system (supersystem and subsystems) and computational setting 
-# If you have compound job output, you need to split this file to seperate files for each job.  
+# If you have compound job output, you need to split this file to separate files for each job.  
 # Note 8: Optionally, you can perform Complete PNO Space (CPS) and Complete Basis Set (CBS) extrapolations.
 # In this case, you need to specify the path of each ORCA output file with each computational setting.
 # For CPS extrapolation, you need two calculations with a looser (LPNO) and a tighter (TPNO) TCutPNO values, 
@@ -287,7 +287,7 @@ one_body_orcaout_filenames_LB_TPNO = extract_one_body_orcaout_filenames(supersys
 #                                       r'./ORCA-OUT/BOAT/aTZ/PNO6/ONEBODY/frag6.mpi4.out',
 #                                       r'./ORCA-OUT/BOAT/aTZ/PNO6/ONEBODY/frag5.mpi4.out',
 #                                      ]
-# ... (for the other computational settings, onebody orcaout file names must be seperated as separate lists.)   
+# ... (for the other computational settings, onebody orcaout file names must be given as separate lists.)   
 # As relabel_mapping is initiated at the beginning of this file, these will then be reordered.
 # (b) If you provide the order of the files consistent with the outcome of relabel_mapping intiated at the beginning of this file,
 # then you need to reset relabel_mapping to None or False (avoid double reordering) to get exact same result as those obtained with
