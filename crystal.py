@@ -62,7 +62,7 @@ nbody_title='''
 ##############################################################################################################
 '''
 
-### Specify ORCA Output Files Needed For N-Body LED Analysis
+### Specifying ORCA Output Files Needed For N-Body LED Analysis
 # Below specify main and alternative filenames with their paths as lists. 
 # Note 1: Always specify the output file for the entire system (super system) first in main_filenames and
 # alternative_filenames lists. Where necessary, the code differentiate the super system and its subsystems 
@@ -79,8 +79,8 @@ nbody_title='''
 # Note 5: You do not have to specify any file name for alternative_filenames. But an empty list with the length of main_filenames must be initiated. 
 # Note 6: If you specified the same fragment with different labels in supersystem and subsystem ORCA output files, 
 # the code automatically labels subsystem fragment labels as in the supersystem output file.
-# Note 7: The code only accepts seperate ORCA output files for each system (supersystem and subsystems) and computational setting 
-# If you have compound job output, you need to split this file to seperate files for each job.  
+# Note 7: The code only accepts separate ORCA output files for each system (supersystem and subsystems) and computational setting 
+# If you have compound job output, you need to split this file to separate files for each job.  
 # Note 8: Optionally, you can perform Complete PNO Space (CPS) and Complete Basis Set (CBS) extrapolations.
 # In this case, you need to specify the path of each ORCA output file with each computational setting.
 # For CPS extrapolation, you need two calculations with a looser (LPNO) and a tighter (TPNO) TCutPNO values, 
@@ -131,11 +131,11 @@ twobody_title='''
 '''
 print(twobody_title)
 
-### Get the one-body ORCA output files and their labels
+### Speciying the one-body ORCA output files and their labels
 
 ## First Way ##
-# Compare the labels of supersystem file with onebody files and automatically 
-# standardize the labelling of monomers to the original supersystem labelling.
+# If onebody ORA output directory is specified without any file name, the code compares the labels of the supersystem  
+# file with onebody files and automatically standardize the labeling of monomers to the original supersystem labeling.
 # In this example, as relabel_mapping is initiated at the beginning of this file ([1,6,4,5,3,2,7,8,9,10,11]),
 # labels will be reordered.
 # Note: onebody_out_directory directory must contain only the necessary one-body ORCA output files.
