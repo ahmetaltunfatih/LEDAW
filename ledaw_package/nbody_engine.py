@@ -957,7 +957,7 @@ def combine_intra_inter_matrices(LEDAW_output_path):
     print(f"Intra and Inter matrices were combined and written to '{output_excel_file}'")
 
 
-def compute_all_standard_led_int_en_matrices(system_labels, conversion_factor, method, LEDAW_output_path, main_subsystem_matching_labels):
+def compute_all_standard_led_int_en_matrices(system_labels, conversion_factor, method, LEDAW_output_path, main_subsystem_matching_labels, main_filenames, alternative_filenames):
     """Process LED matrices of supersystem and its subsystems to compute LED interaction energy map and its components, and write results to a new Excel file."""
     
     # Define file paths with the provided LEDAW_output_path
@@ -968,7 +968,6 @@ def compute_all_standard_led_int_en_matrices(system_labels, conversion_factor, m
     subsystem_labels = system_labels[1:]
 
     matrices = {}
-
     xl = pd.ExcelFile(input_excel_file)
 
     for sheet_name in xl.sheet_names:
@@ -987,18 +986,10 @@ def compute_all_standard_led_int_en_matrices(system_labels, conversion_factor, m
                     df_subsystem = df_subsystem[~df_subsystem.index.duplicated(keep='first')]
                     df_subsystem = df_subsystem.loc[:, ~df_subsystem.columns.duplicated(keep='first')]
 
-                    # Check for missing indices in the subsystem
-                    missing_indices = df_supersystem.index.difference(df_subsystem.index)
-                    if not missing_indices.empty:
-                        df_subsystem = df_subsystem.reindex(index=df_supersystem.index, columns=df_supersystem.columns, fill_value=0)
-                    else:
-                        df_subsystem = df_subsystem.reindex(index=df_supersystem.index, columns=df_supersystem.columns, fill_value=0)
-
                     df_sum_subsystems += df_subsystem
 
             # Apply the conversion factor or compute the difference depending on the method
             if method.lower() == "hfld" and ('Disp SP' in sheet_name or 'WP' in sheet_name or 'Disp HFLD' in sheet_name):
-                # Apply zeroing logic to Disp SP and Disp WP only
                 for i, sublist in enumerate(main_subsystem_matching_labels):
                     for j in range(len(sublist)):
                         for k in range(j + 1, len(sublist)):
@@ -1010,9 +1001,9 @@ def compute_all_standard_led_int_en_matrices(system_labels, conversion_factor, m
                 df_result = (df_supersystem - df_sum_subsystems) * conversion_factor  # Compute differences for other matrices
 
             df_result = df_result.where(np.triu(np.ones(df_result.shape), k=0).astype(bool))
-
             matrices[new_sheet_name] = df_result
 
+    # Handle Dispersion matrices for DLPNO-CCSD(T), DLPNO-CCSD, and HFLD methods
     if 'Disp SP' in matrices:
         df_disp_wp = matrices.get('WP', pd.DataFrame(np.nan, index=matrices['SP'].index, columns=matrices['SP'].columns)).copy()
         np.fill_diagonal(df_disp_wp.values, np.nan)
@@ -1079,24 +1070,35 @@ def compute_all_standard_led_int_en_matrices(system_labels, conversion_factor, m
             
             matrices['TOTAL'] = df_total
 
-    for sheet_name, df in matrices.items():
-        if np.all(df.values.diagonal() == 0):
-            np.fill_diagonal(df.values, np.nan)
-    
+    # Compute the dielectric interaction energy using compute_diel_int_en
+    diel_values, diel_int_energy = compute_diel_int_en(main_filenames, alternative_filenames, conversion_factor)
+
+    # Add the DIEL matrix and update TOTAL
+    if 'TOTAL' in matrices and diel_int_energy != 0:
+        total_matrix = matrices['TOTAL']
+
+        # Calculate total sum without DIEL (sum of all elements)
+        total_sum_wo_diel = total_matrix.sum().sum()
+
+        if total_sum_wo_diel != 0:
+            diel_matrix = total_matrix * (diel_int_energy / total_sum_wo_diel)
+            matrices['DIEL'] = diel_matrix
+            matrices['TOTAL'] = total_matrix + diel_matrix  # Add DIEL to TOTAL
+
     # Write the matrices from the dictionary to the output Excel file
     with pd.ExcelWriter(output_excel_file, engine='openpyxl') as writer:
-        # Write TOTAL first if it exists
+        # Write TOTAL and DIEL if they exist
         if 'TOTAL' in matrices:
             matrices['TOTAL'].to_excel(writer, sheet_name='TOTAL')
+        if 'DIEL' in matrices:
+            matrices['DIEL'].to_excel(writer, sheet_name='DIEL')
 
         # Write all other matrices
         for sheet_name, df in matrices.items():
-            if method.lower() == "hfld" and sheet_name in ['SP', 'WP', 'T', 'Singles']:
-                continue
-            if sheet_name != 'TOTAL':  # Avoid writing TOTAL again
+            if sheet_name not in ['TOTAL', 'DIEL']:  # Avoid writing TOTAL twice
                 df.to_excel(writer, sheet_name=sheet_name)
 
-    print(f"All standard '{method}/LED' interaction energy matrices without relabeling fragments were written to '{output_excel_file}'")
+    print(f"All standard '{method}/LED' interaction energy matrices were written to '{output_excel_file}'")
 
 
 def relabel_and_sort_matrices(relabel_mapping, LEDAW_output_path, method):
@@ -1153,17 +1155,17 @@ def write_standard_LED_summary_int_en_matrices(method, LEDAW_output_path):
     # Define the sheets to be written
     if method.lower() == "dlpno-ccsd(t)":
         sheets_to_transfer = [
-            'TOTAL', 'REF', 'Electrostat', 'Exchange', 
+            'TOTAL', 'DIEL', 'REF', 'Electrostat', 'Exchange', 
             'C-CCSD(T)', 'Disp CCSD(T)', 'Inter-NonDisp-C-CCSD(T)'
         ]
     elif method.lower() == "dlpno-ccsd":
         sheets_to_transfer = [
-            'TOTAL', 'REF', 'Electrostat', 'Exchange', 
+            'TOTAL', 'DIEL', 'REF', 'Electrostat', 'Exchange', 
             'C-CCSD', 'Disp CCSD', 'Inter-NonDisp-C-CCSD'
         ]
     elif method.lower() == "hfld":
         sheets_to_transfer = [
-            'TOTAL', 'REF', 'Electrostat', 'Exchange', 
+            'TOTAL', 'DIEL', 'REF', 'Electrostat', 'Exchange', 
             'Disp HFLD'
         ]
     else:
@@ -1401,11 +1403,12 @@ def engine_LED_N_body(main_filenames, alternative_filenames, conversion_factor, 
     # Combine intra and inter matrices
     combine_intra_inter_matrices(LEDAW_output_path=LEDAW_output_path)
 
-    # Compute all standard LED interaction energy matrices
     compute_all_standard_led_int_en_matrices(system_labels=list(labeled_main_filenames.values()),
-                                             conversion_factor=conversion_factor, method=method, 
-                                             LEDAW_output_path=LEDAW_output_path,
-                                             main_subsystem_matching_labels=subsystem_matching_labels_main)
+                                             conversion_factor=conversion_factor, 
+                                             method=method, LEDAW_output_path=LEDAW_output_path,
+                                             main_subsystem_matching_labels=subsystem_matching_labels_main,
+                                             main_filenames=main_filenames,
+                                             alternative_filenames=alternative_filenames)
 
     # If relabeling is not specified, determine the number of fragments based on the supersystem labels 
     # and construct the original label list
