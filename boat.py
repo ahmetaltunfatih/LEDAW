@@ -3,7 +3,7 @@
 #                           LEDAW - LED Analysis Wizard                                #
 #                                                                                      #
 #                 Automate Local Energy Decomposition Analysis                         # 
-#                           Using Data in ORCA Outputs                                 #
+#                               Using ORCA Outputs                                     #
 #                                                                                      #
 #                            written by Ahmet Altun                                    #
 #                    Max-Planck-Institut für Kohlenforshung                            #
