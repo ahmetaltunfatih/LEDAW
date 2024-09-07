@@ -106,8 +106,6 @@ LEDAW_output_path = r'./LEDAW-OUT/CRYSTAL/NBODY'
 
 ### Run N-Body LED engine for all computational settings.
 # Standard and fp-LED N-body matrices will be written to excel files in specified LEDAW output directory
-
-# for smaller basis set and looser TCutPNO setting
 engine_LED_N_body(main_filenames=main_filenames, 
                   alternative_filenames=alternative_filenames, 
                   conversion_factor=conversion_factor, 
