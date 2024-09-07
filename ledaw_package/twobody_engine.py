@@ -136,7 +136,7 @@ def extract_twobody_dielectric_values(two_body_orcaout_directory, two_body_label
 
 
 def populate_twobody_dielectric_matrices(one_body_orcaout_filenames, two_body_orcaout_directory, conversion_factor, two_body_labels, LEDAW_output_path_two_body, relabel_mapping=None):
-    """Populate the two-body dielectric interaction matrix and save it to an Excel file."""
+    """Populate the two-body dielectric interaction matrix and save it to an Excel file. Return the sum of the dielectric terms."""
     
     # Define the dielectric extraction pattern
     dielectric_pattern = r'CPCM Dielectric\s*:\s*(-?\d+\.\d+)\s*Eh'
@@ -180,14 +180,17 @@ def populate_twobody_dielectric_matrices(one_body_orcaout_filenames, two_body_or
             for j in range(i):
                 matrix[i, j] = 0
     
-    # Convert to DataFrame
-    df = pd.DataFrame(matrix, index=range(1, n + 1), columns=range(1, n + 1))
+    # Compute diel_int_energy as the sum of all elements in the two-body dielectric interaction matrix
+    diel_int_energy = np.nansum(matrix)
 
-    # Write the matrix to an Excel file in the specified output directory
-    if LEDAW_output_path_two_body:
-        output_file_path = os.path.join(LEDAW_output_path_two_body, 'DIEL.xlsx')
+    # Write the matrix to an Excel file only if diel_int_energy is not zero
+    if diel_int_energy != 0:
+        df = pd.DataFrame(matrix, index=range(1, n + 1), columns=range(1, n + 1))
+        output_file_path = os.path.join(LEDAW_output_path_two_body, 'DIEL-fp.xlsx')
         df.to_excel(output_file_path, sheet_name='DIEL')
         print(f"Two-body dielectric LED interaction energy matrix was written to {output_file_path}")
+
+    return diel_int_energy
 
 
 def populate_twobody_inter_matrices(one_body_orcaout_filenames, two_body_orcaout_directory, conversion_factor, relabel_mapping=None, two_body_labels=None, LEDAW_output_path_two_body=None):
@@ -248,8 +251,6 @@ def populate_twobody_inter_matrices(one_body_orcaout_filenames, two_body_orcaout
 
     print(f"Two-body interfragment LED interaction energy matrices were written to {output_file_path}")
 
-
-import re
 
 def extract_onebody_values(one_body_filenames, patterns, method, use_ref_as_rhf_in_hfld=None, relabel_mapping=None):
     """Extract various values from one-body files using provided patterns and optionally a relabel_mapping."""
@@ -506,7 +507,7 @@ def finalize_els_exch_matrices_for_writing(summary_sheets):
     return summary_sheets
 
 
-def calculate_twobody_standard_LED_summary_matrices(LEDAW_output_path_two_body, method, use_ref_as_rhf_in_hfld):
+def calculate_twobody_standard_LED_summary_matrices(LEDAW_output_path_two_body, method, use_ref_as_rhf_in_hfld, diel_int_energy=None):
     # File paths
     elprep_file = os.path.join(LEDAW_output_path_two_body, 'ELPREP.xlsx')
     inter_file = os.path.join(LEDAW_output_path_two_body, 'INTER.xlsx')
@@ -535,10 +536,10 @@ def calculate_twobody_standard_LED_summary_matrices(LEDAW_output_path_two_body, 
     np.fill_diagonal(ref_matrix.values, np.diag(ref_matrix) + combined_diagonals['REF'])
     summary_sheets['REF'] = ref_matrix
 
-    # Calculate Dispersion sheets
+    # Calculate Dispersion sheets based on the method
     if method.lower() == 'dlpno-ccsd':
         disp_ccsd = inter_sheets['Disp SP'] + inter_sheets['Inter WP']
-        summary_sheets['Disp CCSD'] = set_diag_belowdiag_nan(disp_ccsd)  # Set diag and lower diag to NaN
+        summary_sheets['Disp CCSD'] = set_diag_belowdiag_nan(disp_ccsd)
 
     elif method.lower() == 'hfld':
         disp_hfld = inter_sheets['Disp SP'] + inter_sheets['Inter WP']
@@ -550,20 +551,20 @@ def calculate_twobody_standard_LED_summary_matrices(LEDAW_output_path_two_body, 
             disp_t[np.isnan(disp_t)] = 0
         
         disp_t = disp_t.where(np.triu(np.ones(disp_t.shape), k=0).astype(bool))
-        inter_sheets['Disp T'] = disp_t  # Prepare to append Disp T to INTER.xlsx
+        inter_sheets['Disp T'] = disp_t
 
         disp_ccsd_t = inter_sheets['Disp SP'] + inter_sheets['Inter WP'] + disp_t
-        summary_sheets['Disp CCSD(T)'] = set_diag_belowdiag_nan(disp_ccsd_t)  # Set diag and lower diag to NaN
+        summary_sheets['Disp CCSD(T)'] = set_diag_belowdiag_nan(disp_ccsd_t)
 
     # Calculate Inter-NonDisp-C matrices
     if method.lower() == 'dlpno-ccsd':
         inter_nondisp_ccsd = inter_sheets['Inter SP'] - inter_sheets['Disp SP']
-        summary_sheets['Inter-NonDisp-C-CCSD'] = set_diag_belowdiag_nan(inter_nondisp_ccsd)  # Set diag and lower diag to NaN
+        summary_sheets['Inter-NonDisp-C-CCSD'] = set_diag_belowdiag_nan(inter_nondisp_ccsd)
 
     elif method.lower() == 'dlpno-ccsd(t)':
         inter_nondisp_ccsd_t = (inter_sheets['Inter SP'] + inter_sheets['Inter WP'] + 
                                 inter_sheets['Inter T'] - summary_sheets['Disp CCSD(T)'])
-        summary_sheets['Inter-NonDisp-C-CCSD(T)'] = set_diag_belowdiag_nan(inter_nondisp_ccsd_t)  # Set diag and lower diag to NaN
+        summary_sheets['Inter-NonDisp-C-CCSD(T)'] = set_diag_belowdiag_nan(inter_nondisp_ccsd_t)
 
     # Correct diagonal elements for C-CCSD and related matrices
     if method.lower() == 'dlpno-ccsd':
@@ -600,17 +601,35 @@ def calculate_twobody_standard_LED_summary_matrices(LEDAW_output_path_two_body, 
     # Finalize matrices before writing to Excel
     summary_sheets = finalize_els_exch_matrices_for_writing(summary_sheets)
 
+    # Now add the dielectric interaction matrix (DIEL) if available
+    if diel_int_energy:
+        # Rename TOTAL to total_matrix_wo_diel
+        total_matrix_wo_diel = summary_sheets['TOTAL']
+        
+        # Calculate DIEL sheet by scaling total_matrix_wo_diel
+        diel_matrix = total_matrix_wo_diel * (diel_int_energy / np.nansum(total_matrix_wo_diel))
+        summary_sheets['DIEL'] = diel_matrix
+        
+        # New TOTAL is total_matrix_wo_diel + DIEL
+        summary_sheets['TOTAL'] = total_matrix_wo_diel + diel_matrix
+        
+        # Write DIEL to a separate Excel file
+        diel_output_file = os.path.join(LEDAW_output_path_two_body, 'DIEL-STD.xlsx')
+        with pd.ExcelWriter(diel_output_file, engine='openpyxl') as writer:
+            diel_matrix.to_excel(writer, sheet_name='DIEL')
+        print(f"Dielectric matrix was written to '{diel_output_file}'")
+
     # Save or overwrite Disp T to INTER.xlsx
     if 'Disp T' in inter_sheets:
         with pd.ExcelWriter(inter_file, mode='a', engine='openpyxl') as writer:
             workbook = writer.book
             if 'Disp T' in workbook.sheetnames:
-                del workbook['Disp T']  # Remove existing 'Disp T' sheet
+                del workbook['Disp T']
             inter_sheets['Disp T'].to_excel(writer, sheet_name='Disp T')
 
     # Write to Summary Excel file in the specified order
     sheet_order = [
-        'TOTAL', 'REF', 'Electrostat', 'Exchange',
+        'TOTAL', 'DIEL', 'REF', 'Electrostat', 'Exchange',
         'C-CCSD' if method.lower() == 'dlpno-ccsd' else 'C-CCSD(T)',
         'Disp CCSD' if method.lower() == 'dlpno-ccsd' else 'Disp CCSD(T)' if method.lower() == 'dlpno-ccsd(t)' else 'Disp HFLD',
         'Inter-NonDisp-C-CCSD' if method.lower() == 'dlpno-ccsd' else 'Inter-NonDisp-C-CCSD(T)'
@@ -618,7 +637,7 @@ def calculate_twobody_standard_LED_summary_matrices(LEDAW_output_path_two_body, 
 
     with pd.ExcelWriter(summary_file, engine='openpyxl') as writer:
         for sheet_name in sheet_order:
-            if sheet_name in summary_sheets:
+            if sheet_name and sheet_name in summary_sheets:
                 summary_sheets[sheet_name].to_excel(writer, sheet_name=sheet_name)
 
         print(f"Standard LED two-body summary interaction energy matrices were written to '{summary_file}'")
@@ -669,7 +688,7 @@ def calculate_twobody_fpLED_matrices(LEDAW_output_path_two_body, method):
     # File paths
     elprep_file = os.path.join(LEDAW_output_path_two_body, 'ELPREP.xlsx')
     summary_standard_file = os.path.join(LEDAW_output_path_two_body, 'Summary_Standard_LED_matrices.xlsx')
-    diel_file = os.path.join(LEDAW_output_path_two_body, 'DIEL.xlsx')
+    diel_file = os.path.join(LEDAW_output_path_two_body, 'DIEL-fp.xlsx')
     summary_file = os.path.join(LEDAW_output_path_two_body, 'Summary_fp-LED_matrices.xlsx')
     
     # Load standard sheets from Summary_Standard_LED_matrices.xlsx
@@ -771,7 +790,7 @@ def calculate_twobody_fpLED_matrices(LEDAW_output_path_two_body, method):
 
 
 def engine_LED_two_body(one_body_orcaout_filenames, two_body_orcaout_directory, conversion_factor, method, LEDAW_output_path_two_body, use_ref_as_rhf_in_hfld=None, relabel_mapping=None):
-    ''' Collect and process the files needed for two-body LED and provide standard and fp-LED matrices'''
+    '''Collect and process the files needed for two-body LED and provide standard and fp-LED matrices.'''
 
     # Ensure the output directory exists
     if not os.path.exists(LEDAW_output_path_two_body):
@@ -787,32 +806,32 @@ def engine_LED_two_body(one_body_orcaout_filenames, two_body_orcaout_directory, 
     # Extract labels from two-body files based on one-body labels
     two_body_labels = extract_labels_from_two_body_files(two_body_orcaout_directory, label_mapping)
     
-    # Populate dielectric matrices
-    populate_twobody_dielectric_matrices(one_body_orcaout_filenames, two_body_orcaout_directory,
-                                         conversion_factor, two_body_labels, 
-                                         LEDAW_output_path_two_body=LEDAW_output_path_two_body, 
-                                         relabel_mapping=relabel_mapping)
-    
-    # Populate inter-fragment interaction matrices
+    # Step 1: Populate dielectric matrices and compute diel_int_energy
+    diel_int_energy = populate_twobody_dielectric_matrices(one_body_orcaout_filenames, two_body_orcaout_directory,
+                                                           conversion_factor, two_body_labels, 
+                                                           LEDAW_output_path_two_body=LEDAW_output_path_two_body, 
+                                                           relabel_mapping=relabel_mapping)
+
+    # Step 2: Populate inter-fragment interaction matrices
     populate_twobody_inter_matrices(one_body_orcaout_filenames, two_body_orcaout_directory,
                                     conversion_factor, relabel_mapping=relabel_mapping, 
                                     two_body_labels=two_body_labels, 
                                     LEDAW_output_path_two_body=LEDAW_output_path_two_body)
     
-    # Populate energy preparation matrices
+    # Step 3: Populate energy preparation matrices
     populate_twobody_elprep_matrices(one_body_orcaout_filenames, two_body_orcaout_directory,
                                      conversion_factor, two_body_labels=two_body_labels, 
                                      LEDAW_output_path_two_body=LEDAW_output_path_two_body, 
                                      method=method, relabel_mapping=relabel_mapping,
-									 use_ref_as_rhf_in_hfld=use_ref_as_rhf_in_hfld
-									 )
-    
-    # Calculate and store standard LED matrices
-    calculate_twobody_standard_LED_summary_matrices(LEDAW_output_path_two_body=LEDAW_output_path_two_body,
-                                                    method=method, use_ref_as_rhf_in_hfld=use_ref_as_rhf_in_hfld)
+                                     use_ref_as_rhf_in_hfld=use_ref_as_rhf_in_hfld)
 
-    
-    # Calculate and store fp-LED matrices
+    # Step 4: Calculate and store standard LED matrices, passing diel_int_energy to the function
+    calculate_twobody_standard_LED_summary_matrices(LEDAW_output_path_two_body=LEDAW_output_path_two_body,
+                                                    method=method, 
+                                                    use_ref_as_rhf_in_hfld=use_ref_as_rhf_in_hfld,
+                                                    diel_int_energy=diel_int_energy)
+
+    # Step 5: Calculate and store fp-LED matrices
     calculate_twobody_fpLED_matrices(LEDAW_output_path_two_body=LEDAW_output_path_two_body, method=method)
     
     # Print completion message
@@ -820,5 +839,3 @@ def engine_LED_two_body(one_body_orcaout_filenames, two_body_orcaout_directory, 
     print('*' * 125)
     print(f"  Two-body LED analyses were terminated NORMALLY. Standard and fp-LED two-body summary matrices are at {LEDAW_output_path_two_body}")
     print('*' * 125)
-
-	
