@@ -1,5 +1,5 @@
 #  LEDAW - LED Analysis Wizard   
-## A Python-Based Program Package for Automating Local Energy Decomposition Analysis Using Data in ORCA Outputs 
+## A Python-Based Program Package for Automating Local Energy Decomposition Analysis Using ORCA Outputs 
 ## Author
 
 - Prof. Dr. Ahmet Altun, Max-Planck-Institut für Kohlenforshung, Department of Molecular Theory and Spectroscopy
