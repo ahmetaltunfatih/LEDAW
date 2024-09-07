@@ -12,7 +12,7 @@
 - LEDAW standardizes fragment labels to those in the supersystem file automatically if they are different in supersystem and subsystem ORCA output files.
 - LEDAW allows relabeling of fragments if the user is not satisfied with the fragment labeling in supersystem ORCA output file.
 - LEDAW allows specifying an alternative file in the case that an ORCA output file does not contain all necessary energy terms. 
-- Method-specific (DLPNO-CCSD(T), DLPNO-CCSD, and HFLD) collection of LED terms, such as London dispersion, are done automatically. If an implicit solvation scheme (CPCM, SMD, etc.) is used, the code recognizes this automatically and distribute dielectric contribution to pairwise terms- 
+- Method-specific (DLPNO-CCSD(T), DLPNO-CCSD, and HFLD) collection of LED terms, such as London dispersion, are done automatically. If an implicit solvation scheme (CPCM, SMD, etc.) is used, the code recognizes this automatically and distribute dielectric contribution to pairwise terms. 
 - Standard and fp-LED interaction energy maps are written on separate excel files (each on a seperate sheet).
 - LEDAW plots finally heat maps for all the LED interaction energy matrices.
 
