@@ -3,6 +3,7 @@ import re
 import numpy as np
 import pandas as pd
 from .classes import *
+from .nbody_engine import extract_coords_from_line
 
 
 def get_two_body_filenames(two_body_orcaout_directory):
@@ -24,7 +25,7 @@ def get_two_body_filenames(two_body_orcaout_directory):
 
 
 def extract_labels_from_one_body_files(one_body_orcaout_filenames, relabel_mapping=None, tolerance=1e-3):
-    """Extract labels from one-body files based on the first line after *xyz pattern and store numerical values."""
+    """Extract labels from one-body files based on the first line after *xyz pattern without colon sign, i.e., without BSSE block."""
     
     # Check if relabel_mapping was explicitly passed as an argument
     if relabel_mapping is None:
@@ -33,23 +34,41 @@ def extract_labels_from_one_body_files(one_body_orcaout_filenames, relabel_mappi
     
     label_mapping = {}
     
+    # Iterate over the list of filenames
     for idx, filename in enumerate(one_body_orcaout_filenames, start=1):
         with open(filename, 'r') as file:
-            content = file.read()
-            match = re.search(r'\*\s*xyz[^\n]*\n(.*)', content)
-            if match:
-                next_line = match.group(1)
-                numbers = re.findall(r'-?\d+\.\d+', next_line)
-                numbers = [float(num) for num in numbers]
-                original_label = idx  # idx corresponds to the original file label (1-based)
-                remapped_label = relabel_mapping[original_label - 1]  # Adjusted for 0-based index
-                label_mapping[remapped_label] = numbers
-                
+            content = file.readlines()
+            
+        pattern_found = False
+        
+        # Process each line in the file
+        for i, line in enumerate(content):
+            # Check for the *xyz pattern
+            if re.search(r'\*\s*xyz', line):
+                pattern_found = True
+
+                # Process lines after the *xyz pattern to find the first one without a colon
+                for subsequent_line in content[i+1:]:
+                    if ':' not in subsequent_line:
+                        # Extract numbers from the line without a colon
+                        numbers = re.findall(r'-?\d+\.\d+', subsequent_line)
+                        numbers = [float(num) for num in numbers]
+
+                        # Get the original and remapped labels
+                        original_label = idx  # idx corresponds to the original file label (1-based)
+                        remapped_label = relabel_mapping[original_label - 1]  # Adjusted for 0-based index
+                        
+                        # Store the numbers under the remapped label
+                        label_mapping[remapped_label] = numbers
+                        break  # Stop after finding the first valid line without colon
+                    # If colon is found, continue automatically
+
     return label_mapping
 
 
 def extract_labels_from_two_body_files(two_body_orcaout_directory, label_mapping, tolerance=1e-3):
-    """Extract labels from two-body files using coordinate comparison with a specified tolerance."""
+    """Extract labels from two-body files using coordinate comparison with a specified tolerance.
+    Stops searching once 'INTERNAL COORDINATES (ANGSTROEM)' is encountered and looks for max two FRAGMENT X with coordinates."""
     
     two_body_labels = {}
 
@@ -63,31 +82,41 @@ def extract_labels_from_two_body_files(two_body_orcaout_directory, label_mapping
             lines = file.readlines()
         
         labels = []
-        fragment_count = 0
+        fragments_with_coords = 0  # Keep track of fragments that have coordinates
+        fragment_started = False  # Initialize variable before use
         
         for line in lines:
             line = line.strip()
             
-            if line.startswith("FRAGMENT"):
-                fragment_count += 1
+            # Stop searching once 'INTERNAL COORDINATES (ANGSTROEM)' is encountered
+            if "INTERNAL COORDINATES (ANGSTROEM)" in line:
+                break  # Stop searching for FRAGMENT X blocks once this section is reached
             
-            if fragment_count > 0 and fragment_count <= 2:
+            # Check if the line starts with "FRAGMENT"
+            if line.startswith("FRAGMENT"):  
+                fragment_started = True  # Indicate the start of a fragment block
+            
+            # Process only after detecting a "FRAGMENT" block and check for coordinates
+            if fragment_started:
                 parts = line.split()
                 if len(parts) == 4:  # Check for atomic symbol and three coordinates
                     try:
-                        coordinates = list(map(float, parts[1:4]))
+                        coordinates = list(map(float, parts[1:4]))  # Try to extract coordinates
+                        fragments_with_coords += 1  # Fragment has valid coordinates
                     except ValueError:
                         continue  # Skip lines that don't have valid floats for coordinates
                     
+                    # Compare coordinates with label_mapping
                     for key, value in label_mapping.items():
-                        # Compare coordinates with tolerance
                         if all(abs(c1 - c2) <= tolerance for c1, c2 in zip(coordinates, value)):
                             labels.append(key)
                             break
             
-            if fragment_count == 2 and len(labels) == 2:
-                break  # Stop after finding two labels
-        
+            # Stop once we have found two fragments with coordinates
+            if fragments_with_coords == 2 and len(labels) == 2:
+                break
+
+        # Only store if two labels were successfully identified
         if len(labels) == 2:
             two_body_labels[file_name] = labels
     
@@ -768,8 +797,13 @@ def calculate_twobody_fpLED_matrices(LEDAW_output_path_two_body, method):
     # Set diagonal and below-diagonal elements to NaN for all matrices
     for sheet_name in summary_sheets:
         df = summary_sheets[sheet_name]
+        # Ensure that the DataFrame is of float type so it can accept NaN values
+        df = df.astype(float)
+        # Create a mask for diagonal and below-diagonal elements
         mask = np.tril(np.ones(df.shape), k=0).astype(bool)
+        # Set these elements to NaN
         df.values[mask] = np.nan
+        # Update the summary_sheets with the modified DataFrame
         summary_sheets[sheet_name] = df
 
     # Ensure that the file is created and write the results to the Excel file
