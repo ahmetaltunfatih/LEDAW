@@ -471,4 +471,3 @@ def heatmap_plot_engine(base_path, plot_params_for_std_led_matrices, plot_params
     print('*'*100)
     print("Heat map generation job was terminated NORMALLY")
     print('*'*100)
-
