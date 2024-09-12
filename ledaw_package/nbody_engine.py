@@ -21,74 +21,193 @@ def label_systems(filenames):
 
 
 def parse_coordinates_from_file(file_path):
-    """Extract unique labels and coordinates from the given file."""
+    """Extract the first set of coordinates from FRAGMENT X, *xyz (without colon), or CARTESIAN COORDINATES (ANGSTROEM).
+    If only one FRAGMENT X block contains coordinates, proceed with Step 2 (*xyz section)."""
+    
     label_coord_map = {}
     fragment_mode = False
     frag_label_counter = 1
     current_fragment = None
-    pattern_found = False
+    colon_found = False  # Flag to track if colon is found in the *xyz section
+    fragment_found = False  # Flag to track if FRAGMENT X was found
+    fragments_with_coords = 0  # Counter to track number of fragments with coordinates
 
     with open(file_path, 'r') as file:
         lines = file.readlines()
 
+    # Step 1: Handling `FRAGMENT X`
     for line in lines:
-        if re.search(r'CARTESIAN COORDINATES OF FRAGMENTS \(ANGSTROEM\)', line):
+        if re.search(r'CARTESIAN COORDINATES OF FRAGMENTS \(ANGSTROEM\)', line):  # Start FRAGMENT X block
             fragment_mode = True
             label_coord_map.clear()
             frag_label_counter = 1
-            pattern_found = True
+            fragment_found = True  # Mark that FRAGMENT X is found
             continue
         
-        if re.search(r'INTERNAL COORDINATES \(ANGSTROEM\)', line):
-            if fragment_mode:
-                fragment_mode = False
+        if re.search(r'INTERNAL COORDINATES \(ANGSTROEM\)', line):  # End FRAGMENT X block
+            fragment_mode = False
             continue
 
         if fragment_mode:
+            # Detect FRAGMENT X
             fragment_match = re.match(r'\s*FRAGMENT\s+(\d+)', line)
             if fragment_match:
                 current_fragment = int(fragment_match.group(1))
                 continue
-            
-            coord_match = re.match(r'\s*\w+\s+([-.\d]+)\s+([-.\d]+)\s+([-.\d]+)', line)
-            if coord_match and current_fragment is not None and current_fragment not in label_coord_map:
-                coordinates = (float(coord_match.group(1)), float(coord_match.group(2)), float(coord_match.group(3)))
-                label_coord_map[current_fragment] = coordinates
-                current_fragment = None
 
-    if not pattern_found:
+            # Extract the first set of coordinates in FRAGMENT X
+            if current_fragment is not None:
+                coord_match = re.match(r'\s*\w+\s+([-.\d]+)\s+([-.\d]+)\s+([-.\d]+)', line)
+                if coord_match and current_fragment not in label_coord_map:
+                    coordinates = (
+                        float(coord_match.group(1)),
+                        float(coord_match.group(2)),
+                        float(coord_match.group(3))
+                    )
+                    label_coord_map[current_fragment] = coordinates  # Store first set of coordinates
+                    current_fragment = None  # Reset current fragment after storing the first set
+                    fragments_with_coords += 1  # Increment the count of fragments with coordinates
+
+    # If only one fragment block has coordinates, skip to Step 2 (*xyz section)
+    if fragments_with_coords <= 1:
+        fragment_found = False  # Force this to False so it triggers Step 2 below
+
+    # Step 2: Handling `*xyz` if FRAGMENT X is not found or only one fragment block had coordinates
+    if not fragment_found:  # Only proceed to *xyz section if FRAGMENT X was not found or only one fragment block had coordinates
+        pattern1_mode = False
+        for line in lines:
+            if re.search(r'\*xyz\s*', line):  # Start of `*xyz` block
+                pattern1_mode = True
+                continue
+            
+            if pattern1_mode and re.search(r'END OF INPUT', line.strip(), re.IGNORECASE):  # End of `*xyz` block
+                pattern1_mode = False
+                continue
+
+            # If in `*xyz` mode and the line contains a colon, mark colon_found
+            if pattern1_mode and ':' in line:
+                colon_found = True
+
+            # If in `*xyz` mode and the line does NOT contain a colon, store the coordinates
+            if pattern1_mode and ':' not in line:
+                # Extract the last three numeric elements as coordinates
+                coords = extract_coords_from_line(line)
+                if coords:
+                    label = frag_label_counter
+                    frag_label_counter += 1
+                    label_coord_map[label] = coords  # Store the first set of coordinates without colon
+
+    # Step 3: Handling "CARTESIAN COORDINATES (ANGSTROEM)" if neither FRAGMENT X nor colon was found in *xyz
+    if not fragment_found and not colon_found:  # Only proceed if neither FRAGMENT X nor colon found in *xyz
         fragment_mode = False
         for line in lines:
-            if re.search(r'CARTESIAN COORDINATES \(ANGSTROEM\)', line):
+            if re.search(r'CARTESIAN COORDINATES \(ANGSTROEM\)', line):  # Start "CARTESIAN COORDINATES (ANGSTROEM)" block
                 fragment_mode = True
                 label_coord_map.clear()
                 frag_label_counter = 1
                 continue
             
-            if re.search(r'CARTESIAN COORDINATES \(A\.U\.\)', line):
-                if fragment_mode:
-                    fragment_mode = False
+            if re.search(r'CARTESIAN COORDINATES \(A\.U\.\)', line):  # End block
+                fragment_mode = False
                 continue
             
+            # Extract the first set of coordinates in "CARTESIAN COORDINATES (ANGSTROEM)"
             if fragment_mode:
                 coord_match = re.match(r'\s*\w+\s+([-.\d]+)\s+([-.\d]+)\s+([-.\d]+)', line)
                 if coord_match:
                     label = frag_label_counter
                     frag_label_counter += 1
-                    coordinates = (float(coord_match.group(1)), float(coord_match.group(2)), float(coord_match.group(3)))
-                    if label not in label_coord_map:
+                    coordinates = (
+                        float(coord_match.group(1)),
+                        float(coord_match.group(2)),
+                        float(coord_match.group(3))
+                    )
+                    if label not in label_coord_map:  # Only store the first set of coordinates
                         label_coord_map[label] = coordinates
 
     return label_coord_map
+
+
+def extract_coords_from_line(line):
+    """Extract the last three numeric elements from a line as coordinates."""
+    parts = line.strip().split()
+    try:
+        coords = [float(parts[-3]), float(parts[-2]), float(parts[-1])]
+        return coords
+    except (ValueError, IndexError):
+        return None
 
 
 def coordinates_match(coord1, coord2, tol=1e-3):
     """Check if two coordinates match within a given tolerance using numpy."""
     return np.allclose(coord1, coord2, atol=tol)
 
- 
-def match_and_construct_mappings(supersystem_coords, other_coords_list, tol=1e-3):
-    """Match fragment coordinates to supersystem labels and construct the mapping lists."""
+
+def check_fragments_missing_coordinates(file_path):
+    """Check which FRAGMENT X blocks in the file are missing coordinates."""
+    missing_fragments = []
+    fragment_mode = False
+    current_fragment = None
+    fragment_has_coords = False
+
+    try:
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
+
+        for line in lines:
+            # Detect start of FRAGMENT X block
+            fragment_match = re.match(r'\s*FRAGMENT\s+(\d+)', line)
+            if fragment_match:
+                # If the previous fragment has no coordinates, record it
+                if current_fragment is not None and not fragment_has_coords:
+                    missing_fragments.append(current_fragment)
+
+                # Start processing new fragment
+                current_fragment = int(fragment_match.group(1))
+                fragment_has_coords = False  # Reset flag for the new fragment
+                continue
+
+            # Check if the line contains coordinates (within a fragment block)
+            if current_fragment is not None:
+                coord_match = re.match(r'\s*\w+\s+([-.\d]+)\s+([-.\d]+)\s+([-.\d]+)', line)
+                if coord_match:
+                    fragment_has_coords = True
+
+        # Handle the case where the last fragment in the file has no coordinates
+        if current_fragment is not None and not fragment_has_coords:
+            missing_fragments.append(current_fragment)
+
+    except FileNotFoundError:
+        print(f"File {file_path} not found. Skipping.")
+    
+    return missing_fragments
+
+
+def check_files_for_missing_fragments(main_filenames, alternative_filenames):
+    """Check main and alternative files for missing fragment coordinates."""
+    main_missing_fragments = {}
+    alt_missing_fragments = {}
+
+    # Check main files (skip the first supersystem file)
+    for main_file in main_filenames[1:]:
+        if main_file:
+            missing_fragments = check_fragments_missing_coordinates(main_file)
+            if missing_fragments:
+                main_missing_fragments[main_file] = missing_fragments
+
+    # Check alternative files (skip the first supersystem file)
+    for alt_file in alternative_filenames[1:]:
+        if alt_file:
+            missing_fragments = check_fragments_missing_coordinates(alt_file)
+            if missing_fragments:
+                alt_missing_fragments[alt_file] = missing_fragments
+
+    return main_missing_fragments, alt_missing_fragments
+
+	
+def match_and_construct_mappings_with_missing_middle_frag_coord(supersystem_coords, other_coords_list, tol=1e-3):
+    """Match fragment coordinates to supersystem labels and construct the mapping lists
+    when a fragment label is not associated with coordinates in a subsystem file."""
     mapped_labels_list = []
     match_dicts = []
     subsystem_matching_labels = []
@@ -133,7 +252,97 @@ def match_and_construct_mappings(supersystem_coords, other_coords_list, tol=1e-3
     return mapped_labels_list, match_dicts, subsystem_matching_labels
 
 
-def construct_label_mappings(main_or_alt_filenames, default_label_mappings=None):
+def match_and_construct_mappings_without_missing_middle_frag_coord(supersystem_coords, other_coords_list, tol=1e-3):
+    """Match fragment coordinates to supersystem labels and construct the mapping lists
+    when all fragments are sequentially exist in a subsystem."""
+
+    mapped_labels_list = []
+    match_dicts = []
+    subsystem_matching_labels = []
+    supersystem_labels = list(supersystem_coords.keys())  # Supersystem labels as a list
+
+    for frag_coords in other_coords_list:
+        match_dict = {}
+        label_swaps = {}
+        matched_labels = []
+        subsystem_labels_set = set(frag_coords.keys())
+
+        # Match supersystem labels with fragment labels and swap them
+        for super_label, super_coord in supersystem_coords.items():
+            found_match = False
+            for frag_label, frag_coord in frag_coords.items():
+                if coordinates_match(super_coord, frag_coord, tol):
+                    # Store the swap and the matching labels
+                    label_swaps[super_label] = frag_label
+                    label_swaps[frag_label] = super_label
+                    matched_labels.append(super_label)
+                    found_match = True
+                    break
+
+            if not found_match:
+                matched_labels.append(None)
+
+        # Filter out None values
+        matched_labels_cleaned = [label for label in matched_labels if label is not None]
+        subsystem_matching_labels.append(matched_labels_cleaned)
+
+        # Identify missing labels in the subsystem
+        missing_labels = list(set(supersystem_labels) - set(matched_labels_cleaned))
+
+        # Add missing labels to the END of the matched labels list
+        expanded_labels = matched_labels_cleaned + missing_labels
+
+        # Fill in the match_dict with the added labels
+        for i in range(1, len(supersystem_coords) + 1):
+            if i in label_swaps:
+                match_dict[i] = label_swaps[i]
+            else:
+                match_dict[i] = i
+
+        # Now construct the mapped_labels list with missing labels added at the end
+        mapped_labels_list.append(expanded_labels)
+        match_dicts.append(match_dict)
+
+    return mapped_labels_list, match_dicts, subsystem_matching_labels
+
+
+def match_and_construct_mappings(supersystem_coords, other_coords_list, main_filenames, alternative_filenames, tol=1e-3):
+    """Determine which match_and_construct_mappings function, i.e., without or with missing_middle_frag_coord to be used."""
+
+    def check_for_missing_fragments_in_fragment_x(filenames):
+        """Check filenames for missing fragments specifically in `FRAGMENT X` sections."""
+        missing_fragments = {}
+        for filename in filenames:
+            if filename:
+                missing_frags = check_fragments_missing_coordinates(filename)
+                if missing_frags:
+                    missing_fragments[filename] = missing_frags
+        return missing_fragments
+
+    # Check for missing fragments in FRAGMENT X for both main and alternative files
+    main_missing_fragments = check_for_missing_fragments_in_fragment_x(main_filenames[1:])  # Skip supersystem file
+    alt_missing_fragments = check_for_missing_fragments_in_fragment_x(alternative_filenames[1:])  # Skip supersystem file
+
+    def match_for_files(missing_fragments, supersystem_coords, other_coords_list, tol):
+        """Decide which mapping function to call based on the presence of missing fragments."""
+        if missing_fragments:
+            # Use the function that handles missing middle fragments in `FRAGMENT X`
+            return match_and_construct_mappings_with_missing_middle_frag_coord(supersystem_coords, other_coords_list, tol)
+        else:
+            # Use the standard mapping function
+            return match_and_construct_mappings_without_missing_middle_frag_coord(supersystem_coords, other_coords_list, tol)
+
+    # Determine the mapping function based on missing fragments in either main or alternative files
+    if main_missing_fragments or alt_missing_fragments:
+        mapped_labels_list, match_dicts, subsystem_matching_labels = match_for_files(main_missing_fragments, supersystem_coords, other_coords_list, tol)
+    else:
+        mapped_labels_list, match_dicts, subsystem_matching_labels = match_for_files(alt_missing_fragments, supersystem_coords, other_coords_list, tol)
+
+    # Return the simplified result
+    return mapped_labels_list, match_dicts, subsystem_matching_labels
+
+
+def construct_label_mappings(main_or_alt_filenames, main_filenames, alternative_filenames, default_label_mappings=None):
     """Constructs label mappings for a supersystem and its subsystems based on coordinate matching."""
     if not main_or_alt_filenames[0] and default_label_mappings:
         return default_label_mappings, [{}], []
@@ -148,7 +357,7 @@ def construct_label_mappings(main_or_alt_filenames, default_label_mappings=None)
     other_coords_list = [parse_coordinates_from_file(filename) for filename in main_or_alt_filenames[1:] if filename]
 
     # Match and construct mappings based on coordinate matching
-    main_or_alt_label_mappings, match_dicts, subsystem_matching_labels = match_and_construct_mappings(supersystem_coords, other_coords_list)
+    main_or_alt_label_mappings, match_dicts, subsystem_matching_labels = match_and_construct_mappings(supersystem_coords, other_coords_list, main_filenames, alternative_filenames, tol=1e-3)
 
     # Add the supersystem labels as the first list
     main_or_alt_label_mappings.insert(0, list(range(1, len(supersystem_coords) + 1)))
@@ -802,6 +1011,10 @@ def reorder_labels(system_labels, alternative_labels, main_label_mappings, alter
     
     xl = pd.ExcelFile(input_excel_file)
     
+    # Set pandas options to limit the DataFrame print size for better readability
+    pd.set_option('display.max_rows', 10)
+    pd.set_option('display.max_columns', 10)
+    
     with pd.ExcelWriter(output_excel_file, engine='openpyxl') as writer:
         for sheet_name in xl.sheet_names:
             df = xl.parse(sheet_name, index_col=0)
@@ -843,8 +1056,7 @@ def reorder_labels(system_labels, alternative_labels, main_label_mappings, alter
 
     print(f"Reordered matrices were written to '{output_excel_file}'")
 
-
-
+    
 def compare_main_ALT_removeALTlabel(LEDAW_output_path):
     """Process the Excel file to compare and handle ALT sheets, then write results to a new file."""
     
@@ -1368,8 +1580,20 @@ def engine_LED_N_body(main_filenames, alternative_filenames, conversion_factor, 
             labeled_alt_filenames[main_file] = labeled_main_filenames[main_file]  # Use main label if alt is None
 
     # Construct label mapping list wrt. supersystem labels to standardize labeling between super and subsystem files
-    main_label_mappings, match_dicts_main, subsystem_matching_labels_main = construct_label_mappings(main_or_alt_filenames=list(labeled_main_filenames.keys()))
-    alternative_label_mappings, match_dicts_alt, subsystem_matching_labels_alt = construct_label_mappings(main_or_alt_filenames=list(labeled_alt_filenames.keys()), default_label_mappings=main_label_mappings)
+    # For main filenames
+    main_label_mappings, match_dicts_main, subsystem_matching_labels_main = construct_label_mappings(
+        main_or_alt_filenames=list(labeled_main_filenames.keys()), 
+        main_filenames=main_filenames, 
+        alternative_filenames=alternative_filenames
+    )
+
+    # For alternative filenames (use main_label_mappings as the default)
+    alternative_label_mappings, match_dicts_alt, subsystem_matching_labels_alt = construct_label_mappings(
+        main_or_alt_filenames=list(labeled_alt_filenames.keys()), 
+        main_filenames=main_filenames, 
+        alternative_filenames=alternative_filenames,
+        default_label_mappings=main_label_mappings
+    )
 
     # Call multifrag_system_processing and singlefrag_system_processing and combine their files
     matrix_size = multifrag_system_processing(main_filenames=list(labeled_main_filenames.keys()), 
