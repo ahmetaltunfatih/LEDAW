@@ -59,4 +59,3 @@ class Patterns:
 class MatrixDifferenceError(Exception):
     """Custom exception for handling significant matrix differences."""
     pass
-
