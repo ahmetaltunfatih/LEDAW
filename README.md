@@ -6,7 +6,7 @@
 
 ## Features
 
-- LEDAW automizes all kinds of LED interaction energy analyses such as the interaction of arbitrary number of fragments as in water cluster formation, and interaction of a single or multifragment system with other arbitrary number of single or multifragment systems as in lattice energy computations and duplex DNA formation with multiple fragments on each strand.
+- LEDAW automizes all kinds of LED interaction energy analyses such as the interaction of arbitrary number of fragments as in water cluster formation, and interaction of a single or multifragment system with another single or multifragment system as in lattice energy computations and duplex DNA formation with multiple fragments on each strand.
 - LEDAW calculates N-body, two-body, and cooperativity LED interaction energy matrices for both standard and fragment pairwise (fp)-LED schemes from ORCA output files irrespective of the number of fragments in the adduct (supersystem) and its subsystems in seconds.
 - LEDAW performs complete PNO space (CPS) and complete basis set (CBS) extrapolations based on the unextrapolated LED terms in ORCA output files and provides corresponding matrices.
 - LEDAW standardizes fragment labels to those in the supersystem file automatically if they are different in supersystem and subsystem ORCA output files.
