@@ -393,7 +393,7 @@ extrapolate_engine(standard_LED_summary_file_X = LEDAW_output_path_twobody_SB_TP
                    LEDAW_output_path = LEDAW_output_path_twobody_CBS_TPNO, 
                    F_ref = F_ref_cbs, F_corr = F_corr_cbs, method = method)
 
-# CBS for CPS-extrpolated energies. These are the final N-body energies to be considered.
+# CBS for CPS-extrpolated energies. These are the final two-body energies to be considered.
 extrapolate_engine(standard_LED_summary_file_X = LEDAW_output_path_twobody_SB_CPS + r'/Summary_Standard_LED_matrices.xlsx', 
                    standard_LED_summary_file_Y = LEDAW_output_path_twobody_LB_CPS + r'/Summary_Standard_LED_matrices.xlsx', 
                    fp_LED_summary_file_X = LEDAW_output_path_twobody_SB_CPS + r'/Summary_fp-LED_matrices.xlsx', 
