@@ -379,7 +379,7 @@ extrapolate_engine(standard_LED_summary_file_X = LEDAW_output_path_twobody_LB_LP
 ### Extrapolate (aug-)cc-pVTZ and (aug-)cc-pVQZ two-body energies to CBS limit.
 # CBS for LPNO energies
 extrapolate_engine(standard_LED_summary_file_X = LEDAW_output_path_twobody_SB_LPNO + r'/Summary_Standard_LED_matrices.xlsx', 
-                   standard_LED_summary_file_Y = LEDAW_output_path_twobody_LB_TPNO + r'/Summary_Standard_LED_matrices.xlsx', 
+                   standard_LED_summary_file_Y = LEDAW_output_path_twobody_LB_LPNO + r'/Summary_Standard_LED_matrices.xlsx', 
                    fp_LED_summary_file_X = LEDAW_output_path_twobody_SB_LPNO + r'/Summary_fp-LED_matrices.xlsx', 
                    fp_LED_summary_file_Y = LEDAW_output_path_twobody_LB_LPNO + r'/Summary_fp-LED_matrices.xlsx', 
                    LEDAW_output_path = LEDAW_output_path_twobody_CBS_LPNO, 
