@@ -1314,7 +1314,7 @@ def compute_all_standard_led_int_en_matrices(system_labels, conversion_factor, m
 
 
 def relabel_and_sort_matrices(relabel_mapping, LEDAW_output_path, method):
-    """Relabels and sorts the LED matrices to change fragment labels."""
+    """Relabels and sorts the LED matrices to change fragment labels and ensures symmetry with diagonal elements of 'Electrostat' and 'Exchange' set to None."""
     
     # Define file paths with the provided LEDAW_output_path
     input_excel_file = os.path.join(LEDAW_output_path, 'Unrelabeled_All_Standard_LED_matrices.xlsx')
@@ -1335,27 +1335,30 @@ def relabel_and_sort_matrices(relabel_mapping, LEDAW_output_path, method):
         for sheet_name in xl.sheet_names:
             df = xl.parse(sheet_name, index_col=0)
 
-            # Apply the relabeling
+            # Apply the relabeling to both rows and columns using the provided mapping
             df.columns = [df.columns[i-1] for i in relabel_mapping]
             df.index = [df.index[i-1] for i in relabel_mapping]
 
-            # Sort the DataFrame
+            # Sort the DataFrame by index and columns
             df.sort_index(axis=0, ascending=True, inplace=True)
             df.sort_index(axis=1, ascending=True, inplace=True)
 
+            # Set diagonal elements of 'Electrostat' and 'Exchange' to None
+            if sheet_name in ['Electrostat', 'Exchange']:
+                np.fill_diagonal(df.values, None)
+
             # Ensure symmetry in the DataFrame
-            for i in range(1, df.shape[0]):
+            for i in range(df.shape[0]):
                 for j in range(i):
-                    # Swap the corresponding elements to ensure symmetry
-                    if np.isnan(df.iloc[j, i]) and not np.isnan(df.iloc[i, j]):
+                    # Ensure the matrix is symmetric
+                    if pd.isna(df.iloc[j, i]) and not pd.isna(df.iloc[i, j]):
                         df.iloc[j, i] = df.iloc[i, j]
                         df.iloc[i, j] = np.nan
 
-            # Write the relabeled DataFrame back to the Excel file
+            # Write the relabeled and sorted DataFrame back to the Excel file
             df.to_excel(writer, sheet_name=sheet_name)
 
     print(f"All standard '{method}/LED' interaction energy matrices after relabeling and sorting fragments were written to '{output_excel_file}'")
-
 
 def write_standard_LED_summary_int_en_matrices(method, LEDAW_output_path):
     """Write summary standard LED interaction energy maps to an excel file"""
