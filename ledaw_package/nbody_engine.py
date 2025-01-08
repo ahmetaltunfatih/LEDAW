@@ -76,7 +76,7 @@ def parse_coordinates_from_file(file_path):
     if not fragment_found:  # Only proceed to *xyz section if FRAGMENT X was not found or only one fragment block had coordinates
         pattern1_mode = False
         for line in lines:
-            if re.search(r'\*xyz\s*', line):  # Start of `*xyz` block
+            if re.search(r'\*\s*xyz', line):  # Start of `*xyz` block
                 pattern1_mode = True
                 continue
             
@@ -1227,6 +1227,9 @@ def compute_all_standard_led_int_en_matrices(system_labels, conversion_factor, m
         if method.lower() == "hfld":
             matrices['Disp HFLD'] = df_disp_ccsd
             matrices['C-HFLD'] = df_disp_ccsd
+
+        if method.lower() == "dlpno-ccsd":
+            matrices['Disp CCSD'] = df_disp_ccsd
 
     if method.lower() == "dlpno-ccsd(t)" and 'T' in matrices:
         df_disp_t = matrices['T']
