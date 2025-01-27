@@ -15,7 +15,7 @@
 #               original LED, CPS, and CBS studies, please cite:                       #
 #                                                                                      #
 #                 1) https://github.com/ahmetaltunfatih/LEDAW                          #
-#   2) https://chemrxiv.org/engage/chemrxiv/article-details/6698104e01103d79c547414c   #
+#      2) https://doi.org/10.1002/anie.202421922 (Angew. Chemie, 2024, e202421922)     #
 #                                                                                      #
 ########################################################################################
 
@@ -52,7 +52,7 @@ relabel_mapping = None
 
 
 ###############################################################################################################################################################
-### SINCE THE SUPERSYSTEM (ADDUCT) IS COMPOSED OF TWO FRAGMENTS, ANY OF THE engine_LED_N_body AND engine_LED_two_body FUNCTIONS CAN BE USED IN THIS EXAMPLE:  #
+### SINCE THE SUPERSYSTEM (ADDUCT) IS COMPOSED OF TWO FRAGMENTS, ANY OF THE engine_LED_N_body OR engine_LED_two_body FUNCTIONS CAN BE USED IN THIS EXAMPLE:  #
 # To demonstrate how to use both functions, in the following, as an example, engine_LED_N_body function is called for BSSE-corrected interaction energy       #
 # and engine_LED_two_body function is called for BSSE-uncorrected interaction energy.                                                                         #
 ############################################################################################################################################################### 
@@ -77,7 +77,7 @@ nbody_title='''
 # DLPNO-CCSD output can  still be provided in the main or alternative file name.
 # Note 4: The corresponding main and alternative ORCA output files must be given at the same index in the file lists.
 # One letter or one number file names may sometimes cause problems. Hence, awoid using such short names, e.g., "A.mpi4.out".
-# If you are on windows and using back slash, it is safer to specify all file paths as raw string, e.g., r'.\ORCA-OUT\ADDUCT.mpi4.out'
+# If you are on windows, it is safer to specify all file paths as raw string and use forward slash, e.g., r'./ORCA-OUT/ADDUCT.mpi4.out'
 # Note 5: You do not have to specify any file name for alternative_filenames. But an empty list with the length of main_filenames must be initiated. 
 # Note 6: If you specified the same fragment with different labels in supersystem and subsystem ORCA output files, 
 # the code automatically labels subsystem fragment labels as in the supersystem output file.
