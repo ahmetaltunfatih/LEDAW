@@ -1,11 +1,22 @@
 import os
 import re
 import glob
+import time
 import shutil
+import psutil
+import platform
+import openpyxl
 import numpy as np
 import pandas as pd
 from openpyxl import load_workbook, Workbook
 from .classes import *
+
+
+def normalize_path(path):
+    """Normalize the path by converting backslashes to forward slashes and removing trailing slashes."""
+    # Replace backslashes with forward slashes for consistency
+    normalized_path = path.replace("\\", "/")
+    return normalized_path.rstrip("/")  # remove any trailing slashes
 
 
 def label_systems(filenames):
@@ -13,26 +24,29 @@ def label_systems(filenames):
     labeled_filenames = {}
     for i, filename in enumerate(filenames):
         if filename:  # Ensure filename is not None or empty
+            normalized_filename = normalize_path(filename)  # Normalize the path
             if i == 0:
-                labeled_filenames[filename] = "SUPERSYS"
+                labeled_filenames[normalized_filename] = "SUPERSYS"
             else:
-                labeled_filenames[filename] = f"SUBSYS{i}"
+                labeled_filenames[normalized_filename] = f"SUBSYS{i}"
     return labeled_filenames
 
 
 def parse_coordinates_from_file(file_path):
-    """Extract the first set of coordinates from FRAGMENT X, *xyz (without colon), or CARTESIAN COORDINATES (ANGSTROEM).
-    If only one FRAGMENT X block contains coordinates, proceed with Step 2 (*xyz section)."""
+    """Extract the first set of coordinates from FRAGMENT X, *xyz, or CARTESIAN COORDINATES."""
+    
+    # Normalize the file path
+    normalized_file_path = normalize_path(file_path)
     
     label_coord_map = {}
     fragment_mode = False
     frag_label_counter = 1
     current_fragment = None
-    colon_found = False  # Flag to track if colon is found in the *xyz section
-    fragment_found = False  # Flag to track if FRAGMENT X was found
-    fragments_with_coords = 0  # Counter to track number of fragments with coordinates
+    colon_found = False
+    fragment_found = False
+    fragments_with_coords = 0
 
-    with open(file_path, 'r') as file:
+    with open(normalized_file_path, 'r') as file:  # Use the normalized path
         lines = file.readlines()
 
     # Step 1: Handling `FRAGMENT X`
@@ -150,8 +164,11 @@ def check_fragments_missing_coordinates(file_path):
     current_fragment = None
     fragment_has_coords = False
 
+    # Normalize the file path
+    normalized_file_path = normalize_path(file_path)
+
     try:
-        with open(file_path, 'r') as file:
+        with open(normalized_file_path, 'r') as file:
             lines = file.readlines()
 
         for line in lines:
@@ -178,7 +195,7 @@ def check_fragments_missing_coordinates(file_path):
             missing_fragments.append(current_fragment)
 
     except FileNotFoundError:
-        print(f"File {file_path} not found. Skipping.")
+        print(f"File {normalized_file_path} not found. Skipping.")
     
     return missing_fragments
 
@@ -191,16 +208,20 @@ def check_files_for_missing_fragments(main_filenames, alternative_filenames):
     # Check main files (skip the first supersystem file)
     for main_file in main_filenames[1:]:
         if main_file:
-            missing_fragments = check_fragments_missing_coordinates(main_file)
+            # Normalize the file path
+            normalized_main_file = normalize_path(main_file)
+            missing_fragments = check_fragments_missing_coordinates(normalized_main_file)
             if missing_fragments:
-                main_missing_fragments[main_file] = missing_fragments
+                main_missing_fragments[normalized_main_file] = missing_fragments
 
     # Check alternative files (skip the first supersystem file)
     for alt_file in alternative_filenames[1:]:
         if alt_file:
-            missing_fragments = check_fragments_missing_coordinates(alt_file)
+            # Normalize the file path
+            normalized_alt_file = normalize_path(alt_file)
+            missing_fragments = check_fragments_missing_coordinates(normalized_alt_file)
             if missing_fragments:
-                alt_missing_fragments[alt_file] = missing_fragments
+                alt_missing_fragments[normalized_alt_file] = missing_fragments
 
     return main_missing_fragments, alt_missing_fragments
 
@@ -314,9 +335,11 @@ def match_and_construct_mappings(supersystem_coords, other_coords_list, main_fil
         missing_fragments = {}
         for filename in filenames:
             if filename:
-                missing_frags = check_fragments_missing_coordinates(filename)
+                # Normalize the file path
+                normalized_filename = normalize_path(filename)
+                missing_frags = check_fragments_missing_coordinates(normalized_filename)
                 if missing_frags:
-                    missing_fragments[filename] = missing_frags
+                    missing_fragments[normalized_filename] = missing_frags
         return missing_fragments
 
     # Check for missing fragments in FRAGMENT X for both main and alternative files
@@ -350,11 +373,14 @@ def construct_label_mappings(main_or_alt_filenames, main_filenames, alternative_
     if not main_or_alt_filenames[0]:
         raise ValueError("The first file (supersystem) in the list cannot be empty.")
 
+    # Normalize all file paths
+    normalized_main_or_alt_filenames = [normalize_path(f) for f in main_or_alt_filenames]
+
     # Parse the supersystem file and assign sequential labels
-    supersystem_coords = parse_coordinates_from_file(main_or_alt_filenames[0])
+    supersystem_coords = parse_coordinates_from_file(normalized_main_or_alt_filenames[0])
 
     # Filter out any empty or None entries in the file list before processing
-    other_coords_list = [parse_coordinates_from_file(filename) for filename in main_or_alt_filenames[1:] if filename]
+    other_coords_list = [parse_coordinates_from_file(filename) for filename in normalized_main_or_alt_filenames[1:] if filename]
 
     # Match and construct mappings based on coordinate matching
     main_or_alt_label_mappings, match_dicts, subsystem_matching_labels = match_and_construct_mappings(supersystem_coords, other_coords_list, main_filenames, alternative_filenames, tol=1e-3)
@@ -397,14 +423,15 @@ def compute_diel_int_en(main_filenames, alternative_filenames, conversion_factor
     # Function to extract dielectric value from a file
     def extract_diel_from_file(filename):
         """Extract the dielectric value from a given file."""
+        normalized_filename = normalize_path(filename)
         try:
-            with open(filename, 'r') as file:
+            with open(normalized_filename, 'r') as file:
                 for line in file:
                     match = re.search(diel_pattern, line)
                     if match:
                         return float(match.group(1))
         except FileNotFoundError:
-            print(f"File {filename} not found.")
+            print(f"File {normalized_filename} not found.")
         return None
 
     # Loop over each main and alternative file
@@ -441,12 +468,16 @@ def compute_diel_int_en(main_filenames, alternative_filenames, conversion_factor
 def check_local_energy_decomposition(filename, patterns):
     """Check if the file contains the 'LOCAL ENERGY DECOMPOSITION' section."""
     root_name = extract_system_name(filename)
+    
+    # Normalize the filename
+    normalized_filename = normalize_path(filename)
+    
     try:
-        with open(filename, 'r') as file:
+        with open(normalized_filename, 'r') as file:
             content = file.read()
         return bool(re.search(patterns.local_energy_decomp_pattern, content))
     except FileNotFoundError:
-        print(f"File {filename} not found. Skipping.")
+        print(f"File {normalized_filename} not found. Skipping.")
         return False
 
 
@@ -463,8 +494,12 @@ def extract_numbers(pattern, content):
 def extract_first_match_from_file(filename, patterns, method, use_ref_as_rhf_in_hfld=None):
     """Extract the first matches for E(0), strong pairs, weak pairs, and triples correction from the file."""
     root_name = extract_system_name(filename)
+    
+    # Normalize the filename
+    normalized_filename = normalize_path(filename)
+    
     try:
-        with open(filename, 'r') as file:
+        with open(normalized_filename, 'r') as file:
             content = file.read()
         
         # Search for the energy patterns
@@ -498,22 +533,26 @@ def extract_first_match_from_file(filename, patterns, method, use_ref_as_rhf_in_
         return e_ref, e_sp, e_wp, e_t
     
     except FileNotFoundError:
-        print(f"File {filename} not found. Skipping.")
+        print(f"File {normalized_filename} not found. Skipping.")
         return 0.0, 0.0, 0.0, 0.0
 
 
 def determine_matrix_size(filename, patterns):
     """Determine the size of the matrix based on the intra_ref pattern in the file."""
     root_name = extract_system_name(filename)
+    
+    # Normalize the filename
+    normalized_filename = normalize_path(filename)
+    
     try:
-        with open(filename, 'r') as file:
+        with open(normalized_filename, 'r') as file:
             content = file.read()
         intra_ref = extract_numbers(patterns.PATTERNS["intra_ref"], content)
         if not intra_ref:
             intra_ref = extract_numbers(patterns.PATTERNS["intra_ref_alt"], content)
         return len(intra_ref)
     except FileNotFoundError:
-        raise FileNotFoundError(f"File {filename} not found. Unable to determine matrix size.")
+        raise FileNotFoundError(f"File {normalized_filename} not found. Unable to determine matrix size.")
 
         
 def extract_els_exch_matrices(content, primary_pattern, alternative_pattern):
@@ -551,11 +590,14 @@ def process_main_file(filename, matrix_size, patterns, intra_ref_list, intra_cor
                       inter_weak_pairs_matrices, dispersion_strong_pairs_matrices, system_label):
     """Process the main file to extract and store data."""
     
+    # Normalize the filename
+    normalized_filename = normalize_path(filename)
+
     try:
-        with open(filename, 'r') as file:
+        with open(normalized_filename, 'r') as file:
             content = file.read()
     except FileNotFoundError:
-        print(f"Main file {filename} not found. Skipping.")
+        print(f"Main file {normalized_filename} not found. Skipping.")
         return
 
     intra_ref = extract_numbers(patterns.PATTERNS["intra_ref"], content)
@@ -650,14 +692,18 @@ def process_alternative_file(filename, matrix_size, patterns, intra_ref_list, in
                              exchange_matrices, inter_strong_pairs_matrices, inter_triples_matrices,
                              inter_weak_pairs_matrices, dispersion_strong_pairs_matrices, system_label):
     """Process the alternative file to extract and store data."""
+    
     if not filename:
         return
 
+    # Normalize the filename
+    normalized_filename = normalize_path(filename)
+
     try:
-        with open(filename, 'r') as file:
+        with open(normalized_filename, 'r') as file:
             content = file.read()
     except FileNotFoundError:
-        print(f"Alternative file {filename} not found. Skipping.")
+        print(f"Alternative file {normalized_filename} not found. Skipping.")
         return
 
     intra_ref = extract_numbers(patterns.PATTERNS["intra_ref"], content)
@@ -761,7 +807,10 @@ def write_matrices_to_excel(filename, matrix_size, intra_ref_list, intra_corr_li
             return expanded_matrix
         return matrix
 
-    with pd.ExcelWriter(filename, engine='xlsxwriter') as writer:
+    # Normalize the filename before writing
+    normalized_filename = normalize_path(filename)
+
+    with pd.ExcelWriter(normalized_filename, engine='xlsxwriter') as writer:
         # Write intra values as diagonal elements in separate sheets
         for idx, (intra_ref, file_prefix) in enumerate(intra_ref_list):
             file_prefix = extract_system_name(file_prefix)
@@ -884,10 +933,11 @@ def multifrag_system_processing(main_filenames, alternative_filenames, LEDAW_out
                                  inter_weak_pairs_matrices, dispersion_strong_pairs_matrices, system_label)
 
     # Ensure the output directory exists
-    os.makedirs(LEDAW_output_path, exist_ok=True)
+    normalized_LEDAW_output_path = normalize_path(LEDAW_output_path)
+    os.makedirs(normalized_LEDAW_output_path, exist_ok=True)
 
     # Define the full path for the output file
-    output_file = os.path.join(LEDAW_output_path, 'tmp1.xlsx')
+    output_file = os.path.join(normalized_LEDAW_output_path, 'tmp1.xlsx')
 
     # Write the collected data to an Excel file
     write_matrices_to_excel(output_file, matrix_size, intra_ref_list, intra_corr_list, intra_strong_pairs_list,
@@ -951,10 +1001,12 @@ def singlefrag_system_processing(main_filenames, alternative_filenames, matrix_s
                 matrices[f'Intra T {file_prefix}'] = t_matrix
 
     # Ensure the output directory exists
-    os.makedirs(LEDAW_output_path, exist_ok=True)
+    # Ensure the output directory exists
+    normalized_LEDAW_output_path = normalize_path(LEDAW_output_path)
+    os.makedirs(normalized_LEDAW_output_path, exist_ok=True)
 
     # Define the full path for the output file
-    output_file = os.path.join(LEDAW_output_path, 'tmp2.xlsx')
+    output_file = os.path.join(normalized_LEDAW_output_path, 'tmp2.xlsx')
 
     # Writing matrices to the specified output file
     with pd.ExcelWriter(output_file, engine='xlsxwriter') as writer:
@@ -967,9 +1019,14 @@ def singlefrag_system_processing(main_filenames, alternative_filenames, matrix_s
 
 def collect_unprocessed_LED_data_as_matrices(LEDAW_output_path):
     """Combines two temporary Excel files with multiple sheets into one file and deletes the source Excel files."""
-    file1 = os.path.join(LEDAW_output_path, "tmp1.xlsx")
-    file2 = os.path.join(LEDAW_output_path, "tmp2.xlsx")
-    write_to_excel_filename = os.path.join(LEDAW_output_path, "Unprocessed_LED_matrices.xlsx")
+    
+    # Normalize the LEDAW_output_path
+    normalized_LEDAW_output_path = normalize_path(LEDAW_output_path)
+    
+    file1 = os.path.join(normalized_LEDAW_output_path, "tmp1.xlsx")
+    file2 = os.path.join(normalized_LEDAW_output_path, "tmp2.xlsx")
+    write_to_excel_filename = os.path.join(normalized_LEDAW_output_path, "Unprocessed_LED_matrices.xlsx")
+
     
     # Create a new Excel writer object
     with pd.ExcelWriter(write_to_excel_filename) as writer:
@@ -994,14 +1051,20 @@ def collect_unprocessed_LED_data_as_matrices(LEDAW_output_path):
     # Delete the source Excel files
     os.remove(file1)
     os.remove(file2)
-    print(f"LED energy components from each file were written as matrices without any processing to {write_to_excel_filename}")
+    
+    # Normalize the path before printing
+    normalized_output_file = normalize_path(write_to_excel_filename)
+    print(f"LED energy components from each file were written as matrices without any processing to {normalized_output_file}")
 	
 
 def reorder_labels(system_labels, alternative_labels, main_label_mappings, alternative_label_mappings, LEDAW_output_path):
     """Process each sheet in the Excel file and reorder matrices based on dynamic prefix mappings."""
     
+    # Normalize the LEDAW_output_path
+    normalized_LEDAW_output_path = normalize_path(LEDAW_output_path)
+    
     # Define the input and output Excel file names
-    input_excel_file = os.path.join(LEDAW_output_path, 'Unprocessed_LED_matrices.xlsx')
+    input_excel_file = os.path.join(normalized_LEDAW_output_path, 'Unprocessed_LED_matrices.xlsx')
     base_name = os.path.splitext(input_excel_file)[0]
     output_excel_file = f"{base_name}_withFragmentRelabeling.xlsx"
     
@@ -1054,56 +1117,67 @@ def reorder_labels(system_labels, alternative_labels, main_label_mappings, alter
                 # Optionally write the sheet without reordering
                 df.to_excel(writer, sheet_name=sheet_name)
 
-    print(f"Reordered matrices were written to '{output_excel_file}'")
+    # Normalize the output file path for printing
+    normalized_output_file = normalize_path(output_excel_file)
+    print(f"Reordered matrices were written to '{normalized_output_file}'")
 
     
 def compare_main_ALT_removeALTlabel(LEDAW_output_path):
     """Process the Excel file to compare and handle ALT sheets, then write results to a new file."""
     
-    # Static file names with path
-    input_excel_file = os.path.join(LEDAW_output_path, 'Unprocessed_LED_matrices_withFragmentRelabeling.xlsx')
-    output_excel_file = os.path.join(LEDAW_output_path, 'Unprocessed_LED_matrices_withoutALTlabel.xlsx')
+    # Normalize the LEDAW_output_path
+    normalized_LEDAW_output_path = normalize_path(LEDAW_output_path)
+    
+    # Static file names with normalized path
+    input_excel_file = os.path.join(normalized_LEDAW_output_path, 'Unprocessed_LED_matrices_withFragmentRelabeling.xlsx')
+    output_excel_file = os.path.join(normalized_LEDAW_output_path, 'Unprocessed_LED_matrices_withoutALTlabel.xlsx')
     
     difference_detected = False  # Flag to check if any differences were found
     differences = []  # List to store sheet names with differences
-    xl = pd.ExcelFile(input_excel_file)
     sheets_to_remove = []
     sheets_to_rename = {}
 
-    for sheet_name in xl.sheet_names:
-        df = xl.parse(sheet_name, index_col=0)
+    # Dictionary to temporarily store sheet data
+    sheet_data = {}
 
-        # Identify corresponding ALT sheets
-        if 'ALT' in sheet_name:
-            original_sheet_name = sheet_name.replace(' ALT', '')
-            if original_sheet_name in xl.sheet_names:
-                df_original = xl.parse(original_sheet_name, index_col=0)
-                
-                if df_original.values.sum() == 0:
-                    sheets_to_remove.append(original_sheet_name)
-                    sheets_to_rename[sheet_name] = original_sheet_name
-                elif df.values.sum() == 0:
-                    sheets_to_remove.append(sheet_name)
-                else:
-                    diff = abs(df - df_original)
-                    if (diff.values > 1e-4).any():
-                        differences.append(original_sheet_name)
-                    else:
+    # Open the input Excel file and read all sheets once
+    with pd.ExcelFile(input_excel_file) as xl:
+        for sheet_name in xl.sheet_names:
+            df = xl.parse(sheet_name, index_col=0)
+            sheet_data[sheet_name] = df
+
+            # Identify corresponding ALT sheets
+            if 'ALT' in sheet_name:
+                original_sheet_name = sheet_name.replace(' ALT', '')
+                if original_sheet_name in xl.sheet_names:
+                    df_original = sheet_data[original_sheet_name]
+                    
+                    if df_original.values.sum() == 0:
+                        sheets_to_remove.append(original_sheet_name)
+                        sheets_to_rename[sheet_name] = original_sheet_name
+                    elif df.values.sum() == 0:
                         sheets_to_remove.append(sheet_name)
-            else:
-                sheets_to_rename[sheet_name] = original_sheet_name
+                    else:
+                        diff = abs(df - df_original)
+                        if (diff.values > 1e-4).any():
+                            differences.append(original_sheet_name)
+                        else:
+                            sheets_to_remove.append(sheet_name)
+                else:
+                    sheets_to_rename[sheet_name] = original_sheet_name
 
     # Write the processed sheets to a new Excel file
     with pd.ExcelWriter(output_excel_file, engine='openpyxl') as writer:
-        for sheet_name in xl.sheet_names:
+        for sheet_name, df in sheet_data.items():
             if sheet_name not in sheets_to_remove:
-                df = xl.parse(sheet_name, index_col=0)
+                # Rename sheet if needed
                 if sheet_name in sheets_to_rename:
                     sheet_name = sheets_to_rename[sheet_name]
                 df.to_excel(writer, sheet_name=sheet_name)
     
     # Print message before raising the exception
-    print(f"Redundant matrices from main and alternative files were eliminated. Cleaned data were written to '{output_excel_file}'")
+    normalized_output_file = normalize_path(output_excel_file)
+    print(f"Redundant matrices from main and alternative files were eliminated. Cleaned data were written to '{normalized_output_file}'")
 
     # Handle differences after writing to the new Excel file
     if differences:
@@ -1116,44 +1190,47 @@ def compare_main_ALT_removeALTlabel(LEDAW_output_path):
 def combine_intra_inter_matrices(LEDAW_output_path):
     """Combines Intra and Inter matrices from an Excel file and writes the results to a new file."""
     
-    # Static file names with paths
-    input_excel_file = os.path.join(LEDAW_output_path, 'Unprocessed_LED_matrices_withoutALTlabel.xlsx')
-    output_excel_file = os.path.join(LEDAW_output_path, 'Unprocessed_LED_matrices_combined_INTRA-INTER.xlsx')
+    # Normalize the LEDAW_output_path
+    normalized_LEDAW_output_path = normalize_path(LEDAW_output_path)
     
-    # Load the input Excel file
-    xl = pd.ExcelFile(input_excel_file)
+    # Static file names with normalized paths
+    input_excel_file = os.path.join(normalized_LEDAW_output_path, 'Unprocessed_LED_matrices_withoutALTlabel.xlsx')
+    output_excel_file = os.path.join(normalized_LEDAW_output_path, 'Unprocessed_LED_matrices_combined_INTRA-INTER.xlsx')
+    
     combined_sheets = {}
     sheets_to_transfer = []
 
-    # Group sheets by their base names without "Intra" or "Inter"
-    sheet_groups = {}
-    for sheet_name in xl.sheet_names:
-        if 'Intra' in sheet_name:
-            base_name = sheet_name.replace('Intra ', '')
-            if base_name not in sheet_groups:
-                sheet_groups[base_name] = {'Intra': None, 'Inter': None}
-            sheet_groups[base_name]['Intra'] = sheet_name
-        elif 'Inter' in sheet_name:
-            base_name = sheet_name.replace('Inter ', '')
-            if base_name not in sheet_groups:
-                sheet_groups[base_name] = {'Intra': None, 'Inter': None}
-            sheet_groups[base_name]['Inter'] = sheet_name
-        else:
-            # Non-Intra/Inter sheets are directly added for transfer
-            sheets_to_transfer.append(sheet_name)
+    # Open the input Excel file and process it
+    with pd.ExcelFile(input_excel_file) as xl:
+        # Group sheets by their base names without "Intra" or "Inter"
+        sheet_groups = {}
+        for sheet_name in xl.sheet_names:
+            if 'Intra' in sheet_name:
+                base_name = sheet_name.replace('Intra ', '')
+                if base_name not in sheet_groups:
+                    sheet_groups[base_name] = {'Intra': None, 'Inter': None}
+                sheet_groups[base_name]['Intra'] = sheet_name
+            elif 'Inter' in sheet_name:
+                base_name = sheet_name.replace('Inter ', '')
+                if base_name not in sheet_groups:
+                    sheet_groups[base_name] = {'Intra': None, 'Inter': None}
+                sheet_groups[base_name]['Inter'] = sheet_name
+            else:
+                # Non-Intra/Inter sheets are directly added for transfer
+                sheets_to_transfer.append(sheet_name)
 
-    # Combine Intra and Inter sheets
-    for base_name, sheets in sheet_groups.items():
-        intra_df = xl.parse(sheets['Intra'], index_col=0) if sheets['Intra'] else None
-        inter_df = xl.parse(sheets['Inter'], index_col=0) if sheets['Inter'] else None
+        # Combine Intra and Inter sheets
+        for base_name, sheets in sheet_groups.items():
+            intra_df = xl.parse(sheets['Intra'], index_col=0) if sheets['Intra'] else None
+            inter_df = xl.parse(sheets['Inter'], index_col=0) if sheets['Inter'] else None
 
-        if intra_df is not None and inter_df is not None:
-            combined_df = intra_df + inter_df
-            combined_sheets[base_name] = combined_df
-        elif intra_df is not None:
-            combined_sheets[base_name] = intra_df
-        elif inter_df is not None:
-            combined_sheets[base_name] = inter_df
+            if intra_df is not None and inter_df is not None:
+                combined_df = intra_df + inter_df
+                combined_sheets[base_name] = combined_df
+            elif intra_df is not None:
+                combined_sheets[base_name] = intra_df
+            elif inter_df is not None:
+                combined_sheets[base_name] = inter_df
 
     # Write the combined matrices and other sheets to the output Excel file
     with pd.ExcelWriter(output_excel_file, engine='openpyxl') as writer:
@@ -1162,58 +1239,63 @@ def combine_intra_inter_matrices(LEDAW_output_path):
             combined_df.to_excel(writer, sheet_name=base_name)
         
         # Transfer the remaining sheets
-        for sheet_name in sheets_to_transfer:
-            df = xl.parse(sheet_name, index_col=0)
-            df.to_excel(writer, sheet_name=sheet_name)
+        with pd.ExcelFile(input_excel_file) as xl:  # Reopen for reading remaining sheets
+            for sheet_name in sheets_to_transfer:
+                df = xl.parse(sheet_name, index_col=0)
+                df.to_excel(writer, sheet_name=sheet_name)
     
-    print(f"Intra and Inter matrices were combined and written to '{output_excel_file}'")
+    normalized_output_file = normalize_path(output_excel_file)
+    print(f"Intra and Inter matrices were combined and written to '{normalized_output_file}'")
 
 
 def compute_all_standard_led_int_en_matrices(system_labels, conversion_factor, method, LEDAW_output_path, main_subsystem_matching_labels, main_filenames, alternative_filenames):
     """Process LED matrices of supersystem and its subsystems to compute LED interaction energy map and its components, and write results to a new Excel file."""
     
-    # Define file paths with the provided LEDAW_output_path
-    input_excel_file = os.path.join(LEDAW_output_path, 'Unprocessed_LED_matrices_combined_INTRA-INTER.xlsx')
-    output_excel_file = os.path.join(LEDAW_output_path, 'Unrelabeled_All_Standard_LED_matrices.xlsx')
+    # Normalize the LEDAW_output_path
+    normalized_LEDAW_output_path = normalize_path(LEDAW_output_path)
+    
+    # Define file paths with the normalized LEDAW_output_path
+    input_excel_file = os.path.join(normalized_LEDAW_output_path, 'Unprocessed_LED_matrices_combined_INTRA-INTER.xlsx')
+    output_excel_file = os.path.join(normalized_LEDAW_output_path, 'Unrelabeled_All_Standard_LED_matrices.xlsx')
     
     supersystem_label = system_labels[0]
     subsystem_labels = system_labels[1:]
-
     matrices = {}
-    xl = pd.ExcelFile(input_excel_file)
 
-    for sheet_name in xl.sheet_names:
-        if supersystem_label in sheet_name:
-            new_sheet_name = sheet_name.replace(supersystem_label, '').strip()
-            df_supersystem = xl.parse(sheet_name, index_col=0)
+    # Open the input Excel file and process it
+    with pd.ExcelFile(input_excel_file) as xl:
+        for sheet_name in xl.sheet_names:
+            if supersystem_label in sheet_name:
+                new_sheet_name = sheet_name.replace(supersystem_label, '').strip()
+                df_supersystem = xl.parse(sheet_name, index_col=0)
+                
+                df_sum_subsystems = pd.DataFrame(0, index=df_supersystem.index, columns=df_supersystem.columns)
+                
+                for subsystem_label in subsystem_labels:
+                    subsystem_sheet_name = sheet_name.replace(supersystem_label, subsystem_label)
+                    if subsystem_sheet_name in xl.sheet_names:
+                        df_subsystem = xl.parse(subsystem_sheet_name, index_col=0)
+                        
+                        # Handle duplicate indices by keeping the first occurrence and dropping the rest
+                        df_subsystem = df_subsystem[~df_subsystem.index.duplicated(keep='first')]
+                        df_subsystem = df_subsystem.loc[:, ~df_subsystem.columns.duplicated(keep='first')]
 
-            df_sum_subsystems = pd.DataFrame(0, index=df_supersystem.index, columns=df_supersystem.columns)
+                        df_sum_subsystems += df_subsystem
 
-            for subsystem_label in subsystem_labels:
-                subsystem_sheet_name = sheet_name.replace(supersystem_label, subsystem_label)
-                if subsystem_sheet_name in xl.sheet_names:
-                    df_subsystem = xl.parse(subsystem_sheet_name, index_col=0)
-                    
-                    # Handle duplicate indices by keeping the first occurrence and dropping the rest
-                    df_subsystem = df_subsystem[~df_subsystem.index.duplicated(keep='first')]
-                    df_subsystem = df_subsystem.loc[:, ~df_subsystem.columns.duplicated(keep='first')]
+                # Apply the conversion factor or compute the difference depending on the method
+                if method.lower() == "hfld" and ('Disp SP' in sheet_name or 'WP' in sheet_name or 'Disp HFLD' in sheet_name):
+                    for sublist in main_subsystem_matching_labels:
+                        for j in range(len(sublist)):
+                            for k in range(j + 1, len(sublist)):
+                                df_supersystem.iat[sublist[j] - 1, sublist[k] - 1] = 0
+                                df_supersystem.iat[sublist[k] - 1, sublist[j] - 1] = 0
 
-                    df_sum_subsystems += df_subsystem
+                    df_result = df_supersystem * conversion_factor
+                else:
+                    df_result = (df_supersystem - df_sum_subsystems) * conversion_factor
 
-            # Apply the conversion factor or compute the difference depending on the method
-            if method.lower() == "hfld" and ('Disp SP' in sheet_name or 'WP' in sheet_name or 'Disp HFLD' in sheet_name):
-                for i, sublist in enumerate(main_subsystem_matching_labels):
-                    for j in range(len(sublist)):
-                        for k in range(j + 1, len(sublist)):
-                            df_supersystem.iat[sublist[j] - 1, sublist[k] - 1] = 0
-                            df_supersystem.iat[sublist[k] - 1, sublist[j] - 1] = 0
-
-                df_result = df_supersystem * conversion_factor  # Use only supersystem values for dispersion in HFLD
-            else:
-                df_result = (df_supersystem - df_sum_subsystems) * conversion_factor  # Compute differences for other matrices
-
-            df_result = df_result.where(np.triu(np.ones(df_result.shape), k=0).astype(bool))
-            matrices[new_sheet_name] = df_result
+                df_result = df_result.where(np.triu(np.ones(df_result.shape), k=0).astype(bool))
+                matrices[new_sheet_name] = df_result
 
     # Handle Dispersion matrices for DLPNO-CCSD(T), DLPNO-CCSD, and HFLD methods
     if 'Disp SP' in matrices:
@@ -1288,21 +1370,18 @@ def compute_all_standard_led_int_en_matrices(system_labels, conversion_factor, m
     # Compute the dielectric interaction energy using compute_diel_int_en
     diel_values, diel_int_energy = compute_diel_int_en(main_filenames, alternative_filenames, conversion_factor)
 
-    # Add the DIEL matrix and update TOTAL
+    # Add the DIEL matrix and update TOTAL if applicable
     if 'TOTAL' in matrices and diel_int_energy != 0:
         total_matrix = matrices['TOTAL']
-
-        # Calculate total sum without DIEL (sum of all elements)
         total_sum_wo_diel = total_matrix.sum().sum()
 
         if total_sum_wo_diel != 0:
             diel_matrix = total_matrix * (diel_int_energy / total_sum_wo_diel)
             matrices['DIEL'] = diel_matrix
-            matrices['TOTAL'] = total_matrix + diel_matrix  # Add DIEL to TOTAL
+            matrices['TOTAL'] = total_matrix + diel_matrix
 
     # Write the matrices from the dictionary to the output Excel file
     with pd.ExcelWriter(output_excel_file, engine='openpyxl') as writer:
-        # Write TOTAL and DIEL if they exist
         if 'TOTAL' in matrices:
             matrices['TOTAL'].to_excel(writer, sheet_name='TOTAL')
         if 'DIEL' in matrices:
@@ -1310,65 +1389,75 @@ def compute_all_standard_led_int_en_matrices(system_labels, conversion_factor, m
 
         # Write all other matrices
         for sheet_name, df in matrices.items():
-            if sheet_name not in ['TOTAL', 'DIEL']:  # Avoid writing TOTAL twice
+            if sheet_name not in ['TOTAL', 'DIEL']:
                 df.to_excel(writer, sheet_name=sheet_name)
 
-    print(f"All standard '{method}/LED' interaction energy matrices were written to '{output_excel_file}'")
+    normalized_output_file = normalize_path(output_excel_file)
+    print(f"All standard '{method}/LED' interaction energy matrices were written to '{normalized_output_file}'")
 
 
 def relabel_and_sort_matrices(relabel_mapping, LEDAW_output_path, method):
     """Relabels and sorts the LED matrices to change fragment labels and ensures symmetry with diagonal elements of 'Electrostat' and 'Exchange' set to None."""
     
-    # Define file paths with the provided LEDAW_output_path
-    input_excel_file = os.path.join(LEDAW_output_path, 'Unrelabeled_All_Standard_LED_matrices.xlsx')
-    output_excel_file = os.path.join(LEDAW_output_path, 'All_Standard_LED_matrices.xlsx')
+    # Normalize the LEDAW_output_path
+    normalized_LEDAW_output_path = normalize_path(LEDAW_output_path)
+    
+    # Define file paths with the normalized LEDAW_output_path
+    input_excel_file = os.path.join(normalized_LEDAW_output_path, 'Unrelabeled_All_Standard_LED_matrices.xlsx')
+    output_excel_file = os.path.join(normalized_LEDAW_output_path, 'All_Standard_LED_matrices.xlsx')
     
     # Check if relabel_mapping is defined and not empty
     if not relabel_mapping:
         # If relabel_mapping is empty or not provided, rename the input file to the output file without any changes
         shutil.copy(input_excel_file, output_excel_file)
-        print(f"No relabeling applied. The file was copied as '{output_excel_file}' without changes.")
+        # Normalize output_excel_file for printing
+        normalized_output_file = normalize_path(output_excel_file)
+        print(f"No relabeling applied. The file was copied as '{normalized_output_file}' without changes.")
         return
     
-    # Load the Excel file
-    xl = pd.ExcelFile(input_excel_file)
+    # Load the input Excel file with a context manager
+    with pd.ExcelFile(input_excel_file) as xl:
+        # Create a new Excel writer object to save the modified matrices
+        with pd.ExcelWriter(output_excel_file, engine='openpyxl', mode='w') as writer:
+            for sheet_name in xl.sheet_names:
+                df = xl.parse(sheet_name, index_col=0)
 
-    # Create a new Excel writer object to save the modified matrices
-    with pd.ExcelWriter(output_excel_file, engine='openpyxl', mode='w') as writer:
-        for sheet_name in xl.sheet_names:
-            df = xl.parse(sheet_name, index_col=0)
+                # Apply the relabeling to both rows and columns using the provided mapping
+                df.columns = [df.columns[i-1] for i in relabel_mapping]
+                df.index = [df.index[i-1] for i in relabel_mapping]
 
-            # Apply the relabeling to both rows and columns using the provided mapping
-            df.columns = [df.columns[i-1] for i in relabel_mapping]
-            df.index = [df.index[i-1] for i in relabel_mapping]
+                # Sort the DataFrame by index and columns
+                df.sort_index(axis=0, ascending=True, inplace=True)
+                df.sort_index(axis=1, ascending=True, inplace=True)
 
-            # Sort the DataFrame by index and columns
-            df.sort_index(axis=0, ascending=True, inplace=True)
-            df.sort_index(axis=1, ascending=True, inplace=True)
+                # Set diagonal elements of 'Electrostat' and 'Exchange' to None
+                if sheet_name in ['Electrostat', 'Exchange']:
+                    np.fill_diagonal(df.values, None)
 
-            # Set diagonal elements of 'Electrostat' and 'Exchange' to None
-            if sheet_name in ['Electrostat', 'Exchange']:
-                np.fill_diagonal(df.values, None)
+                # Ensure symmetry in the DataFrame
+                for i in range(df.shape[0]):
+                    for j in range(i):
+                        # Ensure the matrix is symmetric
+                        if pd.isna(df.iloc[j, i]) and not pd.isna(df.iloc[i, j]):
+                            df.iloc[j, i] = df.iloc[i, j]
+                            df.iloc[i, j] = np.nan
 
-            # Ensure symmetry in the DataFrame
-            for i in range(df.shape[0]):
-                for j in range(i):
-                    # Ensure the matrix is symmetric
-                    if pd.isna(df.iloc[j, i]) and not pd.isna(df.iloc[i, j]):
-                        df.iloc[j, i] = df.iloc[i, j]
-                        df.iloc[i, j] = np.nan
+                # Write the relabeled and sorted DataFrame back to the Excel file
+                df.to_excel(writer, sheet_name=sheet_name)
 
-            # Write the relabeled and sorted DataFrame back to the Excel file
-            df.to_excel(writer, sheet_name=sheet_name)
+    normalized_output_file = normalize_path(output_excel_file)
+    print(f"All standard '{method}/LED' interaction energy matrices after relabeling and sorting fragments were written to '{normalized_output_file}'")
 
-    print(f"All standard '{method}/LED' interaction energy matrices after relabeling and sorting fragments were written to '{output_excel_file}'")
 
 def write_standard_LED_summary_int_en_matrices(method, LEDAW_output_path):
-    """Write summary standard LED interaction energy maps to an excel file"""
+    """Write summary standard LED interaction energy maps to an Excel file."""
     
-    # Define the input and output Excel file names with path handling
-    input_excel_file = os.path.join(LEDAW_output_path, 'All_Standard_LED_matrices.xlsx')
-    output_excel_file = os.path.join(LEDAW_output_path, 'Summary_Standard_LED_matrices.xlsx')
+    # Normalize the LEDAW_output_path
+    normalized_LEDAW_output_path = normalize_path(LEDAW_output_path)
+    
+    # Define the input and output Excel file names with normalized paths
+    input_excel_file = normalize_path(os.path.join(normalized_LEDAW_output_path, 'All_Standard_LED_matrices.xlsx'))
+    output_excel_file = normalize_path(os.path.join(normalized_LEDAW_output_path, 'Summary_Standard_LED_matrices.xlsx'))
     
     # Define the sheets to be written
     if method.lower() == "dlpno-ccsd(t)":
@@ -1408,7 +1497,8 @@ def write_standard_LED_summary_int_en_matrices(method, LEDAW_output_path):
 
     # Save the output workbook
     wb_output.save(output_excel_file)
-    print(f"The summary standard '{method}/LED' matrices were written to '{output_excel_file}'")
+    normalized_output_file = normalize_path(output_excel_file)
+    print(f"The summary standard '{method}/LED' matrices were written to '{normalized_output_file}'")
 
 
 def compute_fp_el_prep(df_ref):
@@ -1443,8 +1533,13 @@ def compute_denominator_for_fp_el_prep(df, index):
 
 def process_fp_LED_matrices(method, main_filenames, alternative_filenames, conversion_factor, LEDAW_output_path):
     """Process the matrices as per the given method and write to the output Excel file."""
-    input_excel_file = os.path.join(LEDAW_output_path, 'Summary_Standard_LED_matrices.xlsx')
-    output_excel_file = os.path.join(LEDAW_output_path, 'Summary_fp-LED_matrices.xlsx')
+    
+    # Normalize the LEDAW_output_path
+    normalized_LEDAW_output_path = normalize_path(LEDAW_output_path)
+    
+    # Define file paths with normalized paths
+    input_excel_file = os.path.join(normalized_LEDAW_output_path, 'Summary_Standard_LED_matrices.xlsx')
+    output_excel_file = os.path.join(normalized_LEDAW_output_path, 'Summary_fp-LED_matrices.xlsx')
 
     # Load the input Excel file
     xl = pd.ExcelFile(input_excel_file)
@@ -1541,7 +1636,8 @@ def process_fp_LED_matrices(method, main_filenames, alternative_filenames, conve
             df_ref_distributed.to_excel(writer, sheet_name='REF-EL-PREP')
             df_disp_hfld.to_excel(writer, sheet_name='Disp HFLD')
 
-        print(f"fp-LED interaction energy matrices were written to '{output_excel_file}'")
+        normalized_output_file = normalize_path(output_excel_file)
+        print(f"fp-LED interaction energy matrices were written to '{normalized_output_file}'")
 
 
 def delete_unprocessed_files(LEDAW_output_path):
@@ -1549,8 +1645,12 @@ def delete_unprocessed_files(LEDAW_output_path):
     Deletes all files in the specified directory that start with 'Un'.
     """
 
+    # Normalize the LEDAW_output_path
+    normalized_LEDAW_output_path = normalize_path(LEDAW_output_path)
+    
     # Construct the pattern for matching files starting with 'Un'
-    pattern = os.path.join(LEDAW_output_path, 'Un*')
+    pattern = os.path.join(normalized_LEDAW_output_path, 'Un*')
+    pattern = normalize_path(pattern)  # Normalize again after joining
     
     # Find all files that match the pattern
     files_to_delete = glob.glob(pattern)
@@ -1560,9 +1660,12 @@ def delete_unprocessed_files(LEDAW_output_path):
     for file_path in files_to_delete:
         try:
             os.remove(file_path)
-            print(f"Deleted: {file_path}")
+            # Normalize file_path for printing
+            normalized_file_path = normalize_path(file_path)
+            print(f"Deleted: {normalized_file_path}")
         except Exception as e:
-            print(f"Error deleting {file_path}: {e}")
+            normalized_file_path = normalize_path(file_path)
+            print(f"Error deleting {normalized_file_path}: {e}")
 
 
 def engine_LED_N_body(main_filenames, alternative_filenames, conversion_factor, method, LEDAW_output_path, relabel_mapping=None, use_ref_as_rhf_in_hfld=None):
@@ -1570,6 +1673,9 @@ def engine_LED_N_body(main_filenames, alternative_filenames, conversion_factor, 
     Engine function to process LED N-body interaction energy matrices, standardize and reorder labels,
     compute final matrices, and provide summaries.
     """
+    
+    # Normalize the LEDAW_output_path
+    normalized_LEDAW_output_path = normalize_path(LEDAW_output_path)
 
     # Ensure alternative filenames are valid or empty
     alternative_filenames = [filename if filename else None for filename in alternative_filenames]    
@@ -1604,38 +1710,38 @@ def engine_LED_N_body(main_filenames, alternative_filenames, conversion_factor, 
     # Call multifrag_system_processing and singlefrag_system_processing and combine their files
     matrix_size = multifrag_system_processing(main_filenames=list(labeled_main_filenames.keys()), 
                                              alternative_filenames=list(labeled_alt_filenames.keys()), 
-                                             LEDAW_output_path=LEDAW_output_path,
+                                             LEDAW_output_path=normalized_LEDAW_output_path,
                                              system_labels=list(labeled_main_filenames.values()))
 
     matrices = singlefrag_system_processing(main_filenames=list(labeled_main_filenames.keys()), 
         alternative_filenames=list(labeled_alt_filenames.keys()), 
-        matrix_size=matrix_size, LEDAW_output_path=LEDAW_output_path,
+        matrix_size=matrix_size, LEDAW_output_path=normalized_LEDAW_output_path,
         system_labels=list(labeled_main_filenames.values()),
         method=method,
         use_ref_as_rhf_in_hfld=use_ref_as_rhf_in_hfld)
 
-    collect_unprocessed_LED_data_as_matrices(LEDAW_output_path=LEDAW_output_path)
+    collect_unprocessed_LED_data_as_matrices(LEDAW_output_path=normalized_LEDAW_output_path)
 
     # Reorder the labels
     reorder_labels(system_labels=list(labeled_main_filenames.values()), 
         alternative_labels=list(labeled_alt_filenames.values()), 
         main_label_mappings=main_label_mappings, 
         alternative_label_mappings=alternative_label_mappings, 
-        LEDAW_output_path=LEDAW_output_path)
+        LEDAW_output_path=normalized_LEDAW_output_path)
 
     # Get rid of ALT labels
     try:
-        compare_main_ALT_removeALTlabel(LEDAW_output_path=LEDAW_output_path)
+        compare_main_ALT_removeALTlabel(LEDAW_output_path=normalized_LEDAW_output_path)
     except MatrixDifferenceError as e:
         print(f"PLEASE CHECK THE INCONSISTENCY IN YOUR DATA: {e}")
         return
 
     # Combine intra and inter matrices
-    combine_intra_inter_matrices(LEDAW_output_path=LEDAW_output_path)
+    combine_intra_inter_matrices(LEDAW_output_path=normalized_LEDAW_output_path)
 
     compute_all_standard_led_int_en_matrices(system_labels=list(labeled_main_filenames.values()),
                                              conversion_factor=conversion_factor, 
-                                             method=method, LEDAW_output_path=LEDAW_output_path,
+                                             method=method, LEDAW_output_path=normalized_LEDAW_output_path,
                                              main_subsystem_matching_labels=subsystem_matching_labels_main,
                                              main_filenames=main_filenames,
                                              alternative_filenames=alternative_filenames)
@@ -1647,23 +1753,23 @@ def engine_LED_N_body(main_filenames, alternative_filenames, conversion_factor, 
         relabel_mapping = list(range(1, max_label + 1))
 
     # Relabel and sort the interaction energy matrices if relabel_mapping is specified
-    relabel_and_sort_matrices(relabel_mapping=relabel_mapping, LEDAW_output_path=LEDAW_output_path, method=method)
+    relabel_and_sort_matrices(relabel_mapping=relabel_mapping, LEDAW_output_path=normalized_LEDAW_output_path, method=method)
 
     # Write summary standard LED interaction energy matrices to an excel File
     write_standard_LED_summary_int_en_matrices(method=method, 
-                                               LEDAW_output_path=LEDAW_output_path)
+                                               LEDAW_output_path=normalized_LEDAW_output_path)
 
     # Write fp-LED Interaction Energy Matrices to an Excel File
     process_fp_LED_matrices(method=method, 
                             main_filenames=list(labeled_main_filenames.keys()), 
                             alternative_filenames=list(labeled_alt_filenames.keys()), 
                             conversion_factor=conversion_factor, 
-                            LEDAW_output_path=LEDAW_output_path)
+                            LEDAW_output_path=normalized_LEDAW_output_path)
 
     # Delete temporary unprocessed files
-    delete_unprocessed_files(LEDAW_output_path=LEDAW_output_path)
+    delete_unprocessed_files(LEDAW_output_path=normalized_LEDAW_output_path)
     
     print('\n')
     print('*'*120)
-    print(f"  N-body LED analyses were terminated NORMALLY. Standard and fp-LED matrices are at {LEDAW_output_path}")
+    print(f"  N-body LED analyses were terminated NORMALLY. Standard and fp-LED matrices are at {normalized_LEDAW_output_path}")
     print('*'*120)
