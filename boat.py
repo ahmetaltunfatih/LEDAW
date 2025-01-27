@@ -2,8 +2,8 @@
 #                                                                                      #
 #                           LEDAW - LED Analysis Wizard                                #
 #                                                                                      #
-#                 Automate Local Energy Decomposition Analysis                         # 
-#                               Using ORCA Outputs                                     #
+#                 Automate Local Energy Decomposition Analysis                         #
+#                           Using Data in ORCA Outputs                                 #
 #                                                                                      #
 #                            written by Ahmet Altun                                    #
 #                    Max-Planck-Institut für Kohlenforshung                            #
@@ -14,14 +14,14 @@
 #               If you use any part of this code, in addition to                       #
 #               original LED, CPS, and CBS studies, please cite:                       #
 #                                                                                      #
-#                     1) https://github.com/ahmetaltunfatih/LEDAW                      #
-#   2) https://chemrxiv.org/engage/chemrxiv/article-details/6698104e01103d79c547414c   # 
+#                 1) https://github.com/ahmetaltunfatih/LEDAW                          #
+#      2) https://doi.org/10.1002/anie.202421922 (Angew. Chemie, 2024, e202421922)     #
 #                                                                                      #
 ########################################################################################
 
 ### The following is an automated LEDAW procedure for obtaining LED interactoin energy matrices and heat maps 
 ### on the interaction energy of the boat conformer of water hexamer from ORCA output files.
-### For more details, see https://chemrxiv.org/engage/chemrxiv/article-details/6698104e01103d79c547414c
+### For more details, see https://doi.org/10.1002/anie.202421922 (Angew. Chemie, 2024, e202421922).
 ### N-body, two-body, and cpooperativty LED maps are generated within standard and fp-LED schemes for each 
 ### computational setting. At the same time, LED terms are extrapolated to CPS and CBS limits. 
 ### Finally, standard and fp-LED LED heat maps are generated for all cases.
@@ -226,7 +226,7 @@ extrapolate_engine(standard_LED_summary_file_X = LEDAW_output_path_LB_LPNO + r'/
 ### Extrapolate (aug-)cc-pVTZ and (aug-)cc-pVQZ N-body energies to CBS limit.
 # CBS for LPNO energies
 extrapolate_engine(standard_LED_summary_file_X = LEDAW_output_path_SB_LPNO + r'/Summary_Standard_LED_matrices.xlsx', 
-                   standard_LED_summary_file_Y = LEDAW_output_path_LB_LPNO + r'/Summary_Standard_LED_matrices.xlsx', 
+                   standard_LED_summary_file_Y = LEDAW_output_path_LB_TPNO + r'/Summary_Standard_LED_matrices.xlsx', 
                    fp_LED_summary_file_X = LEDAW_output_path_SB_LPNO + r'/Summary_fp-LED_matrices.xlsx', 
                    fp_LED_summary_file_Y = LEDAW_output_path_LB_LPNO + r'/Summary_fp-LED_matrices.xlsx', 
                    LEDAW_output_path = LEDAW_output_path_CBS_LPNO, 
@@ -288,10 +288,10 @@ one_body_orcaout_filenames_LB_TPNO = extract_one_body_orcaout_filenames(supersys
 #                                       r'./ORCA-OUT/BOAT/aTZ/PNO6/ONEBODY/frag5.mpi4.out',
 #                                      ]
 # ... (for the other computational settings, onebody orcaout file names must be given as separate lists.)   
-# as relabel_mapping is initiated at the beginning of this file, the labels will then be reordered.
-# (b) If you provide the order of the files consistent with the outcome of relabel_mapping intiated at the beginning of this file,
-# then you need to reset relabel_mapping to None or False (avoid double reordering) to get exact same result as those obtained with
-# the above two ways.
+# As relabel_mapping is initiated at the beginning of this file, these will then be reordered.
+# (b) If you provide the order of the files consistent with the order in relabel_mapping intiated at the beginning of this file,
+# then you need to reset relabel_mapping to None or False (avoid double reordering) to get exact same result as those obtained 
+# with the above two ways.
 
 
 ### Specify the two-body ORCA output file directories for each computational setting.
@@ -379,7 +379,7 @@ extrapolate_engine(standard_LED_summary_file_X = LEDAW_output_path_twobody_LB_LP
 ### Extrapolate (aug-)cc-pVTZ and (aug-)cc-pVQZ two-body energies to CBS limit.
 # CBS for LPNO energies
 extrapolate_engine(standard_LED_summary_file_X = LEDAW_output_path_twobody_SB_LPNO + r'/Summary_Standard_LED_matrices.xlsx', 
-                   standard_LED_summary_file_Y = LEDAW_output_path_twobody_LB_LPNO + r'/Summary_Standard_LED_matrices.xlsx', 
+                   standard_LED_summary_file_Y = LEDAW_output_path_twobody_LB_TPNO + r'/Summary_Standard_LED_matrices.xlsx', 
                    fp_LED_summary_file_X = LEDAW_output_path_twobody_SB_LPNO + r'/Summary_fp-LED_matrices.xlsx', 
                    fp_LED_summary_file_Y = LEDAW_output_path_twobody_LB_LPNO + r'/Summary_fp-LED_matrices.xlsx', 
                    LEDAW_output_path = LEDAW_output_path_twobody_CBS_LPNO, 
@@ -393,7 +393,7 @@ extrapolate_engine(standard_LED_summary_file_X = LEDAW_output_path_twobody_SB_TP
                    LEDAW_output_path = LEDAW_output_path_twobody_CBS_TPNO, 
                    F_ref = F_ref_cbs, F_corr = F_corr_cbs, method = method)
 
-# CBS for CPS-extrpolated energies. These are the final two-body energies to be considered.
+# CBS for CPS-extrpolated energies. These are the final N-body energies to be considered.
 extrapolate_engine(standard_LED_summary_file_X = LEDAW_output_path_twobody_SB_CPS + r'/Summary_Standard_LED_matrices.xlsx', 
                    standard_LED_summary_file_Y = LEDAW_output_path_twobody_LB_CPS + r'/Summary_Standard_LED_matrices.xlsx', 
                    fp_LED_summary_file_X = LEDAW_output_path_twobody_SB_CPS + r'/Summary_fp-LED_matrices.xlsx', 
