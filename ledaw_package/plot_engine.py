@@ -5,6 +5,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
+from .nbody_engine import normalize_path
 
 
 def plot_heatmap_std_led(file_name, sheet_name, figsize, vmin, vmax, fig_format, set_dpi, save_as='default', cutoff_annot=None, submatrix_coords_to_be_highlighted=None, display_heatmap=False):
@@ -56,7 +57,7 @@ def plot_heatmap_std_led(file_name, sheet_name, figsize, vmin, vmax, fig_format,
     df = pd.read_excel(file_name, sheet_name, index_col=0)
     df.sort_index(axis=0, ascending=True, inplace=True)
     df.sort_index(axis=1, ascending=True, inplace=True)
-    df = df.applymap(lambda x: 0.0 if abs(x) < 0.05 else x)
+    df = df.apply(lambda x: x.map(lambda y: 0.0 if abs(y) < 0.05 else y))
     
     # Replace values between -cutoff_annot and +cutoff_annot with NaN
     if cutoff_annot is not None:
@@ -219,7 +220,7 @@ def plot_heatmap_fp_led(file_name, sheet_name, figsize, vmin, vmax, fig_format, 
     df = pd.read_excel(file_name, sheet_name, index_col=0)
     df.sort_index(axis=0, ascending=True, inplace=True)
     df.sort_index(axis=1, ascending=True, inplace=True)
-    df = df.applymap(lambda x: 0.0 if abs(x) < 0.05 else x)
+    df = df.apply(lambda x: x.map(lambda y: 0.0 if abs(y) < 0.05 else y))
     
     # Replace values between -cutoff_annot and +cutoff_annot with NaN
     if cutoff_annot is not None:
@@ -432,8 +433,8 @@ def heatmap_plot_engine(base_path, plot_params_for_std_led_matrices, plot_params
         The base directory where the subdirectories are located.
     
     show_diag_cells_for_fp_led : bool, optional, default=False
-        If True, diagonal cells with NaN values are shown on fp-LED heat maps for consistency with standard LED
-		
+        If True, diagonal cells with NaN values are shown on fp-LED heat maps for consistency with standard LED.
+        
     delete_existing_heatmap_directories_first : bool, optional, default=True
         If True, existing directories where the plots will be saved are deleted before generating new ones.
 
@@ -448,26 +449,37 @@ def heatmap_plot_engine(base_path, plot_params_for_std_led_matrices, plot_params
         Dictionary containing the plotting parameters for fp-LED matrices.
     """
     
+    # Normalize the base path
+    normalized_base_path = normalize_path(base_path)
+
     # Find subdirectories based on the specified directory level
-    subdirectories = find_subdirs_under_base_path(base_path, depth_level=directory_level)
+
+    subdirectories = find_subdirs_under_base_path(normalized_base_path, depth_level=directory_level)
 
     for directory in subdirectories:
-        print(f"Saving heat maps under: {directory}")
+        normalized_directory = normalize_path(directory)
+        print(f"Saving heat maps under: {normalized_directory}")
 
         # Optionally delete existing heatmap directories
         if delete_existing_heatmap_directories_first: 
-            delete_existing_plot_directories_first(directory)
+            delete_existing_plot_directories_first(normalized_directory)
 
-        # Generate and save the heatmaps
-        process_std_led_heatmaps(directory, plot_params_for_std_led_matrices)
+        # Generate and save the heatmaps for standard LED matrices
+        process_std_led_heatmaps(normalized_directory, plot_params_for_std_led_matrices)
+        
         print(f"   Standard LED heat maps were saved to HEAT-MAP-STD-LED")
+        
+        # Process fp-LED heatmaps based on the diagonal cell option
         if show_diag_cells_for_fp_led:
-            process_fp_led_heatmaps_alt(directory, plot_params_for_fp_led_matrices)
+            process_fp_led_heatmaps_alt(normalized_directory, plot_params_for_fp_led_matrices)
+
         else:
-            process_fp_led_heatmaps(directory, plot_params_for_fp_led_matrices)
+            process_fp_led_heatmaps(normalized_directory, plot_params_for_fp_led_matrices)
+
         print(f"   fp-LED heat maps were saved to HEAT-MAP-fp-LED")
     
     print('\n')
-    print('*'*100)
+    print('*' * 100)
     print("Heat map generation job was terminated NORMALLY")
-    print('*'*100)
+    print('*' * 100)
+
