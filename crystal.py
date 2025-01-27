@@ -2,8 +2,8 @@
 #                                                                                      #
 #                           LEDAW - LED Analysis Wizard                                #
 #                                                                                      #
-#                 Automate Local Energy Decomposition Analysis                         # 
-#                               Using ORCA Outputs                                     #
+#                 Automate Local Energy Decomposition Analysis                         #
+#                           Using Data in ORCA Outputs                                 #
 #                                                                                      #
 #                            written by Ahmet Altun                                    #
 #                    Max-Planck-Institut für Kohlenforshung                            #
@@ -14,14 +14,14 @@
 #               If you use any part of this code, in addition to                       #
 #               original LED, CPS, and CBS studies, please cite:                       #
 #                                                                                      #
-#                    1) https://github.com/ahmetaltunfatih/LEDAW                       #
-#   2) https://chemrxiv.org/engage/chemrxiv/article-details/6698104e01103d79c547414c   #
+#                 1) https://github.com/ahmetaltunfatih/LEDAW                          #
+#      2) https://doi.org/10.1002/anie.202421922 (Angew. Chemie, 2024, e202421922)     #
 #                                                                                      #
 ########################################################################################
 
 ### The following is an automated LEDAW procedure for obtaining LED interactoin energy matrices and heat maps 
 ### on the interaction of a central monomer in a crystal with its environment from ORCA output files.
-### For more details, see https://chemrxiv.org/engage/chemrxiv/article-details/6698104e01103d79c547414c
+### For more details, see https://doi.org/10.1002/anie.202421922 (Angew. Chemie, 2024, e202421922).
 ### N-body, two-body, and cooperativty LED maps are generated within standard and fp-LED schemes,
 ### followed by the plot of the corresponding heat maps.
 
@@ -53,7 +53,7 @@ conversion_factor = 627.5095  # for kj/mol, use: 2625.5
 # ORCA jobs. The code automatically standardize subsystem fragment labelings to those in supersystem file.  
 
 relabel_mapping = [1,6,4,5,3,2,7,8,9,10,11] 
-# Applied for consistency with https://chemrxiv.org/engage/chemrxiv/article-details/6698104e01103d79c547414c
+# Applied for consistency with https://doi.org/10.1002/anie.202421922 (Angew. Chemie, 2024, e202421922)
 
 
 nbody_title='''
@@ -62,7 +62,7 @@ nbody_title='''
 ##############################################################################################################
 '''
 
-### Specifying ORCA Output Files Needed For N-Body LED Analysis
+### Specify ORCA Output FilesNeeded For N-Body LED Analysis
 # Below specify main and alternative filenames with their paths as lists. 
 # Note 1: Always specify the output file for the entire system (super system) first in main_filenames and
 # alternative_filenames lists. Where necessary, the code differentiate the super system and its subsystems 
@@ -75,12 +75,12 @@ nbody_title='''
 # DLPNO-CCSD output can  still be provided in the main or alternative file name.
 # Note 4: The corresponding main and alternative ORCA output files must be given at the same index in the file lists.
 # One letter or one number file names may sometimes cause problems. Hence, awoid using such short names, e.g., "A.mpi4.out".
-# If you are on windows and using back slash, it is safer to specify all file paths as raw string, e.g., r'.\ORCA-OUT\ADDUCT.mpi4.out'
+# If you are on windows, it is safer to specify all file paths as raw string and use forward slash, e.g., r'./ORCA-OUT/ADDUCT.mpi4.out'
 # Note 5: You do not have to specify any file name for alternative_filenames. But an empty list with the length of main_filenames must be initiated. 
 # Note 6: If you specified the same fragment with different labels in supersystem and subsystem ORCA output files, 
 # the code automatically labels subsystem fragment labels as in the supersystem output file.
-# Note 7: The code only accepts separate ORCA output files for each system (supersystem and subsystems) and computational setting 
-# If you have compound job output, you need to split this file to separate files for each job.  
+# Note 7: The code only accepts seperate ORCA output files for each system (supersystem and subsystems) and computational setting 
+# If you have compound job output, you need to split this file to seperate files for each job.  
 # Note 8: Optionally, you can perform Complete PNO Space (CPS) and Complete Basis Set (CBS) extrapolations.
 # In this case, you need to specify the path of each ORCA output file with each computational setting.
 # For CPS extrapolation, you need two calculations with a looser (LPNO) and a tighter (TPNO) TCutPNO values, 
@@ -106,6 +106,8 @@ LEDAW_output_path = r'./LEDAW-OUT/CRYSTAL/NBODY'
 
 ### Run N-Body LED engine for all computational settings.
 # Standard and fp-LED N-body matrices will be written to excel files in specified LEDAW output directory
+
+# for smaller basis set and looser TCutPNO setting
 engine_LED_N_body(main_filenames=main_filenames, 
                   alternative_filenames=alternative_filenames, 
                   conversion_factor=conversion_factor, 
@@ -129,11 +131,11 @@ twobody_title='''
 '''
 print(twobody_title)
 
-### Speciying the one-body ORCA output files and their labels
+### Get the one-body ORCA output files and their labels
 
 ## First Way ##
-# If onebody ORA output directory is specified without any file name, the code compares the labels of the supersystem  
-# file with onebody files and automatically standardize the labeling of monomers to the original supersystem labeling.
+# Compare the labels of supersystem file with onebody files and automatically 
+# standardize the labelling of monomers to the original supersystem labelling.
 # In this example, as relabel_mapping is initiated at the beginning of this file ([1,6,4,5,3,2,7,8,9,10,11]),
 # labels will be reordered.
 # Note: onebody_out_directory directory must contain only the necessary one-body ORCA output files.
@@ -143,7 +145,7 @@ onebody_out_directory = r'./ORCA-OUT/CRYSTAL/ONEBODY'
 one_body_orcaout_filenames = extract_one_body_orcaout_filenames(supersystem_file, onebody_out_directory)
 
 ## Second Way ##
-# You can manually specify one-boy output files with the order consistent with the original supersystem labelling.
+# You can manually specify one-body output files with the order consistent with the original supersystem labelling.
 # relabel_mapping from N-body ([1,6,4,5,3,2,7,8,9,10,11]) is still active. Thus final LED maps will have reordered labels. 
 #
 # one_body_orcaout_filenames = [r'./ORCA-OUT/CRYSTAL/ONEBODY/mono1.mpi16.out',
@@ -161,7 +163,7 @@ one_body_orcaout_filenames = extract_one_body_orcaout_filenames(supersystem_file
 
 ## Third Way ##
 # Specify one-body fragments in the order consistent with the reordered N-body labels.
-# Then you need to set relabel_mapping=None in order not to reorder twice.
+# Then you need to set relabel_mapping=None to avoid double reordering.
 
 # relabel_mapping=None
 # one_body_orcaout_filenames = [r'./ORCA-OUT/CRYSTAL/ONEBODY/mono1.mpi16.out',
@@ -178,7 +180,7 @@ one_body_orcaout_filenames = extract_one_body_orcaout_filenames(supersystem_file
 #                              ]
 
 
-### Specify the two-boy ORCA output file directory
+### Specify the two-body ORCA output file directory
 # Note: This directory must contain only the necessary two-body ORCA output files.
 # The code will automatically read the files in this directory and label the fragments consistent with the order you specified fragments in "one_body_orcaout_filenames" variables above. 
 two_body_orcaout_directory = r'./ORCA-OUT/CRYSTAL/TWOBODY'
