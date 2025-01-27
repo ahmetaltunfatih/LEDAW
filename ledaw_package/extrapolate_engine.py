@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+from .nbody_engine import normalize_path
 
 
 def extrapolate_matrices(X, Y, F):
@@ -70,13 +71,16 @@ def calculate_ccsd_elprep(summary_sheets, method):
 def extrapolate_engine(standard_LED_summary_file_X, standard_LED_summary_file_Y, fp_LED_summary_file_X, fp_LED_summary_file_Y, LEDAW_output_path, F_ref, F_corr, method):
     """Process and extrapolate matrices from two directories and save to a new directory."""
 
+    # Normalize the output path
+    normalized_LEDAW_output_path = normalize_path(LEDAW_output_path)
+
     # Create the extrapolation output directory if it doesn't exist
-    if not os.path.exists(LEDAW_output_path):
-        os.makedirs(LEDAW_output_path)
+    if not os.path.exists(normalized_LEDAW_output_path):
+        os.makedirs(normalized_LEDAW_output_path)
     
     # Files to be written
-    extrapolated_standard_LED_summary_file = os.path.join(LEDAW_output_path, 'Summary_Standard_LED_matrices.xlsx')
-    extrapolated_fp_LED_summary_file = os.path.join(LEDAW_output_path, 'Summary_fp-LED_matrices.xlsx')
+    extrapolated_standard_LED_summary_file = os.path.join(normalized_LEDAW_output_path, 'Summary_Standard_LED_matrices.xlsx')
+    extrapolated_fp_LED_summary_file = os.path.join(normalized_LEDAW_output_path, 'Summary_fp-LED_matrices.xlsx')
     
     # Process the standard LED files
     with pd.ExcelWriter(extrapolated_standard_LED_summary_file, engine='openpyxl') as writer_standard:
@@ -170,5 +174,5 @@ def extrapolate_engine(standard_LED_summary_file_X, standard_LED_summary_file_Y,
                 if sheet_name in summary_sheets:
                     summary_sheets[sheet_name].to_excel(writer_fp, sheet_name=sheet_name)
 
-    print(f"  Extrapolation job was terminated NORMALLY. Extrapolated standard and fp-LED matrices are at {LEDAW_output_path}")
-    
+    print(f"  Extrapolation job was terminated NORMALLY. Extrapolated standard and fp-LED matrices are at {normalized_LEDAW_output_path}")
+  
