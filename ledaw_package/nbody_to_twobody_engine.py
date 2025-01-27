@@ -1,5 +1,6 @@
 import os
 import re
+from .nbody_engine import normalize_path
 
 
 def extract_fragment_coords(supersystem_file, tolerance=1e-3):
@@ -62,11 +63,15 @@ def extract_coordinates_from_onebody_file(file_path):
 
 def match_fragments_with_onebody_files(label_coord_dict, onebody_out_directory, tolerance=1e-3):
     """Matches fragment coordinates with the coordinates in the one-body files."""
+    
+    # Normalize the onebody_out_directory path
+    normalized_onebody_out_directory = normalize_path(onebody_out_directory)
+    
     one_body_orcaout_filenames = [None] * len(label_coord_dict)
     
     for frag_num, frag_coords in label_coord_dict.items():
-        for filename in os.listdir(onebody_out_directory):
-            file_path = os.path.join(onebody_out_directory, filename)
+        for filename in os.listdir(normalized_onebody_out_directory):
+            file_path = os.path.join(normalized_onebody_out_directory, filename)
             if not os.path.isfile(file_path):
                 continue
 
