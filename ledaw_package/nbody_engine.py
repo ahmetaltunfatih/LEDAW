@@ -284,9 +284,8 @@ def match_and_construct_mappings_without_missing_middle_frag_coord(supersystem_c
 
     for frag_coords in other_coords_list:
         match_dict = {}
-        label_swaps = {}
+        label_swaps = {i : i for i in range(1, len(supersystem_coords) + 1)}
         matched_labels = []
-        subsystem_labels_set = set(frag_coords.keys())
 
         # Match supersystem labels with fragment labels and swap them
         for super_label, super_coord in supersystem_coords.items():
@@ -294,8 +293,10 @@ def match_and_construct_mappings_without_missing_middle_frag_coord(supersystem_c
             for frag_label, frag_coord in frag_coords.items():
                 if coordinates_match(super_coord, frag_coord, tol):
                     # Store the swap and the matching labels
-                    label_swaps[super_label] = frag_label
-                    label_swaps[frag_label] = super_label
+                    new_frag = label_swaps[frag_label]
+                    label_swaps[frag_label] = label_swaps[super_label]
+                    label_swaps[super_label] = new_frag
+                    print(f"swapping {super_label} with {frag_label}")
                     matched_labels.append(super_label)
                     found_match = True
                     break
