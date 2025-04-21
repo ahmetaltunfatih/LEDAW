@@ -1086,11 +1086,14 @@ def reorder_labels(system_labels, alternative_labels, main_label_mappings, alter
             label_prefix = None
             
             # Determine the correct label prefix from the sheet name
-            for label in system_labels + alternative_labels:
-                if label in sheet_name:
-                    label_prefix = label
-                    break
-            
+            words = sheet_name.strip().split()
+            if words:
+                if words[-1] == "ALT" and len(words) >= 2:
+                    candidate_label = words[-2]
+                else:
+                    candidate_label = words[-1]
+                label_prefix = candidate_label if candidate_label in (system_labels + alternative_labels) else None
+
             if label_prefix:
                 # Choose the appropriate mapping based on whether the sheet is from a main or alternative label
                 if is_alternative and label_prefix in alternative_labels:
