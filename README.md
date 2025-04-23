@@ -112,11 +112,9 @@ If you use any part of this code or its results in your research, in addition to
 
 - **LEDAW GitHub Repository:**  
   [https://github.com/ahmetaltunfatih/LEDAW](https://github.com/ahmetaltunfatih/LEDAW)  
-  DOI: [https://zenodo.org/doi/10.5281/zenodo.13756704](https://zenodo.org/doi/10.5281/zenodo.13756704)
 
-- **Preprint on ChemRxiv:**  
-  [https://chemrxiv.org/engage/chemrxiv/article-details/6698104e01103d79c547414c](https://chemrxiv.org/engage/chemrxiv/article-details/6698104e01103d79c547414c)
-
+- **Main fp-LED Paper:**  
+  [https://doi.org/10.1002/anie.202421922](https://doi.org/10.1002/anie.202421922) (Angew. Chemie. Int. Ed. 64/12, 2025, e202421922)
 ---
 
 ## **License**
