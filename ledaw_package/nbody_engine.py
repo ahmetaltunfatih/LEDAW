@@ -1,5 +1,7 @@
 import os
 import re
+import gc
+import copy
 import glob
 import time
 import shutil
@@ -13,10 +15,7 @@ from .classes import *
 
 
 def normalize_path(path):
-    """Normalize the path by converting backslashes to forward slashes and removing trailing slashes."""
-    # Replace backslashes with forward slashes for consistency
-    normalized_path = path.replace("\\", "/")
-    return normalized_path.rstrip("/")  # remove any trailing slashes
+    return path.replace("\\", "/").rstrip("/")
 
 
 def label_systems(filenames):
@@ -32,444 +31,462 @@ def label_systems(filenames):
     return labeled_filenames
 
 
-def parse_coordinates_from_file(file_path):
-    """Extract the first set of coordinates from FRAGMENT X, *xyz, or CARTESIAN COORDINATES."""
-    
-    # Normalize the file path
-    normalized_file_path = normalize_path(file_path)
-    
-    label_coord_map = {}
-    fragment_mode = False
-    frag_label_counter = 1
-    current_fragment = None
-    colon_found = False
-    fragment_found = False
-    fragments_with_coords = 0
-
-    with open(normalized_file_path, 'r') as file:  # Use the normalized path
-        lines = file.readlines()
-
-    # Step 1: Handling `FRAGMENT X`
-    for line in lines:
-        if re.search(r'CARTESIAN COORDINATES OF FRAGMENTS \(ANGSTROEM\)', line):  # Start FRAGMENT X block
-            fragment_mode = True
-            label_coord_map.clear()
-            frag_label_counter = 1
-            fragment_found = True  # Mark that FRAGMENT X is found
-            continue
-        
-        if re.search(r'INTERNAL COORDINATES \(ANGSTROEM\)', line):  # End FRAGMENT X block
-            fragment_mode = False
-            continue
-
-        if fragment_mode:
-            # Detect FRAGMENT X
-            fragment_match = re.match(r'\s*FRAGMENT\s+(\d+)', line)
-            if fragment_match:
-                current_fragment = int(fragment_match.group(1))
-                continue
-
-            # Extract the first set of coordinates in FRAGMENT X
-            if current_fragment is not None:
-                coord_match = re.match(r'\s*\w+\s+([-.\d]+)\s+([-.\d]+)\s+([-.\d]+)', line)
-                if coord_match and current_fragment not in label_coord_map:
-                    coordinates = (
-                        float(coord_match.group(1)),
-                        float(coord_match.group(2)),
-                        float(coord_match.group(3))
-                    )
-                    label_coord_map[current_fragment] = coordinates  # Store first set of coordinates
-                    current_fragment = None  # Reset current fragment after storing the first set
-                    fragments_with_coords += 1  # Increment the count of fragments with coordinates
-
-    # If only one fragment block has coordinates, skip to Step 2 (*xyz section)
-    if fragments_with_coords <= 1:
-        fragment_found = False  # Force this to False so it triggers Step 2 below
-
-    # Step 2: Handling `*xyz` if FRAGMENT X is not found or only one fragment block had coordinates
-    if not fragment_found:  # Only proceed to *xyz section if FRAGMENT X was not found or only one fragment block had coordinates
-        pattern1_mode = False
-        for line in lines:
-            if re.search(r'\*\s*xyz', line):  # Start of `*xyz` block
-                pattern1_mode = True
-                continue
-            
-            if pattern1_mode and re.search(r'END OF INPUT', line.strip(), re.IGNORECASE):  # End of `*xyz` block
-                pattern1_mode = False
-                continue
-
-            # If in `*xyz` mode and the line contains a colon, mark colon_found
-            if pattern1_mode and ':' in line:
-                colon_found = True
-
-            # If in `*xyz` mode and the line does NOT contain a colon, store the coordinates
-            if pattern1_mode and ':' not in line:
-                # Extract the last three numeric elements as coordinates
-                coords = extract_coords_from_line(line)
-                if coords:
-                    label = frag_label_counter
-                    frag_label_counter += 1
-                    label_coord_map[label] = coords  # Store the first set of coordinates without colon
-
-    # Step 3: Handling "CARTESIAN COORDINATES (ANGSTROEM)" if neither FRAGMENT X nor colon was found in *xyz
-    if not fragment_found and not colon_found:  # Only proceed if neither FRAGMENT X nor colon found in *xyz
-        fragment_mode = False
-        for line in lines:
-            if re.search(r'CARTESIAN COORDINATES \(ANGSTROEM\)', line):  # Start "CARTESIAN COORDINATES (ANGSTROEM)" block
-                fragment_mode = True
-                label_coord_map.clear()
-                frag_label_counter = 1
-                continue
-            
-            if re.search(r'CARTESIAN COORDINATES \(A\.U\.\)', line):  # End block
-                fragment_mode = False
-                continue
-            
-            # Extract the first set of coordinates in "CARTESIAN COORDINATES (ANGSTROEM)"
-            if fragment_mode:
-                coord_match = re.match(r'\s*\w+\s+([-.\d]+)\s+([-.\d]+)\s+([-.\d]+)', line)
-                if coord_match:
-                    label = frag_label_counter
-                    frag_label_counter += 1
-                    coordinates = (
-                        float(coord_match.group(1)),
-                        float(coord_match.group(2)),
-                        float(coord_match.group(3))
-                    )
-                    if label not in label_coord_map:  # Only store the first set of coordinates
-                        label_coord_map[label] = coordinates
-
-    return label_coord_map
-
-
 def extract_coords_from_line(line):
-    """Extract the last three numeric elements from a line as coordinates."""
     parts = line.strip().split()
     try:
-        coords = [float(parts[-3]), float(parts[-2]), float(parts[-1])]
-        return coords
+        return [float(parts[-3]), float(parts[-2]), float(parts[-1])]
     except (ValueError, IndexError):
         return None
 
 
-def coordinates_match(coord1, coord2, tol=1e-3):
-    """Check if two coordinates match within a given tolerance using numpy."""
-    return np.allclose(coord1, coord2, atol=tol)
+def extract_real_coords_xyz_block(file_path, tag, debug_lines):
+    coords = []
+    in_xyz_block = False
+    with open(file_path, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+
+    for i, line in enumerate(lines):
+        if re.search(r"\*\s*xyz\b", line, re.IGNORECASE):
+            in_xyz_block = True
+            debug_lines.append(f"[{tag}] Found *xyz block at line {i}: {line.strip()}")
+            continue
+        if in_xyz_block:
+            if re.match(r"\s*\*\s*$", line) or "END OF INPUT" in line:
+                debug_lines.append(f"[{tag}] End of *xyz block at line {i}: {line.strip()}")
+                break
+            if ":" in line:
+                debug_lines.append(f"[{tag}] Skipping ghost line {i}: {line.strip()}")
+                continue
+            coord = extract_coords_from_line(line)
+            if coord:
+                coords.append(coord)
+                debug_lines.append(f"[{tag}] Extracted coord at line {i}: {coord}")
+            else:
+                debug_lines.append(f"[{tag}] Failed to extract coord at line {i}: {line.strip()}")
+    return coords
 
 
-def check_fragments_missing_coordinates(file_path):
-    """Check which FRAGMENT X blocks in the file are missing coordinates."""
-    missing_fragments = []
-    fragment_mode = False
+def fragments_equal(subsys_atoms, supersys_atoms, tol=1e-3):
+    for a, b in zip(subsys_atoms, supersys_atoms):
+        if any(abs(x - y) > tol for x, y in zip(a, b)):
+            return False
+    return True
+
+
+def extract_fragments(file_path, supersystem_coords=None, tol=1e-3):
+    fragments = {}
+    ghost_flags = {}
+    bsse_found = False
     current_fragment = None
-    fragment_has_coords = False
+    current_atoms = []
 
-    # Normalize the file path
-    normalized_file_path = normalize_path(file_path)
+    with open(file_path, 'r') as f:
+        lines = f.readlines()
 
-    try:
-        with open(normalized_file_path, 'r') as file:
-            lines = file.readlines()
+    fragment_mode = False
+    fragment_found = False
 
+    # Loop to detect and parse FRAGMENT blocks
+    for line in lines:
+        if re.search(r"CARTESIAN COORDINATES OF FRAGMENTS\s*\(ANGSTROEM\)", line):
+            fragment_mode = True
+            continue
+        if re.search(r"INTERNAL COORDINATES\s*\(ANGSTROEM\)", line):
+            fragment_mode = False
+            continue
+
+        frag_match = re.match(r"\s*FRAGMENT\s+(\d+)", line)
+        if frag_match:
+            if current_fragment is not None and current_atoms:
+                fragments[current_fragment] = current_atoms
+                ghost_flags[current_fragment] = False
+            current_fragment = int(frag_match.group(1))
+            current_atoms = []
+            fragment_found = True
+            continue
+
+        if fragment_mode and current_fragment is not None:
+            coord = extract_coords_from_line(line)
+            if coord:
+                current_atoms.append(tuple(round(x, 6) for x in coord))
+
+    # If no FRAGMENT blocks found, treat the system as one fragment and extract coordinates from *xyz block 
+    if not fragment_found:
+        current_fragment = 1
+        current_atoms = []
         for line in lines:
-            # Detect start of FRAGMENT X block
-            fragment_match = re.match(r'\s*FRAGMENT\s+(\d+)', line)
-            if fragment_match:
-                # If the previous fragment has no coordinates, record it
-                if current_fragment is not None and not fragment_has_coords:
-                    missing_fragments.append(current_fragment)
+            if re.search(r"\*\s*xyz\b", line, re.IGNORECASE):
+                for j in range(lines.index(line) + 1, len(lines)):
+                    if re.match(r"\*", lines[j]) or "END OF INPUT" in lines[j]:
+                        break
+                    if ":" in lines[j]:
+                        continue
+                    coord = extract_coords_from_line(lines[j])
+                    if coord:
+                        current_atoms.append(tuple(round(x, 6) for x in coord)) 
+                break
+        if current_atoms:
+            fragments[current_fragment] = current_atoms
+            ghost_flags[current_fragment] = False
 
-                # Start processing new fragment
-                current_fragment = int(fragment_match.group(1))
-                fragment_has_coords = False  # Reset flag for the new fragment
+    if current_fragment is not None and current_atoms:
+        fragments[current_fragment] = current_atoms
+        ghost_flags[current_fragment] = False
+
+    # If FRAGMENT and *xyz blocks do not exist, treat the system as one fragment and extract coordinates from "CARTESIAN COORDINATES (ANGSTROEM)" block.
+    if not fragments:
+        current_fragment = 1
+        current_atoms = []
+        in_cart_block = False
+        for i, line in enumerate(lines):
+            if re.search(r"CARTESIAN COORDINATES\s*\(ANGSTROEM\)", line, re.IGNORECASE):
+                in_cart_block = True
+                continue
+            if in_cart_block:
+                if re.match(r"\s*-{5,}", line):  # skip divider lines like "-----"
+                    continue
+                if line.strip() == "":
+                    break  # empty line signals end of block
+                coord = extract_coords_from_line(line)
+                if coord:
+                    current_atoms.append(tuple(round(x, 6) for x in coord))
+        if current_atoms:
+            fragments[current_fragment] = current_atoms
+            ghost_flags[current_fragment] = False
+
+    # Check *xyz block for ghost atoms
+    for i, line in enumerate(lines):
+        if re.search(r"\*\s*xyz\b", line, re.IGNORECASE):
+            for j in range(i + 1, len(lines)):
+                if re.match(r"\*", lines[j]) or "END OF INPUT" in lines[j]:
+                    break
+                if ':' not in lines[j]:
+                    continue
+                coord = extract_coords_from_line(lines[j])
+                if coord is None:
+                    continue
+                coord = tuple(round(x, 6) for x in coord)
+
+                bsse_found = True
+                matched = False
+                for frag_id, atom_list in fragments.items():
+                    for atom in atom_list:
+                        if np.allclose(coord, atom, atol=tol):
+                            ghost_flags[frag_id] = True
+                            matched = True
+                            break
+                    if matched:
+                        break
+            break
+
+    return fragments, ghost_flags, bsse_found
+
+
+def construct_label_mappings(main_filenames, alternative_filenames, LEDAW_output_path):
+    if len(main_filenames) != len(alternative_filenames):
+        raise ValueError("main_filenames and alternative_filenames must have the same length")
+
+    supersystem_file = normalize_path(main_filenames[0])
+    subsystem_files = [normalize_path(f) for f in main_filenames[1:]]
+    alternative_files = [normalize_path(f) if f else "" for f in alternative_filenames[1:]]
+
+    # === STEP 0: Check for BSSE one-fragment-per-subsystem case ===
+    bsse_found_temp = False
+    is_all_single_real = True
+
+    for subsystem_file in subsystem_files:
+        _, ghost_flags, bsse = extract_fragments(subsystem_file)
+        bsse_found_temp |= bsse
+        real_frags = [k for k, v in ghost_flags.items() if not v]
+        if len(real_frags) != 1:
+            is_all_single_real = False
+            break
+
+    if bsse_found_temp and is_all_single_real:
+        main_label_mappings_ghost_free, alt_label_mappings_ghost_free = construct_label_mappings_singlefrag_bsse(
+            main_filenames, alternative_filenames)
+
+        print("======== Fragment Mappings ========")
+        print("main_label_mappings_ghost_free:", main_label_mappings_ghost_free)
+        print("alt_label_mappings_ghost_free:", alt_label_mappings_ghost_free)
+        print("bsse_found:", True)
+
+        return main_label_mappings_ghost_free, alt_label_mappings_ghost_free, True
+
+    # === ELSE: Continue with multi-fragment logic ===
+    supersystem_frags, super_ghost_flags, _ = extract_fragments(supersystem_file)
+
+    main_label_mappings = {"SUPERSYS": {k: k for k in supersystem_frags}}
+    alt_label_mappings = {"SUPERSYS": {}}
+    main_label_mappings_ghost_free = {"SUPERSYS": {k: k for k, v in super_ghost_flags.items() if not v}}
+    alt_label_mappings_ghost_free = {"SUPERSYS": {}}
+    bsse_found = False
+
+    # === MAIN SUBSYSTEMS ===
+    for i, subsystem_file in enumerate(subsystem_files):
+        subsys_label = f"SUBSYS{i+1}"
+        subsystem_frags, sub_ghost_flags, bsse = extract_fragments(subsystem_file)
+        bsse_found |= bsse
+
+        forward_mapping = {}
+        forward_mapping_ghost_free = {}
+
+        real_fragments = [k for k, v in sub_ghost_flags.items() if not v]
+        if len(real_fragments) == 1:
+            real_label = real_fragments[0]
+            real_coords = subsystem_frags[real_label]
+
+            matched = False
+            for super_label, super_atoms in supersystem_frags.items():
+                if fragments_equal(real_coords, super_atoms):
+                    forward_mapping[real_label] = super_label
+                    forward_mapping_ghost_free[real_label] = super_label
+                    matched = True
+                    break
+            if not matched:
+                forward_mapping[real_label] = None
+                forward_mapping_ghost_free[real_label] = None
+
+            for frag_label in subsystem_frags:
+                if frag_label != real_label:
+                    forward_mapping[frag_label] = None
+        else:
+            for sub_label, sub_atoms in subsystem_frags.items():
+                matched = False
+                for super_label, super_atoms in supersystem_frags.items():
+                    if fragments_equal(sub_atoms, super_atoms):
+                        forward_mapping[sub_label] = super_label
+                        if not sub_ghost_flags.get(sub_label, False):
+                            forward_mapping_ghost_free[sub_label] = super_label
+                        matched = True
+                        break
+                if not matched:
+                    forward_mapping[sub_label] = None
+                    if not sub_ghost_flags.get(sub_label, False):
+                        forward_mapping_ghost_free[sub_label] = None
+
+        main_label_mappings[subsys_label] = forward_mapping
+        main_label_mappings_ghost_free[subsys_label] = forward_mapping_ghost_free
+
+    # === ALT SUPERSYSTEM ===
+    alt_supersystem_file = normalize_path(alternative_filenames[0])
+    if alt_supersystem_file and os.path.isfile(alt_supersystem_file):
+        alt_frags, alt_ghost_flags, _ = extract_fragments(alt_supersystem_file)
+
+        for alt_label, alt_atoms in alt_frags.items():
+            matched = False
+            for super_label, super_atoms in supersystem_frags.items():
+                if fragments_equal(alt_atoms, super_atoms):
+                    alt_label_mappings["SUPERSYS"][alt_label] = super_label
+                    if not alt_ghost_flags.get(alt_label, False):
+                        alt_label_mappings_ghost_free["SUPERSYS"][alt_label] = super_label
+                    matched = True
+                    break
+            if not matched:
+                alt_label_mappings["SUPERSYS"][alt_label] = None
+                if not alt_ghost_flags.get(alt_label, False):
+                    alt_label_mappings_ghost_free["SUPERSYS"][alt_label] = None
+    else:
+        alt_label_mappings["SUPERSYS"] = main_label_mappings["SUPERSYS"].copy()
+        alt_label_mappings_ghost_free["SUPERSYS"] = main_label_mappings_ghost_free["SUPERSYS"].copy()
+
+    # === ALT SUBSYSTEMS ===
+    for i, alt_file in enumerate(alternative_files):
+        subsys_label = f"SUBSYS{i+1}"
+        if not alt_file or not os.path.isfile(alt_file):
+            alt_label_mappings[subsys_label] = main_label_mappings[subsys_label].copy()
+            alt_label_mappings_ghost_free[subsys_label] = main_label_mappings_ghost_free[subsys_label].copy()
+            continue
+
+        alt_frags, alt_ghost_flags, _ = extract_fragments(alt_file)
+        forward_mapping = {}
+        forward_mapping_ghost_free = {}
+
+        for alt_label, alt_atoms in alt_frags.items():
+            matched = False
+            for super_label, super_atoms in supersystem_frags.items():
+                if fragments_equal(alt_atoms, super_atoms):
+                    forward_mapping[alt_label] = super_label
+                    if not alt_ghost_flags.get(alt_label, False):
+                        forward_mapping_ghost_free[alt_label] = super_label
+                    matched = True
+                    break
+            if not matched:
+                forward_mapping[alt_label] = None
+                if not alt_ghost_flags.get(alt_label, False):
+                    forward_mapping_ghost_free[alt_label] = None
+
+        alt_label_mappings[subsys_label] = forward_mapping
+        alt_label_mappings_ghost_free[subsys_label] = forward_mapping_ghost_free
+
+    print("======== Fragment Mappings ========")
+    print("main_label_mappings_ghost_free:", main_label_mappings_ghost_free)
+    print("alt_label_mappings_ghost_free:", alt_label_mappings_ghost_free)
+    print("bsse_found:", bsse_found)
+
+    return main_label_mappings_ghost_free, alt_label_mappings_ghost_free, bsse_found
+
+
+def construct_label_mappings_singlefrag_bsse(main_filenames, alternative_filenames):
+    """Constructs label mappings for BSSE one-fragment-per-subsystem case."""
+
+    system_labels = ['SUPERSYS'] + [f"SUBSYS{i+1}" for i in range(len(main_filenames) - 1)]
+    supersystem_file = main_filenames[0]
+    subsystem_files = main_filenames[1:]
+    alt_subsystem_files = alternative_filenames[1:] if len(alternative_filenames) > 1 else []
+
+    # Extract fragments from SUPERSYS
+    supersys_fragments, _, _ = extract_fragments(supersystem_file)
+    supersys_identity = {i: i for i in supersys_fragments}
+
+    def build_mapping(subsystem_files):
+        mapping_dict = {}
+        for idx, subsystem_file in enumerate(subsystem_files):
+            label = system_labels[idx + 1]  # Always use correct label even if file is skipped
+            if not subsystem_file or not os.path.isfile(subsystem_file):
+                mapping_dict[label] = {}
                 continue
 
-            # Check if the line contains coordinates (within a fragment block)
-            if current_fragment is not None:
-                coord_match = re.match(r'\s*\w+\s+([-.\d]+)\s+([-.\d]+)\s+([-.\d]+)', line)
-                if coord_match:
-                    fragment_has_coords = True
+            subsys_fragments, ghost_flags, _ = extract_fragments(subsystem_file)
+            real_frags = [frag for frag, is_ghost in ghost_flags.items() if not is_ghost]
+            mapping = {}
 
-        # Handle the case where the last fragment in the file has no coordinates
-        if current_fragment is not None and not fragment_has_coords:
-            missing_fragments.append(current_fragment)
+            if len(real_frags) == 1:
+                real_frag_id = real_frags[0]
+                real_coords = subsys_fragments[real_frag_id]
 
-    except FileNotFoundError:
-        print(f"File {normalized_file_path} not found. Skipping.")
-    
-    return missing_fragments
+                matched = False
+                for super_id, super_coords in supersys_fragments.items():
+                    if real_coords == super_coords:
+                        mapping[real_frag_id] = super_id
+                        matched = True
+                        break
+                if not matched:
+                    mapping[real_frag_id] = None
 
-
-def check_files_for_missing_fragments(main_filenames, alternative_filenames):
-    """Check main and alternative files for missing fragment coordinates."""
-    main_missing_fragments = {}
-    alt_missing_fragments = {}
-
-    # Check main files (skip the first supersystem file)
-    for main_file in main_filenames[1:]:
-        if main_file:
-            # Normalize the file path
-            normalized_main_file = normalize_path(main_file)
-            missing_fragments = check_fragments_missing_coordinates(normalized_main_file)
-            if missing_fragments:
-                main_missing_fragments[normalized_main_file] = missing_fragments
-
-    # Check alternative files (skip the first supersystem file)
-    for alt_file in alternative_filenames[1:]:
-        if alt_file:
-            # Normalize the file path
-            normalized_alt_file = normalize_path(alt_file)
-            missing_fragments = check_fragments_missing_coordinates(normalized_alt_file)
-            if missing_fragments:
-                alt_missing_fragments[normalized_alt_file] = missing_fragments
-
-    return main_missing_fragments, alt_missing_fragments
-
-	
-def match_and_construct_mappings_with_missing_middle_frag_coord(supersystem_coords, other_coords_list, tol=1e-3):
-    """Match fragment coordinates to supersystem labels and construct the mapping lists
-    when a fragment label is not associated with coordinates in a subsystem file."""
-    mapped_labels_list = []
-    match_dicts = []
-    subsystem_matching_labels = []
-
-    for frag_coords in other_coords_list:
-        match_dict = {}
-        label_swaps = {}
-        matched_labels = []
-
-        # Match supersystem labels with fragment labels and swap them
-        for super_label, super_coord in supersystem_coords.items():
-            found_match = False
-            for frag_label, frag_coord in frag_coords.items():
-                if coordinates_match(super_coord, frag_coord, tol):
-                    # Store the swap and the matching labels
-                    label_swaps[super_label] = frag_label
-                    label_swaps[frag_label] = super_label
-                    matched_labels.append(super_label)
-                    found_match = True
-                    break
-
-            if not found_match:
-                # Only append `super_label` if a match was found
-                matched_labels.append(None)
-
-        # Now construct the final match dictionary based on the swaps
-        for i in range(1, len(supersystem_coords) + 1):
-            if i in label_swaps:
-                match_dict[i] = label_swaps[i]
+                for frag_id, is_ghost in ghost_flags.items():
+                    if is_ghost:
+                        mapping[frag_id] = -1
             else:
-                match_dict[i] = i
+                # More than one real frag not expected — return empty or partial map
+                mapping = {}
 
-        # Create the mapped labels list from the match_dict
-        mapped_labels = [match_dict[i] for i in sorted(match_dict)]
-        mapped_labels_list.append(mapped_labels)
-        match_dicts.append(match_dict)
+            mapping_dict[label] = mapping
+        return mapping_dict
 
-        # Append only matched labels to the subsystem matching list
-        matched_labels_cleaned = [label for label in matched_labels if label is not None]
-        subsystem_matching_labels.append(matched_labels_cleaned)
+    main_label_mappings_ghost_free = {'SUPERSYS': supersys_identity}
+    main_label_mappings_ghost_free.update(build_mapping(subsystem_files))
 
-    return mapped_labels_list, match_dicts, subsystem_matching_labels
+    alt_label_mappings_ghost_free = {'SUPERSYS': supersys_identity.copy()}
+    alt_label_mappings_ghost_free.update(build_mapping(alt_subsystem_files))
 
-
-def match_and_construct_mappings_without_missing_middle_frag_coord(supersystem_coords, other_coords_list, tol=1e-3):
-    """Match fragment coordinates to supersystem labels and construct the mapping lists
-    when all fragments are sequentially exist in a subsystem."""
-
-    mapped_labels_list = []
-    match_dicts = []
-    subsystem_matching_labels = []
-    supersystem_labels = list(supersystem_coords.keys())  # Supersystem labels as a list
-
-    for frag_coords in other_coords_list:
-        match_dict = {}
-        label_swaps = {}
-        matched_labels = []
-        subsystem_labels_set = set(frag_coords.keys())
-
-        # Match supersystem labels with fragment labels and swap them
-        for super_label, super_coord in supersystem_coords.items():
-            found_match = False
-            for frag_label, frag_coord in frag_coords.items():
-                if coordinates_match(super_coord, frag_coord, tol):
-                    # Store the swap and the matching labels
-                    label_swaps[super_label] = frag_label
-                    label_swaps[frag_label] = super_label
-                    matched_labels.append(super_label)
-                    found_match = True
-                    break
-
-            if not found_match:
-                matched_labels.append(None)
-
-        # Filter out None values
-        matched_labels_cleaned = [label for label in matched_labels if label is not None]
-        subsystem_matching_labels.append(matched_labels_cleaned)
-
-        # Identify missing labels in the subsystem
-        missing_labels = list(set(supersystem_labels) - set(matched_labels_cleaned))
-
-        # Add missing labels to the END of the matched labels list
-        expanded_labels = matched_labels_cleaned + missing_labels
-
-        # Fill in the match_dict with the added labels
-        for i in range(1, len(supersystem_coords) + 1):
-            if i in label_swaps:
-                match_dict[i] = label_swaps[i]
-            else:
-                match_dict[i] = i
-
-        # Now construct the mapped_labels list with missing labels added at the end
-        mapped_labels_list.append(expanded_labels)
-        match_dicts.append(match_dict)
-
-    return mapped_labels_list, match_dicts, subsystem_matching_labels
+    return main_label_mappings_ghost_free, alt_label_mappings_ghost_free
 
 
-def match_and_construct_mappings(supersystem_coords, other_coords_list, main_filenames, alternative_filenames, tol=1e-3):
-    """Determine which match_and_construct_mappings function, i.e., without or with missing_middle_frag_coord to be used."""
-
-    def check_for_missing_fragments_in_fragment_x(filenames):
-        """Check filenames for missing fragments specifically in `FRAGMENT X` sections."""
-        missing_fragments = {}
-        for filename in filenames:
-            if filename:
-                # Normalize the file path
-                normalized_filename = normalize_path(filename)
-                missing_frags = check_fragments_missing_coordinates(normalized_filename)
-                if missing_frags:
-                    missing_fragments[normalized_filename] = missing_frags
-        return missing_fragments
-
-    # Check for missing fragments in FRAGMENT X for both main and alternative files
-    main_missing_fragments = check_for_missing_fragments_in_fragment_x(main_filenames[1:])  # Skip supersystem file
-    alt_missing_fragments = check_for_missing_fragments_in_fragment_x(alternative_filenames[1:])  # Skip supersystem file
-
-    def match_for_files(missing_fragments, supersystem_coords, other_coords_list, tol):
-        """Decide which mapping function to call based on the presence of missing fragments."""
-        if missing_fragments:
-            # Use the function that handles missing middle fragments in `FRAGMENT X`
-            return match_and_construct_mappings_with_missing_middle_frag_coord(supersystem_coords, other_coords_list, tol)
-        else:
-            # Use the standard mapping function
-            return match_and_construct_mappings_without_missing_middle_frag_coord(supersystem_coords, other_coords_list, tol)
-
-    # Determine the mapping function based on missing fragments in either main or alternative files
-    if main_missing_fragments or alt_missing_fragments:
-        mapped_labels_list, match_dicts, subsystem_matching_labels = match_for_files(main_missing_fragments, supersystem_coords, other_coords_list, tol)
-    else:
-        mapped_labels_list, match_dicts, subsystem_matching_labels = match_for_files(alt_missing_fragments, supersystem_coords, other_coords_list, tol)
-
-    # Return the simplified result
-    return mapped_labels_list, match_dicts, subsystem_matching_labels
+def subsystem_label_lists_alligned_to_main_supersystem(system_labels, main_label_mappings_ghost_free):
+    """Returns lists of fragment labels of each subsystem alligned to the main SUPERSY labels."""
+    alligned_subsystem_labels = []
+    for label in system_labels[1:]:  # Skip SUPERSYS
+        mapping = main_label_mappings_ghost_free.get(label, {})
+        matched_labels = [super_label for super_label in mapping.values() if super_label is not None]
+        matched_labels = sorted(set(matched_labels))
+        alligned_subsystem_labels.append(matched_labels)
+    return alligned_subsystem_labels
 
 
-def construct_label_mappings(main_or_alt_filenames, main_filenames, alternative_filenames, default_label_mappings=None):
-    """Constructs label mappings for a supersystem and its subsystems based on coordinate matching."""
-    if not main_or_alt_filenames[0] and default_label_mappings:
-        return default_label_mappings, [{}], []
-
-    if not main_or_alt_filenames[0]:
-        raise ValueError("The first file (supersystem) in the list cannot be empty.")
-
-    # Normalize all file paths
-    normalized_main_or_alt_filenames = [normalize_path(f) for f in main_or_alt_filenames]
-
-    # Parse the supersystem file and assign sequential labels
-    supersystem_coords = parse_coordinates_from_file(normalized_main_or_alt_filenames[0])
-
-    # Filter out any empty or None entries in the file list before processing
-    other_coords_list = [parse_coordinates_from_file(filename) for filename in normalized_main_or_alt_filenames[1:] if filename]
-
-    # Match and construct mappings based on coordinate matching
-    main_or_alt_label_mappings, match_dicts, subsystem_matching_labels = match_and_construct_mappings(supersystem_coords, other_coords_list, main_filenames, alternative_filenames, tol=1e-3)
-
-    # Add the supersystem labels as the first list
-    main_or_alt_label_mappings.insert(0, list(range(1, len(supersystem_coords) + 1)))
-
-    return main_or_alt_label_mappings, match_dicts, subsystem_matching_labels
-
-
-def extract_system_name(filename):
-    """Extract system name from the filename considering the last slash and first dot."""
-    if not filename:  # Handle None or empty string
-        return ""
-    
-    # Find the position of the last slash or backslash
-    last_slash_pos = max(filename.rfind('/'), filename.rfind('\\'))
-    
-    # Determine the starting position for extraction
-    start_pos = last_slash_pos + 1 if last_slash_pos != -1 else 0
-    
-    # Find the position of the first dot after the last slash
-    dot_pos = filename.find('.', start_pos)
-    
-    # Extract the system name
-    system_name = filename[start_pos:dot_pos] if dot_pos != -1 else filename[start_pos:]
-    
-    return system_name
-
-
-def compute_diel_int_en(main_filenames, alternative_filenames, conversion_factor):
-    """Extract CPCM Dielectric values from all main and alternative files and calculate dielectric interaction energy."""
-    
-    diel_values = {}
-    super_system_diel = None
+def compute_ref_diel_int_en(main_filenames, alternative_filenames, conversion_factor):
+    """Extract REF DIEL interaction energy from CPCM Dielectric values."""
+    ref_diel_values = {}
     subsystem_diel_values = {}
-    
-    diel_pattern = r"CPCM Dielectric\s*:\s*([-+]?\d*\.\d+|\d+)"  
-    
-    # Function to extract dielectric value from a file
-    def extract_diel_from_file(filename):
-        """Extract the dielectric value from a given file."""
-        normalized_filename = normalize_path(filename)
+
+    pattern = r"CPCM Dielectric\s*:\s*([-+]?\d*\.\d+|\d+)"
+
+    def extract_diel(filename):
+        filename = normalize_path(filename)
+        if not filename:  # Avoid error message for empty string or None in ALT file list
+            return None
         try:
-            with open(normalized_filename, 'r') as file:
-                for line in file:
-                    match = re.search(diel_pattern, line)
+            with open(filename, 'r') as f:
+                for line in f:
+                    match = re.search(pattern, line)
                     if match:
                         return float(match.group(1))
         except FileNotFoundError:
-            print(f"File {normalized_filename} not found.")
+            print(f"File not found: {filename}")
         return None
 
-    # Loop over each main and alternative file
-    for main_filename, alt_filename in zip(main_filenames, alternative_filenames):
-        root_name = extract_system_name(main_filename)
-        
-        # Try to extract from the main file
-        diel_value = extract_diel_from_file(main_filename)
-        
-        # If not found, try the alternative file
-        if diel_value is None and alt_filename:
-            diel_value = extract_diel_from_file(alt_filename)
-        
-        diel_values[root_name] = diel_value
-        
-        # Check if this is the supersystem
-        if root_name == extract_system_name(main_filenames[0]):
-            super_system_diel = diel_value
+    ref_diel_values["SUPERSYS"] = extract_diel(main_filenames[0]) or extract_diel(alternative_filenames[0])
+
+    for i in range(1, len(main_filenames)):
+        label = f"SUBSYS{i}"
+        diel = extract_diel(main_filenames[i]) or extract_diel(alternative_filenames[i])
+        ref_diel_values[label] = diel
+        if diel is not None:
+            subsystem_diel_values[label] = diel
+
+    if ref_diel_values["SUPERSYS"] is None or len(subsystem_diel_values) != len(main_filenames) - 1:
+        print("REF dielectric values incomplete; REF DIEL int energy set to 0")
+        return ref_diel_values, 0.0
+
+    ref_diel_int_energy = (ref_diel_values["SUPERSYS"] - sum(subsystem_diel_values.values())) * conversion_factor
+    return ref_diel_values, ref_diel_int_energy
+
+
+def compute_corr_diel_int_en(main_filenames, alternative_filenames, conversion_factor, method):
+    """Extract CORR DIEL interaction energy from C-PCM corr. term."""
+    corr_diel_values = {}
+    subsystem_diel_values = {}
+
+    pattern = r"C-PCM corr\. term \(included in E\(CORR\)\).*?([-+]?\d*\.\d+)"
+
+    def extract_corr_diel(filename):
+        filename = normalize_path(filename)
+        if not filename:  # Avoid error message for empty string or None in ALT file list
+            return None
+        try:
+            with open(filename, 'r') as f:
+                for line in f:
+                    match = re.search(pattern, line)
+                    if match:
+                        return float(match.group(1))
+        except FileNotFoundError:
+            print(f"File not found: {filename}")
+        return None
+
+    corr_diel_values["SUPERSYS"] = extract_corr_diel(main_filenames[0]) or extract_corr_diel(alternative_filenames[0])
+
+    for i in range(1, len(main_filenames)):
+        label = f"SUBSYS{i}"
+        if method.lower() == "hfld":
+            diel = 0.0
         else:
-            if diel_value is not None:
-                subsystem_diel_values[root_name] = diel_value
+            diel = extract_corr_diel(main_filenames[i]) or extract_corr_diel(alternative_filenames[i]) or 0.0
+        corr_diel_values[label] = diel
+        subsystem_diel_values[label] = diel
 
-    # Check if any dielectric value is missing
-    if super_system_diel is None or len(subsystem_diel_values) != (len(main_filenames) - 1):
-        print("At least one of the output files does not contain dielectric contribution.\nDielectric contribution to the interaction energy is taken as 0")
-        return diel_values, 0.0
+    if corr_diel_values["SUPERSYS"] is None:
+        print("CORR dielectric value for SUPERSYS missing; CORR DIEL int energy set to 0")
+        return corr_diel_values, 0.0
 
-    # Calculate the dielectric interaction energy
-    diel_int_energy = (super_system_diel - sum(subsystem_diel_values.values())) * conversion_factor
-    
+    corr_diel_int_energy = (corr_diel_values["SUPERSYS"] - sum(subsystem_diel_values.values())) * conversion_factor
+    return corr_diel_values, corr_diel_int_energy
+
+
+def compute_total_diel_int_en(main_filenames, alternative_filenames, conversion_factor, method):
+    """Compute total dielectric interaction energy as REF DIEL + CORR DIEL."""
+    ref_diel_values, ref_diel_int_energy = compute_ref_diel_int_en(main_filenames, alternative_filenames, conversion_factor)
+    corr_diel_values, corr_diel_int_energy = compute_corr_diel_int_en(main_filenames, alternative_filenames, conversion_factor, method)
+
+    diel_values = {}
+    for key in set(ref_diel_values) | set(corr_diel_values):
+        diel_values[key] = (ref_diel_values.get(key) or 0.0) + (corr_diel_values.get(key) or 0.0)
+
+    diel_int_energy = ref_diel_int_energy + corr_diel_int_energy
     return diel_values, diel_int_energy
 
-	
+
 def check_local_energy_decomposition(filename, patterns):
     """Check if the file contains the 'LOCAL ENERGY DECOMPOSITION' section."""
-    root_name = extract_system_name(filename)
-    
-    # Normalize the filename
     normalized_filename = normalize_path(filename)
     
     try:
@@ -493,45 +510,49 @@ def extract_numbers(pattern, content):
 
 def extract_first_match_from_file(filename, patterns, method, use_ref_as_rhf_in_hfld=None):
     """Extract the first matches for E(0), strong pairs, weak pairs, and triples correction from the file."""
-    root_name = extract_system_name(filename)
-    
-    # Normalize the filename
     normalized_filename = normalize_path(filename)
-    
+
     try:
         with open(normalized_filename, 'r') as file:
             content = file.read()
         
         # Search for the energy patterns
         e_ref_match = re.search(patterns.pattern_e0, content)
-        e_sp_match = re.search(patterns.pattern_strong_corr, content)
         e_wp_match = re.search(patterns.pattern_weak_corr, content)
         e_t_match = re.search(patterns.pattern_triples_corr, content)
+        e_sp_match = re.search(patterns.pattern_strong_corr, content)
 
-        # Extract the values, default to 0 if not found
         e_ref = float(e_ref_match.group(1)) if e_ref_match else 0.0
-        e_sp = float(e_sp_match.group(1)) if e_sp_match else 0.0
         e_wp = float(e_wp_match.group(1)) if e_wp_match else 0.0
         e_t = float(e_t_match.group(1)) if e_t_match else 0.0
+        if e_sp_match:
+            e_sp = float(e_sp_match.group(1))
+            cpcm_corr_match = re.search(r"C-PCM corr\. term \(included in E\(CORR\)\).*?([-+]?\d*\.\d+)", content)
+            if cpcm_corr_match:
+                e_sp -= float(cpcm_corr_match.group(1))
+        else:
+            e_sp = 0.0
 
-        # Fallback for HFLD method if E(0) is not found and use_ref_as_rhf_in_hfld is True
+
+        # Subtract dielectric if found
+        diel_match = re.search(r"CPCM Dielectric\s*:\s*([-+]?\d*\.\d+|\d+)", content)
+        if diel_match:
+            e_ref -= float(diel_match.group(1))
+
+        # Fallback for HFLD
         if e_ref == 0.0 and method.lower() == 'hfld' and use_ref_as_rhf_in_hfld:
-            total_energy_match = re.search(r"Total Energy\s+:\s+([-]?\d+\.\d+)", content)
-            dielectric_match = re.search(r"CPCM Dielectric\s+:\s+([-]?\d+\.\d+)", content)
-            
-            if total_energy_match:
-                total_energy = float(total_energy_match.group(1))
-                dielectric_value = float(dielectric_match.group(1)) if dielectric_match else 0.0
-                e_ref = total_energy - dielectric_value
-        
-        # Apply fallback mechanism for HFLD method on strong pairs, weak pairs, and triples correction
-        if use_ref_as_rhf_in_hfld and method.lower() == 'hfld':
-            e_sp = e_sp if e_sp != 0.0 else e_ref
-            e_wp = e_wp if e_wp != 0.0 else e_ref
-            e_t = e_t if e_t != 0.0 else e_ref
+            total_match = re.search(r"Total Energy\s+:\s+([-]?\d+\.\d+)", content)
+            diel_match = re.search(r"CPCM Dielectric\s+:\s+([-]?\d+\.\d+)", content)
+            if total_match:
+                e_ref = float(total_match.group(1)) - float(diel_match.group(1)) if diel_match else float(total_match.group(1))
+
+        if method.lower() == 'hfld' and use_ref_as_rhf_in_hfld:
+            e_sp = e_sp or e_ref
+            e_wp = e_wp or e_ref
+            e_t = e_t or e_ref
 
         return e_ref, e_sp, e_wp, e_t
-    
+
     except FileNotFoundError:
         print(f"File {normalized_filename} not found. Skipping.")
         return 0.0, 0.0, 0.0, 0.0
@@ -539,11 +560,8 @@ def extract_first_match_from_file(filename, patterns, method, use_ref_as_rhf_in_
 
 def determine_matrix_size(filename, patterns):
     """Determine the size of the matrix based on the intra_ref pattern in the file."""
-    root_name = extract_system_name(filename)
-    
-    # Normalize the filename
     normalized_filename = normalize_path(filename)
-    
+
     try:
         with open(normalized_filename, 'r') as file:
             content = file.read()
@@ -554,7 +572,7 @@ def determine_matrix_size(filename, patterns):
     except FileNotFoundError:
         raise FileNotFoundError(f"File {normalized_filename} not found. Unable to determine matrix size.")
 
-        
+
 def extract_els_exch_matrices(content, primary_pattern, alternative_pattern):
     """Extracts electrostatics and exchange matrices based on the primary and alternative patterns."""
     matches = re.findall(primary_pattern, content)
@@ -583,139 +601,51 @@ def extract_els_exch_matrices(content, primary_pattern, alternative_pattern):
     return electrostatics_matrix, exchange_matrix
 
 
-def process_main_file(filename, matrix_size, patterns, intra_ref_list, intra_corr_list, intra_strong_pairs_list,
-                      intra_triples_list, intra_weak_pairs_list, singles_contribution_list,
-                      inter_ref_matrices, inter_corr_matrices, electrostat_matrices,
-                      exchange_matrices, inter_strong_pairs_matrices, inter_triples_matrices,
-                      inter_weak_pairs_matrices, dispersion_strong_pairs_matrices, system_label):
-    """Process the main file to extract and store data."""
-    
-    # Normalize the filename
-    normalized_filename = normalize_path(filename)
+def process_led_file(filename, patterns, intra_ref_list, intra_corr_list, intra_strong_pairs_list, intra_triples_list, intra_weak_pairs_list,
+    singles_contribution_list, inter_ref_matrices, inter_corr_matrices, electrostat_matrices, exchange_matrices, inter_strong_pairs_matrices,
+    inter_triples_matrices, inter_weak_pairs_matrices, dispersion_strong_pairs_matrices, system_label,prefix_suffix=""):
 
-    try:
-        with open(normalized_filename, 'r') as file:
-            content = file.read()
-    except FileNotFoundError:
-        print(f"Main file {normalized_filename} not found. Skipping.")
-        return
-
-    intra_ref = extract_numbers(patterns.PATTERNS["intra_ref"], content)
-    if not intra_ref:
-        intra_ref = extract_numbers(patterns.PATTERNS["intra_ref_alt"], content)
-    intra_corr = extract_numbers(patterns.PATTERNS["intra_corr"], content)
-    intra_strong_pairs = extract_numbers(patterns.PATTERNS["intra_strong_pairs"], content)
-    intra_triples = extract_numbers(patterns.PATTERNS["intra_triples"], content)
-    intra_weak_pairs = extract_numbers(patterns.PATTERNS["intra_weak_pairs"], content)
-    singles_contribution = extract_numbers(patterns.PATTERNS["singles_contribution"], content)
-
-    # Initialize matrices with zeros
-    inter_ref_matrix = np.zeros((matrix_size, matrix_size))
-    inter_corr_matrix = np.zeros((matrix_size, matrix_size))
-    electrostatics_matrix = np.zeros((matrix_size, matrix_size))
-    exchange_matrix = np.zeros((matrix_size, matrix_size))
-    inter_strong_pairs_matrix = np.zeros((matrix_size, matrix_size))
-    inter_triples_matrix = np.zeros((matrix_size, matrix_size))
-    inter_weak_pairs_matrix = np.zeros((matrix_size, matrix_size))
-    dispersion_strong_pairs_matrix = np.zeros((matrix_size, matrix_size))
-
-    # Find all matches
-    matches_combined = re.findall(patterns.PATTERNS["ref_corr_inter"], content)
-    matches_inter_correlation_full = re.findall(patterns.PATTERNS["corr_inter_full"], content)
-    matches_inter_correlation_partial = re.findall(patterns.PATTERNS["corr_inter_partial"], content)
-    matches_dispersion = re.findall(patterns.PATTERNS["dispersion_strong_pairs"], content)
-
-    # Extract electrostatics and exchange data using primary and alternative patterns
-    electrostat_pattern = patterns.PATTERNS["ref_inter"]
-    electrostat_alternative_pattern = patterns.PATTERNS["ref_corr_inter"]
-    electrostat_matrix, exch_matrix = extract_els_exch_matrices(content, electrostat_pattern, electrostat_alternative_pattern)
-    if electrostat_matrix is not None:
-        electrostatics_matrix = electrostat_matrix
-        exchange_matrix = exch_matrix
-
-    def populate_matrix(matches, matrix, idx):
-        for match in matches:
-            try:
-                i = int(match[0]) - 1
-                j = int(match[1]) - 1
-                if i < matrix_size and j < matrix_size and idx < len(match):
-                    value = float(match[idx])
-                    matrix[i, j] = matrix[j, i] = value
-            except (IndexError, ValueError):
-                continue
-
-    # Populate matrices
-    populate_matrix(matches_combined, inter_ref_matrix, 2)
-    populate_matrix(matches_combined, inter_corr_matrix, 3)
-    if matches_inter_correlation_full:
-        populate_matrix(matches_inter_correlation_full, inter_strong_pairs_matrix, 2)
-        populate_matrix(matches_inter_correlation_full, inter_triples_matrix, 3)
-        populate_matrix(matches_inter_correlation_full, inter_weak_pairs_matrix, 4)
-    else:
-        populate_matrix(matches_inter_correlation_partial, inter_strong_pairs_matrix, 2)
-        populate_matrix(matches_inter_correlation_partial, inter_weak_pairs_matrix, 3)
-
-    # Populate dispersion strong pairs matrix
-    for match in matches_dispersion:
-        try:
-            i = int(match[0]) - 1
-            j = int(match[1]) - 1
-            value = float(match[2])
-            if i < matrix_size and j < matrix_size:
-                dispersion_strong_pairs_matrix[i, j] = dispersion_strong_pairs_matrix[j, i] = value
-        except (IndexError, ValueError):
-            continue
-
-    # Use the system label as the file prefix
-    file_prefix = system_label
-
-    # Store results in the respective lists
-    intra_ref_list.append((intra_ref, file_prefix))
-    intra_corr_list.append((intra_corr, file_prefix))
-    intra_strong_pairs_list.append((intra_strong_pairs, file_prefix))
-    intra_triples_list.append((intra_triples, file_prefix))
-    intra_weak_pairs_list.append((intra_weak_pairs, file_prefix))
-    singles_contribution_list.append((singles_contribution, file_prefix))
-    inter_ref_matrices.append((inter_ref_matrix, file_prefix))
-    inter_corr_matrices.append((inter_corr_matrix, file_prefix))
-    electrostat_matrices.append((electrostatics_matrix, file_prefix))
-    exchange_matrices.append((exchange_matrix, file_prefix))
-    inter_strong_pairs_matrices.append((inter_strong_pairs_matrix, file_prefix))
-    inter_triples_matrices.append((inter_triples_matrix, file_prefix))
-    inter_weak_pairs_matrices.append((inter_weak_pairs_matrix, file_prefix))
-    dispersion_strong_pairs_matrices.append((dispersion_strong_pairs_matrix, file_prefix))
-
-
-def process_alternative_file(filename, matrix_size, patterns, intra_ref_list, intra_corr_list, intra_strong_pairs_list,
-                             intra_triples_list, intra_weak_pairs_list, singles_contribution_list,
-                             inter_ref_matrices, inter_corr_matrices, electrostat_matrices,
-                             exchange_matrices, inter_strong_pairs_matrices, inter_triples_matrices,
-                             inter_weak_pairs_matrices, dispersion_strong_pairs_matrices, system_label):
-    """Process the alternative file to extract and store data."""
-    
     if not filename:
         return
 
-    # Normalize the filename
     normalized_filename = normalize_path(filename)
 
     try:
         with open(normalized_filename, 'r') as file:
             content = file.read()
     except FileNotFoundError:
-        print(f"Alternative file {normalized_filename} not found. Skipping.")
+        print(f"File {normalized_filename} not found. Skipping.")
         return
 
+    # Extract intra-component values
     intra_ref = extract_numbers(patterns.PATTERNS["intra_ref"], content)
     if not intra_ref:
         intra_ref = extract_numbers(patterns.PATTERNS["intra_ref_alt"], content)
+
     intra_corr = extract_numbers(patterns.PATTERNS["intra_corr"], content)
     intra_strong_pairs = extract_numbers(patterns.PATTERNS["intra_strong_pairs"], content)
     intra_triples = extract_numbers(patterns.PATTERNS["intra_triples"], content)
     intra_weak_pairs = extract_numbers(patterns.PATTERNS["intra_weak_pairs"], content)
     singles_contribution = extract_numbers(patterns.PATTERNS["singles_contribution"], content)
 
-    # Initialize matrices with zeros
+    # Match patterns
+    matches_combined = re.findall(patterns.PATTERNS["ref_corr_inter"], content)
+    matches_inter_correlation_full = re.findall(patterns.PATTERNS["corr_inter_full"], content)
+    matches_inter_correlation_partial = re.findall(patterns.PATTERNS["corr_inter_partial"], content)
+    matches_dispersion = re.findall(patterns.PATTERNS["dispersion_strong_pairs"], content)
+
+    # Determine matrix size dynamically from fragment IDs
+    all_matches = matches_combined + matches_inter_correlation_full + matches_inter_correlation_partial + matches_dispersion
+    fragment_ids = set()
+    for match in all_matches:
+        try:
+            fragment_ids.add(int(match[0]))
+            fragment_ids.add(int(match[1]))
+        except (IndexError, ValueError):
+            continue
+    matrix_size = max(fragment_ids) if fragment_ids else 1
+
+    # Initialize matrices
     inter_ref_matrix = np.zeros((matrix_size, matrix_size))
     inter_corr_matrix = np.zeros((matrix_size, matrix_size))
     electrostatics_matrix = np.zeros((matrix_size, matrix_size))
@@ -725,20 +655,15 @@ def process_alternative_file(filename, matrix_size, patterns, intra_ref_list, in
     inter_weak_pairs_matrix = np.zeros((matrix_size, matrix_size))
     dispersion_strong_pairs_matrix = np.zeros((matrix_size, matrix_size))
 
-    # Find all matches
-    matches_combined = re.findall(patterns.PATTERNS["ref_corr_inter"], content)
-    matches_inter_correlation_full = re.findall(patterns.PATTERNS["corr_inter_full"], content)
-    matches_inter_correlation_partial = re.findall(patterns.PATTERNS["corr_inter_partial"], content)
-    matches_dispersion = re.findall(patterns.PATTERNS["dispersion_strong_pairs"], content)
-
-    # Extract electrostatics and exchange data using primary and alternative patterns
+    # Electrostatics & Exchange
     electrostat_pattern = patterns.PATTERNS["ref_inter"]
-    electrostat_alternative_pattern = patterns.PATTERNS["ref_corr_inter"]
-    electrostat_matrix, exch_matrix = extract_els_exch_matrices(content, electrostat_pattern, electrostat_alternative_pattern)
+    electrostat_alt_pattern = patterns.PATTERNS["ref_corr_inter"]
+    electrostat_matrix, exch_matrix = extract_els_exch_matrices(content, electrostat_pattern, electrostat_alt_pattern)
     if electrostat_matrix is not None:
         electrostatics_matrix = electrostat_matrix
         exchange_matrix = exch_matrix
 
+    # Matrix population helper
     def populate_matrix(matches, matrix, idx):
         for match in matches:
             try:
@@ -750,7 +675,6 @@ def process_alternative_file(filename, matrix_size, patterns, intra_ref_list, in
             except (IndexError, ValueError):
                 continue
 
-    # Populate matrices
     populate_matrix(matches_combined, inter_ref_matrix, 2)
     populate_matrix(matches_combined, inter_corr_matrix, 3)
     if matches_inter_correlation_full:
@@ -761,7 +685,6 @@ def process_alternative_file(filename, matrix_size, patterns, intra_ref_list, in
         populate_matrix(matches_inter_correlation_partial, inter_strong_pairs_matrix, 2)
         populate_matrix(matches_inter_correlation_partial, inter_weak_pairs_matrix, 3)
 
-    # Populate dispersion strong pairs matrix
     for match in matches_dispersion:
         try:
             i = int(match[0]) - 1
@@ -772,10 +695,9 @@ def process_alternative_file(filename, matrix_size, patterns, intra_ref_list, in
         except (IndexError, ValueError):
             continue
 
-    # Use the system label and add ' ALT' to the prefix
-    file_prefix = system_label + ' ALT'
+    file_prefix = system_label + prefix_suffix
 
-    # Store results in the respective lists
+    # Append results
     intra_ref_list.append((intra_ref, file_prefix))
     intra_corr_list.append((intra_corr, file_prefix))
     intra_strong_pairs_list.append((intra_strong_pairs, file_prefix))
@@ -792,108 +714,45 @@ def process_alternative_file(filename, matrix_size, patterns, intra_ref_list, in
     dispersion_strong_pairs_matrices.append((dispersion_strong_pairs_matrix, file_prefix))
 
 
-def write_matrices_to_excel(filename, matrix_size, intra_ref_list, intra_corr_list, intra_strong_pairs_list,
-                            intra_triples_list, intra_weak_pairs_list, singles_contribution_list,
-                            inter_ref_matrices, inter_corr_matrices, electrostat_matrices,
-                            exchange_matrices, inter_strong_pairs_matrices, inter_triples_matrices,
-                            inter_weak_pairs_matrices, dispersion_strong_pairs_matrices):
-    """Writes collected data to an Excel file."""
-    def expand_matrix_to_size(matrix, target_size):
-        """Expand a matrix to the target size with zeros."""
-        current_size = matrix.shape[0]
-        if current_size < target_size:
-            expanded_matrix = np.zeros((target_size, target_size))
-            expanded_matrix[:current_size, :current_size] = matrix
-            return expanded_matrix
-        return matrix
+def write_matrices_to_excel(filename, intra_ref_list, intra_corr_list, intra_strong_pairs_list, intra_triples_list, intra_weak_pairs_list,
+    singles_contribution_list, inter_ref_matrices, inter_corr_matrices, electrostat_matrices, exchange_matrices, inter_strong_pairs_matrices,
+    inter_triples_matrices, inter_weak_pairs_matrices, dispersion_strong_pairs_matrices):
+    """Writes collected data to an Excel file using each matrix’s actual shape."""
 
-    # Normalize the filename before writing
     normalized_filename = normalize_path(filename)
 
     with pd.ExcelWriter(normalized_filename, engine='xlsxwriter') as writer:
-        # Write intra values as diagonal elements in separate sheets
-        for idx, (intra_ref, file_prefix) in enumerate(intra_ref_list):
-            file_prefix = extract_system_name(file_prefix)
-            intra_ref_matrix = np.zeros((matrix_size, matrix_size))
-            for i in range(len(intra_ref)):
-                intra_ref_matrix[i, i] = intra_ref[i]
-            df_intra_ref = pd.DataFrame(intra_ref_matrix, columns=range(1, matrix_size + 1), index=range(1, matrix_size + 1))
-            df_intra_ref.to_excel(writer, sheet_name=f'Intra REF {file_prefix}')
 
-        for idx, (intra_strong_pairs, file_prefix) in enumerate(intra_strong_pairs_list):
-            file_prefix = extract_system_name(file_prefix)
-            intra_strong_pairs_matrix = np.zeros((matrix_size, matrix_size))
-            for i in range(len(intra_strong_pairs)):
-                intra_strong_pairs_matrix[i, i] = intra_strong_pairs[i]
-            df_intra_strong_pairs = pd.DataFrame(intra_strong_pairs_matrix, columns=range(1, matrix_size + 1), index=range(1, matrix_size + 1))
-            df_intra_strong_pairs.to_excel(writer, sheet_name=f'Intra SP {file_prefix}')
+        def write_diag_matrix(data_list, name_prefix):
+            for values, label in data_list:
+                size = len(values)
+                mat = np.zeros((size, size))
+                for i in range(size):
+                    mat[i, i] = values[i]
+                df = pd.DataFrame(mat, index=range(1, size + 1), columns=range(1, size + 1))
+                df.to_excel(writer, sheet_name=f'{name_prefix} {label}')
 
-        for idx, (intra_triples, file_prefix) in enumerate(intra_triples_list):
-            file_prefix = extract_system_name(file_prefix)
-            intra_triples_matrix = np.zeros((matrix_size, matrix_size))
-            for i in range(len(intra_triples)):
-                intra_triples_matrix[i, i] = intra_triples[i]
-            df_intra_triples = pd.DataFrame(intra_triples_matrix, columns=range(1, matrix_size + 1), index=range(1, matrix_size + 1))
-            df_intra_triples.to_excel(writer, sheet_name=f'Intra T {file_prefix}')
+        def write_square_matrix(matrix_list, name_prefix):
+            for matrix, label in matrix_list:
+                size = matrix.shape[0]
+                df = pd.DataFrame(matrix, index=range(1, size + 1), columns=range(1, size + 1))
+                df.to_excel(writer, sheet_name=f'{name_prefix} {label}')
 
-        for idx, (intra_weak_pairs, file_prefix) in enumerate(intra_weak_pairs_list):
-            file_prefix = extract_system_name(file_prefix)
-            intra_weak_pairs_matrix = np.zeros((matrix_size, matrix_size))
-            for i in range(len(intra_weak_pairs)):
-                intra_weak_pairs_matrix[i, i] = intra_weak_pairs[i]
-            df_intra_weak_pairs = pd.DataFrame(intra_weak_pairs_matrix, columns=range(1, matrix_size + 1), index=range(1, matrix_size + 1))
-            df_intra_weak_pairs.to_excel(writer, sheet_name=f'Intra WP {file_prefix}')
+        write_diag_matrix(intra_ref_list, 'Intra REF')
+        write_diag_matrix(intra_corr_list, 'Intra CORR')
+        write_diag_matrix(intra_strong_pairs_list, 'Intra SP')
+        write_diag_matrix(intra_triples_list, 'Intra T')
+        write_diag_matrix(intra_weak_pairs_list, 'Intra WP')
+        write_diag_matrix(singles_contribution_list, 'Singles')
 
-        for idx, (singles_contribution, file_prefix) in enumerate(singles_contribution_list):
-            file_prefix = extract_system_name(file_prefix)
-            singles_contribution_matrix = np.zeros((matrix_size, matrix_size))
-            for i in range(len(singles_contribution)):
-                singles_contribution_matrix[i, i] = singles_contribution[i]
-            df_singles_contribution = pd.DataFrame(singles_contribution_matrix, columns=range(1, matrix_size + 1), index=range(1, matrix_size + 1))
-            df_singles_contribution.to_excel(writer, sheet_name=f'Singles {file_prefix}')
-
-        # Write interaction matrices
-        for idx, (matrix, file_prefix) in enumerate(inter_ref_matrices):
-            file_prefix = extract_system_name(file_prefix)
-            expanded_matrix = expand_matrix_to_size(matrix, matrix_size)
-            df = pd.DataFrame(expanded_matrix, columns=range(1, matrix_size + 1), index=range(1, matrix_size + 1))
-            df.to_excel(writer, sheet_name=f'Inter REF {file_prefix}')
-
-        for idx, (matrix, file_prefix) in enumerate(electrostat_matrices):
-            file_prefix = extract_system_name(file_prefix)
-            expanded_matrix = expand_matrix_to_size(matrix, matrix_size)
-            df = pd.DataFrame(expanded_matrix, columns=range(1, matrix_size + 1), index=range(1, matrix_size + 1))
-            df.to_excel(writer, sheet_name=f'Electrostat {file_prefix}')
-
-        for idx, (matrix, file_prefix) in enumerate(exchange_matrices):
-            file_prefix = extract_system_name(file_prefix)
-            expanded_matrix = expand_matrix_to_size(matrix, matrix_size)
-            df = pd.DataFrame(expanded_matrix, columns=range(1, matrix_size + 1), index=range(1, matrix_size + 1))
-            df.to_excel(writer, sheet_name=f'Exchange {file_prefix}')
-
-        for idx, (matrix, file_prefix) in enumerate(inter_strong_pairs_matrices):
-            file_prefix = extract_system_name(file_prefix)
-            expanded_matrix = expand_matrix_to_size(matrix, matrix_size)
-            df = pd.DataFrame(expanded_matrix, columns=range(1, matrix_size + 1), index=range(1, matrix_size + 1))
-            df.to_excel(writer, sheet_name=f'Inter SP {file_prefix}')
-
-        for idx, (matrix, file_prefix) in enumerate(inter_triples_matrices):
-            file_prefix = extract_system_name(file_prefix)
-            expanded_matrix = expand_matrix_to_size(matrix, matrix_size)
-            df = pd.DataFrame(expanded_matrix, columns=range(1, matrix_size + 1), index=range(1, matrix_size + 1))
-            df.to_excel(writer, sheet_name=f'Inter T {file_prefix}')
-
-        for idx, (matrix, file_prefix) in enumerate(inter_weak_pairs_matrices):
-            file_prefix = extract_system_name(file_prefix)
-            expanded_matrix = expand_matrix_to_size(matrix, matrix_size)
-            df = pd.DataFrame(expanded_matrix, columns=range(1, matrix_size + 1), index=range(1, matrix_size + 1))
-            df.to_excel(writer, sheet_name=f'Inter WP {file_prefix}')
-
-        for idx, (matrix, file_prefix) in enumerate(dispersion_strong_pairs_matrices):
-            file_prefix = extract_system_name(file_prefix)
-            expanded_matrix = expand_matrix_to_size(matrix, matrix_size)
-            df = pd.DataFrame(expanded_matrix, columns=range(1, matrix_size + 1), index=range(1, matrix_size + 1))
-            df.to_excel(writer, sheet_name=f'Disp SP {file_prefix}')
+        write_square_matrix(inter_ref_matrices, 'Inter REF')
+        write_square_matrix(inter_corr_matrices, 'Inter CORR')
+        write_square_matrix(electrostat_matrices, 'Electrostat')
+        write_square_matrix(exchange_matrices, 'Exchange')
+        write_square_matrix(inter_strong_pairs_matrices, 'Inter SP')
+        write_square_matrix(inter_triples_matrices, 'Inter T')
+        write_square_matrix(inter_weak_pairs_matrices, 'Inter WP')
+        write_square_matrix(dispersion_strong_pairs_matrices, 'Disp SP')
 
 
 def multifrag_system_processing(main_filenames, alternative_filenames, LEDAW_output_path, system_labels):
@@ -916,84 +775,128 @@ def multifrag_system_processing(main_filenames, alternative_filenames, LEDAW_out
     # Instantiate patterns object
     patterns = Patterns()
 
-    # Determine the matrix size based on the first main file
-    matrix_size = determine_matrix_size(main_filenames[0], patterns)
-
-    # Process each main file and alternative file
+    # Process each main and alternative file using unified function
     for main_file, alt_file, system_label in zip(main_filenames, alternative_filenames, system_labels):
-        process_main_file(main_file, matrix_size, patterns, intra_ref_list, intra_corr_list, intra_strong_pairs_list,
-                          intra_triples_list, intra_weak_pairs_list, singles_contribution_list,
-                          inter_ref_matrices, inter_corr_matrices, electrostat_matrices,
-                          exchange_matrices, inter_strong_pairs_matrices, inter_triples_matrices,
-                          inter_weak_pairs_matrices, dispersion_strong_pairs_matrices, system_label)
-        process_alternative_file(alt_file, matrix_size, patterns, intra_ref_list, intra_corr_list, intra_strong_pairs_list,
-                                 intra_triples_list, intra_weak_pairs_list, singles_contribution_list,
-                                 inter_ref_matrices, inter_corr_matrices, electrostat_matrices,
-                                 exchange_matrices, inter_strong_pairs_matrices, inter_triples_matrices,
-                                 inter_weak_pairs_matrices, dispersion_strong_pairs_matrices, system_label)
+        process_led_file(
+            filename=main_file,
+            patterns=patterns,
+            intra_ref_list=intra_ref_list,
+            intra_corr_list=intra_corr_list,
+            intra_strong_pairs_list=intra_strong_pairs_list,
+            intra_triples_list=intra_triples_list,
+            intra_weak_pairs_list=intra_weak_pairs_list,
+            singles_contribution_list=singles_contribution_list,
+            inter_ref_matrices=inter_ref_matrices,
+            inter_corr_matrices=inter_corr_matrices,
+            electrostat_matrices=electrostat_matrices,
+            exchange_matrices=exchange_matrices,
+            inter_strong_pairs_matrices=inter_strong_pairs_matrices,
+            inter_triples_matrices=inter_triples_matrices,
+            inter_weak_pairs_matrices=inter_weak_pairs_matrices,
+            dispersion_strong_pairs_matrices=dispersion_strong_pairs_matrices,
+            system_label=system_label,
+            prefix_suffix=""
+        )
 
-    # Ensure the output directory exists
+        if alt_file:
+            process_led_file(
+                filename=alt_file,
+                patterns=patterns,
+                intra_ref_list=intra_ref_list,
+                intra_corr_list=intra_corr_list,
+                intra_strong_pairs_list=intra_strong_pairs_list,
+                intra_triples_list=intra_triples_list,
+                intra_weak_pairs_list=intra_weak_pairs_list,
+                singles_contribution_list=singles_contribution_list,
+                inter_ref_matrices=inter_ref_matrices,
+                inter_corr_matrices=inter_corr_matrices,
+                electrostat_matrices=electrostat_matrices,
+                exchange_matrices=exchange_matrices,
+                inter_strong_pairs_matrices=inter_strong_pairs_matrices,
+                inter_triples_matrices=inter_triples_matrices,
+                inter_weak_pairs_matrices=inter_weak_pairs_matrices,
+                dispersion_strong_pairs_matrices=dispersion_strong_pairs_matrices,
+                system_label=system_label,
+                prefix_suffix=" ALT"
+            )
+
+    # Ensure output path exists
     normalized_LEDAW_output_path = normalize_path(LEDAW_output_path)
     os.makedirs(normalized_LEDAW_output_path, exist_ok=True)
 
-    # Define the full path for the output file
     output_file = os.path.join(normalized_LEDAW_output_path, 'tmp1.xlsx')
 
-    # Write the collected data to an Excel file
-    write_matrices_to_excel(output_file, matrix_size, intra_ref_list, intra_corr_list, intra_strong_pairs_list,
-                            intra_triples_list, intra_weak_pairs_list, singles_contribution_list,
-                            inter_ref_matrices, inter_corr_matrices, electrostat_matrices,
-                            exchange_matrices, inter_strong_pairs_matrices, inter_triples_matrices,
-                            inter_weak_pairs_matrices, dispersion_strong_pairs_matrices)
+    # Write matrices to Excel (label mappings not needed for sizing anymore)
+    write_matrices_to_excel(
+        filename=output_file,
+        intra_ref_list=intra_ref_list,
+        intra_corr_list=intra_corr_list,
+        intra_strong_pairs_list=intra_strong_pairs_list,
+        intra_triples_list=intra_triples_list,
+        intra_weak_pairs_list=intra_weak_pairs_list,
+        singles_contribution_list=singles_contribution_list,
+        inter_ref_matrices=inter_ref_matrices,
+        inter_corr_matrices=inter_corr_matrices,
+        electrostat_matrices=electrostat_matrices,
+        exchange_matrices=exchange_matrices,
+        inter_strong_pairs_matrices=inter_strong_pairs_matrices,
+        inter_triples_matrices=inter_triples_matrices,
+        inter_weak_pairs_matrices=inter_weak_pairs_matrices,
+        dispersion_strong_pairs_matrices=dispersion_strong_pairs_matrices,
+    )
 
-    return matrix_size
 
+def singlefrag_system_processing(labeled_main_filenames, labeled_alt_filenames, LEDAW_output_path, method, use_ref_as_rhf_in_hfld=None):
 
-def singlefrag_system_processing(main_filenames, alternative_filenames, matrix_size, LEDAW_output_path, system_labels, method, use_ref_as_rhf_in_hfld=None):
     patterns = Patterns()
     matrices = {}
 
-    for i, (main_filename, alt_filename, system_label) in enumerate(zip(main_filenames, alternative_filenames, system_labels)):
+    for main_file, system_label in labeled_main_filenames.items():
+        alt_file = None
+        for af, af_label in labeled_alt_filenames.items():
+            if af_label == system_label:
+                alt_file = af
+                break
+
         # Process main file
-        if main_filename:
-            led_exists = check_local_energy_decomposition(main_filename, patterns)
+        if main_file:
+            led_exists = check_local_energy_decomposition(main_file, patterns)
             if not led_exists:
-                e_ref, e_sp, e_wp, e_t = extract_first_match_from_file(main_filename, patterns, method, use_ref_as_rhf_in_hfld)
-                ref_matrix = np.zeros((matrix_size, matrix_size))
-                sp_matrix = np.zeros((matrix_size, matrix_size))
-                wp_matrix = np.zeros((matrix_size, matrix_size))
-                t_matrix = np.zeros((matrix_size, matrix_size))
+                e_ref, e_sp, e_wp, e_t = extract_first_match_from_file(main_file, patterns, method, use_ref_as_rhf_in_hfld)
+                size = 1 if e_ref != 0 else 0
+                ref_matrix = np.zeros((size, size))
+                sp_matrix = np.zeros((size, size))
+                wp_matrix = np.zeros((size, size))
+                t_matrix = np.zeros((size, size))
 
-                # Place values on the first diagonal element
-                ref_matrix[0, 0] = e_ref
-                sp_matrix[0, 0] = e_sp
-                wp_matrix[0, 0] = e_wp
-                t_matrix[0, 0] = e_t
+                if size == 1:
+                    ref_matrix[0, 0] = e_ref
+                    sp_matrix[0, 0] = e_sp
+                    wp_matrix[0, 0] = e_wp
+                    t_matrix[0, 0] = e_t
 
-                # Use the system label as the prefix instead of the file name
-                file_prefix = system_label
-                matrices[f'Intra REF {file_prefix}'] = ref_matrix
-                matrices[f'Intra SP {file_prefix}'] = sp_matrix
-                matrices[f'Intra WP {file_prefix}'] = wp_matrix
-                matrices[f'Intra T {file_prefix}'] = t_matrix
+                matrices[f'Intra REF {system_label}'] = ref_matrix
+                matrices[f'Intra SP {system_label}'] = sp_matrix
+                matrices[f'Intra WP {system_label}'] = wp_matrix
+                matrices[f'Intra T {system_label}'] = t_matrix
 
-        # Process ALT file similarly if needed
-        if alt_filename:
-            led_exists = check_local_energy_decomposition(alt_filename, patterns)
+        # Process ALT file
+        if alt_file:
+            led_exists = check_local_energy_decomposition(alt_file, patterns)
             if not led_exists:
-                e_ref, e_sp, e_wp, e_t = extract_first_match_from_file(alt_filename, patterns, method, use_ref_as_rhf_in_hfld)
-                ref_matrix = np.zeros((matrix_size, matrix_size))
-                sp_matrix = np.zeros((matrix_size, matrix_size))
-                wp_matrix = np.zeros((matrix_size, matrix_size))
-                t_matrix = np.zeros((matrix_size, matrix_size))
+                e_ref, e_sp, e_wp, e_t = extract_first_match_from_file(alt_file, patterns, method, use_ref_as_rhf_in_hfld)
+                size = 1 if e_ref != 0 else 0
+                ref_matrix = np.zeros((size, size))
+                sp_matrix = np.zeros((size, size))
+                wp_matrix = np.zeros((size, size))
+                t_matrix = np.zeros((size, size))
 
-                # Place values on the first diagonal element
-                ref_matrix[0, 0] = e_ref
-                sp_matrix[0, 0] = e_sp
-                wp_matrix[0, 0] = e_wp
-                t_matrix[0, 0] = e_t
+                if size == 1:
+                    ref_matrix[0, 0] = e_ref
+                    sp_matrix[0, 0] = e_sp
+                    wp_matrix[0, 0] = e_wp
+                    t_matrix[0, 0] = e_t
 
-                # Use the system label and add ' ALT' to the prefix
                 file_prefix = system_label + ' ALT'
                 matrices[f'Intra REF {file_prefix}'] = ref_matrix
                 matrices[f'Intra SP {file_prefix}'] = sp_matrix
@@ -1001,23 +904,21 @@ def singlefrag_system_processing(main_filenames, alternative_filenames, matrix_s
                 matrices[f'Intra T {file_prefix}'] = t_matrix
 
     # Ensure the output directory exists
-    # Ensure the output directory exists
     normalized_LEDAW_output_path = normalize_path(LEDAW_output_path)
     os.makedirs(normalized_LEDAW_output_path, exist_ok=True)
 
-    # Define the full path for the output file
     output_file = os.path.join(normalized_LEDAW_output_path, 'tmp2.xlsx')
 
-    # Writing matrices to the specified output file
     with pd.ExcelWriter(output_file, engine='xlsxwriter') as writer:
         for name, matrix in matrices.items():
-            df = pd.DataFrame(matrix, index=range(1, matrix_size + 1), columns=range(1, matrix_size + 1))
+            size = matrix.shape[0]
+            df = pd.DataFrame(matrix, index=range(1, size + 1), columns=range(1, size + 1))
             df.to_excel(writer, sheet_name=name)
 
     return matrices
 
 
-def collect_unprocessed_LED_data_as_matrices(LEDAW_output_path):
+def combine_unprocessed_LED_data_fies(LEDAW_output_path):
     """Combines two temporary Excel files with multiple sheets into one file and deletes the source Excel files."""
     
     # Normalize the LEDAW_output_path
@@ -1025,7 +926,7 @@ def collect_unprocessed_LED_data_as_matrices(LEDAW_output_path):
     
     file1 = os.path.join(normalized_LEDAW_output_path, "tmp1.xlsx")
     file2 = os.path.join(normalized_LEDAW_output_path, "tmp2.xlsx")
-    write_to_excel_filename = os.path.join(normalized_LEDAW_output_path, "Unprocessed_LED_matrices.xlsx")
+    write_to_excel_filename = os.path.join(normalized_LEDAW_output_path, "Unprocessed_LED_matrices0.xlsx")
 
     
     # Create a new Excel writer object
@@ -1055,85 +956,94 @@ def collect_unprocessed_LED_data_as_matrices(LEDAW_output_path):
     # Normalize the path before printing
     normalized_output_file = normalize_path(write_to_excel_filename)
     print(f"LED energy components from each file were written as matrices without any processing to {normalized_output_file}")
-	
 
-def reorder_labels(system_labels, alternative_labels, main_label_mappings, alternative_label_mappings, LEDAW_output_path):
-    """Process each sheet in the Excel file and reorder matrices based on dynamic prefix mappings."""
-    
-    # Normalize the LEDAW_output_path
+
+def unify_labels(system_labels, alternative_labels, main_label_mappings_ghost_free, alternative_label_mappings_ghost_free, LEDAW_output_path):
+    """Relabels and resizes all matrix sheets in Excel based on mappings to main SUPERSYS fragment labels."""
+
     normalized_LEDAW_output_path = normalize_path(LEDAW_output_path)
-    
-    # Define the input and output Excel file names
-    input_excel_file = os.path.join(normalized_LEDAW_output_path, 'Unprocessed_LED_matrices.xlsx')
-    base_name = os.path.splitext(input_excel_file)[0]
-    output_excel_file = f"{base_name}_withFragmentRelabeling.xlsx"
-    
-    # Create mapping dictionaries for system labels and alternative labels
-    main_mappings = dict(zip(system_labels, main_label_mappings))
-    alternative_mappings = dict(zip(alternative_labels, alternative_label_mappings))
-    
+    input_excel_file = os.path.join(normalized_LEDAW_output_path, 'Unprocessed_LED_matrices0.xlsx')
+    output_excel_file = os.path.join(normalized_LEDAW_output_path, 'Unprocessed_LED_matrices1_withUnifiedFragmentLabeling.xlsx')
+
     xl = pd.ExcelFile(input_excel_file)
-    
-    # Set pandas options to limit the DataFrame print size for better readability
-    pd.set_option('display.max_rows', 10)
-    pd.set_option('display.max_columns', 10)
-    
+
+    # Determine full label range from SUPERSYS mapping
+    supersys_labels = [
+        value for value in main_label_mappings_ghost_free.get("SUPERSYS", {}).values()
+        if value is not None
+    ]
+    if supersys_labels:
+        max_label = max(supersys_labels)
+        full_label_range = list(range(1, max_label + 1))  # Include all labels up to max
+    else:
+        full_label_range = []
+
     with pd.ExcelWriter(output_excel_file, engine='openpyxl') as writer:
         for sheet_name in xl.sheet_names:
             df = xl.parse(sheet_name, index_col=0)
-            
-            is_alternative = 'ALT' in sheet_name
-            label_prefix = None
-            
-            # Determine the correct label prefix from the sheet name
+            if df.empty:
+                continue
+
+            is_alt = 'ALT' in sheet_name
+            # Extract the system label
             words = sheet_name.strip().split()
-            if words:
+            if not words:
+                matched_label = None
+            else:
                 if words[-1] == "ALT" and len(words) >= 2:
                     candidate_label = words[-2]
                 else:
                     candidate_label = words[-1]
-                label_prefix = candidate_label if candidate_label in (system_labels + alternative_labels) else None
+                matched_label = candidate_label if candidate_label in (system_labels + alternative_labels) else None
 
-            if label_prefix:
-                # Choose the appropriate mapping based on whether the sheet is from a main or alternative label
-                if is_alternative and label_prefix in alternative_labels:
-                    label_mapping = alternative_mappings[label_prefix]
-                elif label_prefix in system_labels:
-                    label_mapping = main_mappings[label_prefix]
-                else:
-                    raise ValueError(f"Unexpected label {label_prefix} in sheet {sheet_name}")
-                
-                # Apply the label mapping to reorder the DataFrame
-                df.columns = label_mapping
-                df.index = label_mapping
-
-                # Sort the DataFrame according to the new mapping
-                df.sort_index(axis=0, ascending=True, inplace=True)
-                df.sort_index(axis=1, ascending=True, inplace=True)
-
-                # Write the reordered DataFrame to the new Excel file
+            if not matched_label:
+                print(f"Skipping sheet '{sheet_name}': no system label matched.")
                 df.to_excel(writer, sheet_name=sheet_name)
-            else:
-                if sheet_name != 'Sheet1':
-                    print(f"Warning: No matching prefix found for sheet {sheet_name}. Sheet will not be reordered.")
-                
-                # Optionally write the sheet without reordering
+                continue
+
+            mappings = alternative_label_mappings_ghost_free if is_alt else main_label_mappings_ghost_free
+            label_mapping = mappings.get(matched_label, {})
+            if not label_mapping:
+                print(f"Skipping sheet '{sheet_name}': no label mapping found for {matched_label}.")
+                continue
+
+            try:
+                # Ensure both index and columns are numeric
+                df.index = pd.to_numeric(df.index, errors='coerce')
+                df.columns = pd.to_numeric(df.columns, errors='coerce')
+
+                # Prepare the extended matrix
+                extended_df = pd.DataFrame(0.0, index=full_label_range, columns=full_label_range)
+
+                # Safely remap and copy values
+                for orig_row in df.index:
+                    new_row = label_mapping.get(orig_row)
+                    if new_row is None or new_row not in full_label_range:
+                        continue
+                    for orig_col in df.columns:
+                        new_col = label_mapping.get(orig_col)
+                        if new_col is None or new_col not in full_label_range:
+                            continue
+                        extended_df.at[new_row, new_col] = df.at[orig_row, orig_col]
+
+                extended_df.to_excel(writer, sheet_name=sheet_name)
+
+            except Exception as e:
+                print(f"Error processing sheet '{sheet_name}': {e}")
                 df.to_excel(writer, sheet_name=sheet_name)
 
-    # Normalize the output file path for printing
-    normalized_output_file = normalize_path(output_excel_file)
-    print(f"Reordered matrices were written to '{normalized_output_file}'")
+    print(f"Matrices with unified labels written to '{normalize_path(output_excel_file)}'")
 
-    
-def compare_main_ALT_removeALTlabel(LEDAW_output_path):
+
+def combine_main_ALT(LEDAW_output_path):
     """Process the Excel file to compare and handle ALT sheets, then write results to a new file."""
     
     # Normalize the LEDAW_output_path
     normalized_LEDAW_output_path = normalize_path(LEDAW_output_path)
     
     # Static file names with normalized path
-    input_excel_file = os.path.join(normalized_LEDAW_output_path, 'Unprocessed_LED_matrices_withFragmentRelabeling.xlsx')
-    output_excel_file = os.path.join(normalized_LEDAW_output_path, 'Unprocessed_LED_matrices_withoutALTlabel.xlsx')
+    input_excel_file = os.path.join(normalized_LEDAW_output_path, 'Unprocessed_LED_matrices1_withUnifiedFragmentLabeling.xlsx')
+    output_excel_file = os.path.join(normalized_LEDAW_output_path, 'Unprocessed_LED_matrices2_withoutALTlabel.xlsx')
     
     difference_detected = False  # Flag to check if any differences were found
     differences = []  # List to store sheet names with differences
@@ -1197,8 +1107,8 @@ def combine_intra_inter_matrices(LEDAW_output_path):
     normalized_LEDAW_output_path = normalize_path(LEDAW_output_path)
     
     # Static file names with normalized paths
-    input_excel_file = os.path.join(normalized_LEDAW_output_path, 'Unprocessed_LED_matrices_withoutALTlabel.xlsx')
-    output_excel_file = os.path.join(normalized_LEDAW_output_path, 'Unprocessed_LED_matrices_combined_INTRA-INTER.xlsx')
+    input_excel_file = os.path.join(normalized_LEDAW_output_path, 'Unprocessed_LED_matrices2_withoutALTlabel.xlsx')
+    output_excel_file = os.path.join(normalized_LEDAW_output_path, 'Unprocessed_LED_matrices3_combined_INTRA-INTER.xlsx')
     
     combined_sheets = {}
     sheets_to_transfer = []
@@ -1251,52 +1161,57 @@ def combine_intra_inter_matrices(LEDAW_output_path):
     print(f"Intra and Inter matrices were combined and written to '{normalized_output_file}'")
 
 
-def compute_all_standard_led_int_en_matrices(system_labels, conversion_factor, method, LEDAW_output_path, main_subsystem_matching_labels, main_filenames, alternative_filenames):
+def compute_all_standard_led_int_en_matrices(system_labels, conversion_factor, method, LEDAW_output_path, main_subsystem_matching_labels, main_filenames, alternative_filenames, bsse_found):
     """Process LED matrices of supersystem and its subsystems to compute LED interaction energy map and its components, and write results to a new Excel file."""
-    
-    # Normalize the LEDAW_output_path
+
     normalized_LEDAW_output_path = normalize_path(LEDAW_output_path)
-    
-    # Define file paths with the normalized LEDAW_output_path
-    input_excel_file = os.path.join(normalized_LEDAW_output_path, 'Unprocessed_LED_matrices_combined_INTRA-INTER.xlsx')
-    output_excel_file = os.path.join(normalized_LEDAW_output_path, 'Unrelabeled_All_Standard_LED_matrices.xlsx')
-    
+
+    input_excel_file = os.path.join(normalized_LEDAW_output_path, 'Unprocessed_LED_matrices3_combined_INTRA-INTER.xlsx')
+    output_excel_file = os.path.join(normalized_LEDAW_output_path, 'Unrelabeled_All_Standard_LED_matrices4.xlsx')
+
     supersystem_label = system_labels[0]
     subsystem_labels = system_labels[1:]
     matrices = {}
 
-    # Open the input Excel file and process it
+    special_hfld_sheets = ['Disp SP', 'WP', 'Disp HFLD']
+
     with pd.ExcelFile(input_excel_file) as xl:
         for sheet_name in xl.sheet_names:
             if supersystem_label in sheet_name:
                 new_sheet_name = sheet_name.replace(supersystem_label, '').strip()
                 df_supersystem = xl.parse(sheet_name, index_col=0)
-                
+
                 df_sum_subsystems = pd.DataFrame(0, index=df_supersystem.index, columns=df_supersystem.columns)
-                
+
                 for subsystem_label in subsystem_labels:
-                    subsystem_sheet_name = sheet_name.replace(supersystem_label, subsystem_label)
+                    subsystem_sheet_name = sheet_name.replace(str(supersystem_label), str(subsystem_label))
                     if subsystem_sheet_name in xl.sheet_names:
                         df_subsystem = xl.parse(subsystem_sheet_name, index_col=0)
-                        
-                        # Handle duplicate indices by keeping the first occurrence and dropping the rest
+
                         df_subsystem = df_subsystem[~df_subsystem.index.duplicated(keep='first')]
                         df_subsystem = df_subsystem.loc[:, ~df_subsystem.columns.duplicated(keep='first')]
 
                         df_sum_subsystems += df_subsystem
 
-                # Apply the conversion factor or compute the difference depending on the method
-                if method.lower() == "hfld" and ('Disp SP' in sheet_name or 'WP' in sheet_name or 'Disp HFLD' in sheet_name):
+                is_hfld = method.lower() == "hfld"
+                is_disp_related = any(sheet_name.startswith(prefix + ' ') or sheet_name == prefix for prefix in special_hfld_sheets)
+
+                if is_hfld and is_disp_related:
+                    # Always use main_subsystem_matching_labels for zeroing intra-subsystem terms,
+                    # regardless of whether BSSE is present or not.
                     for sublist in main_subsystem_matching_labels:
                         for j in range(len(sublist)):
                             for k in range(j + 1, len(sublist)):
-                                df_supersystem.iat[sublist[j] - 1, sublist[k] - 1] = 0
-                                df_supersystem.iat[sublist[k] - 1, sublist[j] - 1] = 0
-
+                                row = sublist[j] - 1
+                                col = sublist[k] - 1
+                                df_supersystem.iat[row, col] = 0
+                                df_supersystem.iat[col, row] = 0
+                
                     df_result = df_supersystem * conversion_factor
                 else:
                     df_result = (df_supersystem - df_sum_subsystems) * conversion_factor
-
+                
+                # Keep only upper triangle
                 df_result = df_result.where(np.triu(np.ones(df_result.shape), k=0).astype(bool))
                 matrices[new_sheet_name] = df_result
 
@@ -1370,8 +1285,8 @@ def compute_all_standard_led_int_en_matrices(system_labels, conversion_factor, m
             
             matrices['TOTAL'] = df_total
 
-    # Compute the dielectric interaction energy using compute_diel_int_en
-    diel_values, diel_int_energy = compute_diel_int_en(main_filenames, alternative_filenames, conversion_factor)
+    # Compute the total dielectric interaction energy
+    diel_values, diel_int_energy = compute_total_diel_int_en(main_filenames, alternative_filenames, conversion_factor, method)
 
     # Add the DIEL matrix and update TOTAL if applicable
     if 'TOTAL' in matrices and diel_int_energy != 0:
@@ -1399,123 +1314,175 @@ def compute_all_standard_led_int_en_matrices(system_labels, conversion_factor, m
     print(f"All standard '{method}/LED' interaction energy matrices were written to '{normalized_output_file}'")
 
 
-def relabel_and_sort_matrices(relabel_mapping, LEDAW_output_path, method):
+def relabel_and_sort_fragments(relabel_mapping, LEDAW_output_path, method):
     """Relabels and sorts the LED matrices to change fragment labels and ensures symmetry with diagonal elements of 'Electrostat' and 'Exchange' set to None."""
-    
-    # Normalize the LEDAW_output_path
+
     normalized_LEDAW_output_path = normalize_path(LEDAW_output_path)
-    
-    # Define file paths with the normalized LEDAW_output_path
-    input_excel_file = os.path.join(normalized_LEDAW_output_path, 'Unrelabeled_All_Standard_LED_matrices.xlsx')
-    output_excel_file = os.path.join(normalized_LEDAW_output_path, 'All_Standard_LED_matrices.xlsx')
-    
-    # Check if relabel_mapping is defined and not empty
+
+    input_excel_file = os.path.join(normalized_LEDAW_output_path, 'Unrelabeled_All_Standard_LED_matrices4.xlsx')
+    output_excel_file = os.path.join(normalized_LEDAW_output_path, 'Uncleaned_All_Standard_LED_matrices5.xlsx')
+
+    # If relabel_mapping is empty or None, just copy the file
     if not relabel_mapping:
-        # If relabel_mapping is empty or not provided, rename the input file to the output file without any changes
         shutil.copy(input_excel_file, output_excel_file)
-        # Normalize output_excel_file for printing
-        normalized_output_file = normalize_path(output_excel_file)
-        print(f"No relabeling applied. The file was copied as '{normalized_output_file}' without changes.")
+        print(f"No relabeling applied. The file was copied as '{normalize_path(output_excel_file)}' without changes.")
         return
-    
-    # Load the input Excel file with a context manager
+
+    # Safely open Excel file for reading and writing using context managers
     with pd.ExcelFile(input_excel_file) as xl:
-        # Create a new Excel writer object to save the modified matrices
         with pd.ExcelWriter(output_excel_file, engine='openpyxl', mode='w') as writer:
             for sheet_name in xl.sheet_names:
                 df = xl.parse(sheet_name, index_col=0)
 
-                # Apply the relabeling to both rows and columns using the provided mapping
-                df.columns = [df.columns[i-1] for i in relabel_mapping]
-                df.index = [df.index[i-1] for i in relabel_mapping]
+                # Convert to integers
+                df.columns = [int(c) for c in df.columns]
+                df.index = [int(i) for i in df.index]
 
-                # Sort the DataFrame by index and columns
-                df.sort_index(axis=0, ascending=True, inplace=True)
-                df.sort_index(axis=1, ascending=True, inplace=True)
+                # Apply relabeling using mapping
+                df.columns = [df.columns[i - 1] for i in relabel_mapping]
+                df.index = [df.index[i - 1] for i in relabel_mapping]
 
-                # Set diagonal elements of 'Electrostat' and 'Exchange' to None
+                # Sort rows and columns
+                df.sort_index(axis=0, inplace=True)
+                df.sort_index(axis=1, inplace=True)
+
+                # Set diagonal of Electrostat and Exchange to None
                 if sheet_name in ['Electrostat', 'Exchange']:
                     np.fill_diagonal(df.values, None)
 
-                # Ensure symmetry in the DataFrame
+                # Ensure symmetry: copy upper to lower triangle
                 for i in range(df.shape[0]):
                     for j in range(i):
-                        # Ensure the matrix is symmetric
                         if pd.isna(df.iloc[j, i]) and not pd.isna(df.iloc[i, j]):
                             df.iloc[j, i] = df.iloc[i, j]
                             df.iloc[i, j] = np.nan
 
-                # Write the relabeled and sorted DataFrame back to the Excel file
+                # Write updated sheet
+                df.to_excel(writer, sheet_name=sheet_name)
+
+    print(f"All standard '{method}/LED' interaction energy matrices after relabeling and sorting fragments were written to '{normalize_path(output_excel_file)}' without cleaning redundant fragments")
+
+
+def clean_redundant_frags(LEDAW_output_path, method):
+    """Removes zero-valued rows and columns from all standard LED sheets taking the upper triangle of the TOTAL sheet as reference.
+       If all diagonal elements in a sheet are exactly zero, they are also replaced with NaN.
+    """
+    
+    normalized_LEDAW_output_path = normalize_path(LEDAW_output_path)
+    input_excel_file = os.path.join(normalized_LEDAW_output_path, 'Uncleaned_All_Standard_LED_matrices5.xlsx')
+    output_excel_file = os.path.join(normalized_LEDAW_output_path, 'All_Standard_LED_matrices.xlsx')
+
+    xl = pd.ExcelFile(input_excel_file)
+    if 'TOTAL' not in xl.sheet_names:
+        raise ValueError("Sheet 'TOTAL' not found in input Excel file.")
+
+    df_total = xl.parse('TOTAL', index_col=0)
+
+    # Ensure symmetry and float dtype
+    df_total = df_total.astype(float)
+    df_total = df_total.where(np.triu(np.ones(df_total.shape)).astype(bool))
+
+    # Identify redundant rows/columns (all zeros in upper triangle including diagonal)
+    mask_upper = np.triu(np.ones(df_total.shape), k=0).astype(bool)
+    redundant_labels = df_total.columns[(df_total.where(mask_upper).fillna(0) == 0).all()].tolist()
+
+    print(f"Redundant labels corresponding to no actual fragment: {redundant_labels}")
+
+    # Save cleaned sheets to new Excel
+    with pd.ExcelWriter(output_excel_file, engine='openpyxl') as writer:
+        for sheet_name in xl.sheet_names:
+            df = xl.parse(sheet_name, index_col=0)
+            if not df.empty:
+                # Drop redundant fragments
+                df_cleaned = df.drop(index=redundant_labels, columns=redundant_labels, errors='ignore')
+
+                # Replace full zero diagonal with NaN
+                diag_values = [df_cleaned.iat[i, i] for i in range(min(df_cleaned.shape[0], df_cleaned.shape[1]))]
+                if all(v == 0 for v in diag_values):
+                    for i in range(len(diag_values)):
+                        df_cleaned.iat[i, i] = np.nan
+
+                df_cleaned.to_excel(writer, sheet_name=sheet_name)
+            else:
                 df.to_excel(writer, sheet_name=sheet_name)
 
     normalized_output_file = normalize_path(output_excel_file)
-    print(f"All standard '{method}/LED' interaction energy matrices after relabeling and sorting fragments were written to '{normalized_output_file}'")
+    print(f"All standard '{method}/LED' interaction energy matrices after cleaning redundant labels were written to '{normalized_output_file}'")
+
+
+def extract_final_fragment_labels_from_summary(LEDAW_output_path_nbody=None):
+    """Returns the final fragment labels from the 'REF' sheet in the Summary_Standard_LED_matrices.xlsx file."""
+
+    if not LEDAW_output_path_nbody:
+        return None
+
+    normalized_path = normalize_path(LEDAW_output_path_nbody)
+    summary_file = os.path.join(normalized_path, 'Summary_Standard_LED_matrices.xlsx')
+
+    if not os.path.isfile(summary_file):
+        return None
+
+    try:
+        df_ref = pd.read_excel(summary_file, sheet_name='REF', index_col=0)
+        return [int(label) for label in df_ref.index]
+    except Exception:
+        return None
 
 
 def write_standard_LED_summary_int_en_matrices(method, LEDAW_output_path):
-    """Write summary standard LED interaction energy maps to an Excel file."""
-    
+    """Write summary standard LED interaction energy maps to an Excel file, preserving index formatting."""
+
     # Normalize the LEDAW_output_path
     normalized_LEDAW_output_path = normalize_path(LEDAW_output_path)
-    
-    # Define the input and output Excel file names with normalized paths
-    input_excel_file = normalize_path(os.path.join(normalized_LEDAW_output_path, 'All_Standard_LED_matrices.xlsx'))
-    output_excel_file = normalize_path(os.path.join(normalized_LEDAW_output_path, 'Summary_Standard_LED_matrices.xlsx'))
-    
+
+    input_excel_file = os.path.join(normalized_LEDAW_output_path, 'All_Standard_LED_matrices.xlsx')
+    output_excel_file = os.path.join(normalized_LEDAW_output_path, 'Summary_Standard_LED_matrices.xlsx')
+
     # Define the sheets to be written
     if method.lower() == "dlpno-ccsd(t)":
         sheets_to_transfer = [
-            'TOTAL', 'DIEL', 'REF', 'Electrostat', 'Exchange', 
+            'TOTAL', 'DIEL', 'REF', 'Electrostat', 'Exchange',
             'C-CCSD(T)', 'Disp CCSD(T)', 'Inter-NonDisp-C-CCSD(T)'
         ]
     elif method.lower() == "dlpno-ccsd":
         sheets_to_transfer = [
-            'TOTAL', 'DIEL', 'REF', 'Electrostat', 'Exchange', 
+            'TOTAL', 'DIEL', 'REF', 'Electrostat', 'Exchange',
             'C-CCSD', 'Disp CCSD', 'Inter-NonDisp-C-CCSD'
         ]
     elif method.lower() == "hfld":
         sheets_to_transfer = [
-            'TOTAL', 'DIEL', 'REF', 'Electrostat', 'Exchange', 
+            'TOTAL', 'DIEL', 'REF', 'Electrostat', 'Exchange',
             'Disp HFLD'
         ]
     else:
         raise ValueError(f"Unsupported method: {method}. Please specify 'DLPNO-CCSD(T)', 'DLPNO-CCSD', or 'HFLD'.")
 
-    # Load the workbook
-    wb_input = load_workbook(input_excel_file)
-    wb_output = Workbook()
-    wb_output.remove(wb_output.active)
+    # Write selected sheets using pandas to preserve index appearance in Excel
+    with pd.ExcelFile(input_excel_file) as xl, pd.ExcelWriter(output_excel_file, engine='openpyxl') as writer:
+        for sheet_name in sheets_to_transfer:
+            if sheet_name in xl.sheet_names:
+                df = xl.parse(sheet_name, index_col=0)
+                df.to_excel(writer, sheet_name=sheet_name)
+            else:
+                print(f"Warning: Sheet '{sheet_name}' not found in {input_excel_file}.")
 
-    for sheet_name in sheets_to_transfer:
-        if sheet_name in wb_input.sheetnames:
-            # Copy the sheet as is
-            sheet = wb_input[sheet_name]
-            wb_output.create_sheet(sheet_name)
-            new_sheet = wb_output[sheet_name]
-
-            for row in sheet.iter_rows(values_only=True):
-                new_sheet.append(row)
-        else:
-            print(f"Warning: Sheet '{sheet_name}' not found in {input_excel_file}.")
-
-    # Save the output workbook
-    wb_output.save(output_excel_file)
-    normalized_output_file = normalize_path(output_excel_file)
-    print(f"The summary standard '{method}/LED' matrices were written to '{normalized_output_file}'")
+    print(f"The summary standard '{method}/LED' matrices were written to '{normalize_path(output_excel_file)}'")
 
 
 def compute_fp_el_prep(df_ref):
     """Compute fragment pairwise electronic preparation matrices."""
+
     diagonal_elements = np.diag(df_ref.values)
     distributed_matrix = np.zeros(df_ref.shape)
 
+    # Calculate the non-diagonal sums using the updated denominator function
     non_diagonal_sums = np.array([compute_denominator_for_fp_el_prep(df_ref, i) for i in range(df_ref.shape[0])])
 
     for i in range(df_ref.shape[0]):
         for j in range(i + 1, df_ref.shape[1]):  # Only consider the upper triangle (i < j)
             if non_diagonal_sums[i] != 0 and non_diagonal_sums[j] != 0:
-                term_1 = (diagonal_elements[i] * df_ref.iloc[i, j]) / non_diagonal_sums[i]
-                term_2 = (diagonal_elements[j] * df_ref.iloc[i, j]) / non_diagonal_sums[j]
+                term_1 = (diagonal_elements[i] * abs(df_ref.iloc[i, j])) / non_diagonal_sums[i]
+                term_2 = (diagonal_elements[j] * abs(df_ref.iloc[i, j])) / non_diagonal_sums[j]
                 distributed_value = term_1 + term_2
                 distributed_matrix[i, j] = distributed_value
 
@@ -1528,18 +1495,18 @@ def compute_fp_el_prep(df_ref):
 
 
 def compute_denominator_for_fp_el_prep(df, index):
-    """Compute the sum of non-diagonal elements involving a particular index (both row and column)."""
-    row_sum = df.iloc[index, :].sum() - df.iloc[index, index]
-    col_sum = df.iloc[:, index].sum() - df.iloc[index, index]
+    """Compute the sum of absolute non-diagonal elements involving a particular index (both row and column)."""
+    row_sum = abs(df.iloc[index, :]).sum() - abs(df.iloc[index, index])
+    col_sum = abs(df.iloc[:, index]).sum() - abs(df.iloc[index, index])
     return row_sum + col_sum
 
 
 def process_fp_LED_matrices(method, main_filenames, alternative_filenames, conversion_factor, LEDAW_output_path):
     """Process the matrices as per the given method and write to the output Excel file."""
-    
+
     # Normalize the LEDAW_output_path
     normalized_LEDAW_output_path = normalize_path(LEDAW_output_path)
-    
+
     # Define file paths with normalized paths
     input_excel_file = os.path.join(normalized_LEDAW_output_path, 'Summary_Standard_LED_matrices.xlsx')
     output_excel_file = os.path.join(normalized_LEDAW_output_path, 'Summary_fp-LED_matrices.xlsx')
@@ -1549,11 +1516,14 @@ def process_fp_LED_matrices(method, main_filenames, alternative_filenames, conve
 
     # Process REF sheet
     df_ref = pd.read_excel(xl, sheet_name='REF', index_col=0)
+    df_ref.columns = [int(c) for c in df_ref.columns]
+    df_ref.index = [int(i) for i in df_ref.index]
+
     df_ref_distributed = compute_fp_el_prep(df_ref)
     df_ref_distributed.columns.name = 'REF-EL-PREP'
 
-    # Call the compute_diel_int_en function to get dielectric values and calculate dielectric interaction energy
-    diel_values, e_diel_int_en = compute_diel_int_en(main_filenames, alternative_filenames, conversion_factor)
+    # Get dielectric values and calculate dielectric interaction energy
+    diel_values, e_diel_int_en = compute_total_diel_int_en(main_filenames, alternative_filenames, conversion_factor, method)
 
     # Initialize a new Excel writer object
     with pd.ExcelWriter(output_excel_file, engine='openpyxl') as writer:
@@ -1561,42 +1531,57 @@ def process_fp_LED_matrices(method, main_filenames, alternative_filenames, conve
         # Load Electrostat and Exchange sheets for all methods
         df_electrostat = pd.read_excel(xl, sheet_name='Electrostat', index_col=0)
         df_exchange = pd.read_excel(xl, sheet_name='Exchange', index_col=0)
+        df_electrostat.columns = [int(c) for c in df_electrostat.columns]
+        df_electrostat.index = [int(i) for i in df_electrostat.index]
+        df_exchange.columns = [int(c) for c in df_exchange.columns]
+        df_exchange.index = [int(i) for i in df_exchange.index]
 
         if method.lower() in ["dlpno-ccsd(t)", "dlpno-ccsd"]:
+            # Read TOTAL
             df_total = pd.read_excel(xl, sheet_name='TOTAL', index_col=0)
-            df_total_distributed = compute_fp_el_prep(df_total)
+            df_total.columns = [int(c) for c in df_total.columns]
+            df_total.index = [int(i) for i in df_total.index]
+
+            # Subtract DIEL to get standard LED total without DIEL
+            try:
+                df_diel = pd.read_excel(xl, sheet_name='DIEL', index_col=0)
+                df_diel.columns = [int(c) for c in df_diel.columns]
+                df_diel.index = [int(i) for i in df_diel.index]
+                std_df_total_no_diel = df_total - df_diel
+            except ValueError:
+                std_df_total_no_diel = df_total
+
+            # Correlation EL-PREP on standard total without DIEL
+            df_total_distributed = compute_fp_el_prep(std_df_total_no_diel)
             df_total_distributed.columns.name = 'C-CCSD(T)-EL-PREP' if method.lower() == "dlpno-ccsd(t)" else 'C-CCSD-EL-PREP'
 
-            # Calculate TOTAL - REF and write it as EL-PREP-C-CCSD or EL-PREP-C-CCSD(T)
             df_c_ccsd = df_total_distributed - df_ref_distributed
             df_c_ccsd.columns.name = 'CCSD(T)-EL-PREP' if method.lower() == "dlpno-ccsd(t)" else 'CCSD-EL-PREP'
 
-            # Calculate the final TOTAL as C-CCSD(T) + REF
+            # DISP - INTER-NODISP decomposition
             df_disp_ccsd = pd.read_excel(xl, sheet_name='Disp CCSD' if method.lower() == "dlpno-ccsd" else 'Disp CCSD(T)', index_col=0)
             df_inter_nondisp = pd.read_excel(xl, sheet_name='Inter-NonDisp-C-CCSD' if method.lower() == "dlpno-ccsd" else 'Inter-NonDisp-C-CCSD(T)', index_col=0)
+            df_disp_ccsd.columns = [int(c) for c in df_disp_ccsd.columns]
+            df_disp_ccsd.index = [int(i) for i in df_disp_ccsd.index]
+            df_inter_nondisp.columns = [int(c) for c in df_inter_nondisp.columns]
+            df_inter_nondisp.index = [int(i) for i in df_inter_nondisp.index]
 
+            # Reconstruct total without diel from fp-LED logic
             df_ref_final = df_electrostat + df_exchange + df_ref_distributed
             df_c_ccsd_final = df_c_ccsd + df_disp_ccsd + df_inter_nondisp
-            df_total_final = df_ref_final + df_c_ccsd_final
+            df_total_no_diel = df_ref_final + df_c_ccsd_final
 
-            # If dielectric interaction energy is not zero, calculate and add the DIEL matrix
+            # Apply fp-LED diel if needed
             if e_diel_int_en != 0:
-                total_sum = df_total_final.sum().sum()
-                diel_matrix = df_total_final * (e_diel_int_en / total_sum)
-                df_diel_final = diel_matrix
-
-                # Add DIEL to the TOTAL matrix
-                df_total_final += df_diel_final
-
-                # Write DIEL as the next sheet after TOTAL
+                diel_matrix = df_total_no_diel * (e_diel_int_en / df_total_no_diel.sum().sum())
+                df_total_final = df_total_no_diel + diel_matrix
                 df_total_final.to_excel(writer, sheet_name='TOTAL')
-                df_diel_final.to_excel(writer, sheet_name='DIEL')
-
+                diel_matrix.to_excel(writer, sheet_name='DIEL')
             else:
-                # Write the final TOTAL to the output file
+                df_total_final = df_total_no_diel
                 df_total_final.to_excel(writer, sheet_name='TOTAL')
 
-            # Continue writing the rest of the sheets
+            # Write all matrices
             df_ref_final.to_excel(writer, sheet_name='REF')
             df_electrostat.to_excel(writer, sheet_name='Electrostat')
             df_exchange.to_excel(writer, sheet_name='Exchange')
@@ -1613,26 +1598,22 @@ def process_fp_LED_matrices(method, main_filenames, alternative_filenames, conve
 
             # Calculate TOTAL = REF + Disp HFLD
             df_disp_hfld = pd.read_excel(xl, sheet_name='Disp HFLD', index_col=0)
+            df_disp_hfld.columns = [int(c) for c in df_disp_hfld.columns]
+            df_disp_hfld.index = [int(i) for i in df_disp_hfld.index]
+
             df_total_hfld = df_ref_final + df_disp_hfld
             df_total_hfld.columns.name = 'TOTAL'
 
             # If dielectric interaction energy is not zero, calculate and add the DIEL matrix
             if e_diel_int_en != 0:
-                total_sum = df_total_hfld.sum().sum()
-                diel_matrix = df_total_hfld * (e_diel_int_en / total_sum)
-                df_diel_final = diel_matrix
-
-                # Add DIEL to the TOTAL matrix
-                df_total_hfld += df_diel_final
-
-                # Write DIEL as the next sheet after TOTAL
+                diel_matrix = df_total_hfld * (e_diel_int_en / df_total_hfld.sum().sum())
+                df_total_hfld += diel_matrix
                 df_total_hfld.to_excel(writer, sheet_name='TOTAL')
-                df_diel_final.to_excel(writer, sheet_name='DIEL')
+                diel_matrix.to_excel(writer, sheet_name='DIEL')
             else:
-                # Write the fp-TOTAL sheet without DIEL
                 df_total_hfld.to_excel(writer, sheet_name='TOTAL')
 
-            # Continue writing the rest of the sheets
+            # Write the remaining HFLD matrices
             df_ref_final.to_excel(writer, sheet_name='REF')
             df_electrostat.to_excel(writer, sheet_name='Electrostat')
             df_exchange.to_excel(writer, sheet_name='Exchange')
@@ -1644,134 +1625,95 @@ def process_fp_LED_matrices(method, main_filenames, alternative_filenames, conve
 
 
 def delete_unprocessed_files(LEDAW_output_path):
-    """
-    Deletes all files in the specified directory that start with 'Un'.
-    """
+    """Delete temporary excel files"""
 
-    # Normalize the LEDAW_output_path
     normalized_LEDAW_output_path = normalize_path(LEDAW_output_path)
-    
-    # Construct the pattern for matching files starting with 'Un'
     pattern = os.path.join(normalized_LEDAW_output_path, 'Un*')
-    pattern = normalize_path(pattern)  # Normalize again after joining
-    
-    # Find all files that match the pattern
+    pattern = normalize_path(pattern)
     files_to_delete = glob.glob(pattern)
-    
-    # Delete each file found
+
     print("Temporary files written will be deleted:")
     for file_path in files_to_delete:
+        normalized_file_path = normalize_path(file_path)
         try:
-            os.remove(file_path)
-            # Normalize file_path for printing
-            normalized_file_path = normalize_path(file_path)
+            gc.collect()
+            os.remove(normalized_file_path)
             print(f"Deleted: {normalized_file_path}")
-        except Exception as e:
-            normalized_file_path = normalize_path(file_path)
-            print(f"Error deleting {normalized_file_path}: {e}")
+        except PermissionError as e:
+            print(f"PermissionError: Could not delete {normalized_file_path} — file may be open.")
+            if platform.system() == 'Windows':
+                try:
+                    for proc in psutil.process_iter(['pid', 'open_files']):
+                        for file in proc.info.get('open_files') or []:
+                            if file.path == os.path.abspath(normalized_file_path):
+                                print(f"File is open in process {proc.pid}")
+                except Exception as ex:
+                    print(f"Could not check open processes: {ex}")
+            else:
+                print("Skipping process check: OS allows deleting open files.")
+        except Exception as ex:
+            print(f"Unexpected error deleting {normalized_file_path}: {ex}")
 
 
 def engine_LED_N_body(main_filenames, alternative_filenames, conversion_factor, method, LEDAW_output_path, relabel_mapping=None, use_ref_as_rhf_in_hfld=None):
-    """
-    Engine function to process LED N-body interaction energy matrices, standardize and reorder labels,
-    compute final matrices, and provide summaries.
-    """
-    
-    # Normalize the LEDAW_output_path
+    """Engine function to process LED N-body interaction energy matrices, standardize and reorder labels, compute final matrices, and provide summaries."""
+
     normalized_LEDAW_output_path = normalize_path(LEDAW_output_path)
 
-    # Ensure alternative filenames are valid or empty
-    alternative_filenames = [filename if filename else None for filename in alternative_filenames]    
-
-    # Label main filenames
+    # Step 1: Generate labeled filenames
     labeled_main_filenames = label_systems(main_filenames)
+    labeled_alt_filenames = label_systems(alternative_filenames)
 
-    # Use main labels for alt filenames where the alt filenames are None
-    labeled_alt_filenames = {}
-    for main_file, alt_file in zip(main_filenames, alternative_filenames):
-        if alt_file:
-            labeled_alt_filenames[alt_file] = labeled_main_filenames[main_file]
-        else:
-            labeled_alt_filenames[main_file] = labeled_main_filenames[main_file]  # Use main label if alt is None
+    system_labels = list(labeled_main_filenames.values())
+    alternative_labels = list(labeled_alt_filenames.values())
 
-    # Construct label mapping list wrt. supersystem labels to standardize labeling between super and subsystem files
-    # For main filenames
-    main_label_mappings, match_dicts_main, subsystem_matching_labels_main = construct_label_mappings(
-        main_or_alt_filenames=list(labeled_main_filenames.keys()), 
-        main_filenames=main_filenames, 
-        alternative_filenames=alternative_filenames
-    )
+    # Step 2: Process multi-fragment files (generates tmp1.xlsx)
+    multifrag_system_processing(main_filenames, alternative_filenames, normalized_LEDAW_output_path, system_labels)
 
-    # For alternative filenames (use main_label_mappings as the default)
-    alternative_label_mappings, match_dicts_alt, subsystem_matching_labels_alt = construct_label_mappings(
-        main_or_alt_filenames=list(labeled_alt_filenames.keys()), 
-        main_filenames=main_filenames, 
-        alternative_filenames=alternative_filenames,
-        default_label_mappings=main_label_mappings
-    )
+    # Step 3: Process single-fragment files (generates tmp2.xlsx)
+    singlefrag_system_processing(labeled_main_filenames=labeled_main_filenames, labeled_alt_filenames=labeled_alt_filenames,
+        LEDAW_output_path=normalized_LEDAW_output_path, method=method, use_ref_as_rhf_in_hfld=use_ref_as_rhf_in_hfld)
 
-    # Call multifrag_system_processing and singlefrag_system_processing and combine their files
-    matrix_size = multifrag_system_processing(main_filenames=list(labeled_main_filenames.keys()), 
-                                             alternative_filenames=list(labeled_alt_filenames.keys()), 
-                                             LEDAW_output_path=normalized_LEDAW_output_path,
-                                             system_labels=list(labeled_main_filenames.values()))
+    # Step 4: Combine tmp1.xlsx and tmp2.xlsx into Unprocessed_LED_matrices.xlsx
+    combine_unprocessed_LED_data_fies(LEDAW_output_path=normalized_LEDAW_output_path)
 
-    matrices = singlefrag_system_processing(main_filenames=list(labeled_main_filenames.keys()), 
-        alternative_filenames=list(labeled_alt_filenames.keys()), 
-        matrix_size=matrix_size, LEDAW_output_path=normalized_LEDAW_output_path,
-        system_labels=list(labeled_main_filenames.values()),
-        method=method,
-        use_ref_as_rhf_in_hfld=use_ref_as_rhf_in_hfld)
+    # Step 5: Construct label mappings
+    main_label_mappings_ghost_free, alt_label_mappings_ghost_free, bsse_found = construct_label_mappings(main_filenames, alternative_filenames, LEDAW_output_path)
 
-    collect_unprocessed_LED_data_as_matrices(LEDAW_output_path=normalized_LEDAW_output_path)
+    # Step 6: Construct label list of each subsystem alligning them to the main SUPERSYS labels, excluding ghost fragments.
+    main_subsystem_matching_labels = subsystem_label_lists_alligned_to_main_supersystem(system_labels, main_label_mappings_ghost_free)
 
-    # Reorder the labels
-    reorder_labels(system_labels=list(labeled_main_filenames.values()), 
-        alternative_labels=list(labeled_alt_filenames.values()), 
-        main_label_mappings=main_label_mappings, 
-        alternative_label_mappings=alternative_label_mappings, 
-        LEDAW_output_path=normalized_LEDAW_output_path)
+    # Step 7: Unify fragment labels
+    unify_labels(system_labels=system_labels, alternative_labels=alternative_labels, main_label_mappings_ghost_free=main_label_mappings_ghost_free,
+        alternative_label_mappings_ghost_free=alt_label_mappings_ghost_free, LEDAW_output_path=normalized_LEDAW_output_path)
 
-    # Get rid of ALT labels
-    try:
-        compare_main_ALT_removeALTlabel(LEDAW_output_path=normalized_LEDAW_output_path)
-    except MatrixDifferenceError as e:
-        print(f"PLEASE CHECK THE INCONSISTENCY IN YOUR DATA: {e}")
-        return
+    # Step 8: Remove redundant ALT sheets
+    combine_main_ALT(LEDAW_output_path=normalized_LEDAW_output_path)
 
-    # Combine intra and inter matrices
+    # Step 9: Combine Intra and Inter matrices
     combine_intra_inter_matrices(LEDAW_output_path=normalized_LEDAW_output_path)
 
-    compute_all_standard_led_int_en_matrices(system_labels=list(labeled_main_filenames.values()),
-                                             conversion_factor=conversion_factor, 
-                                             method=method, LEDAW_output_path=normalized_LEDAW_output_path,
-                                             main_subsystem_matching_labels=subsystem_matching_labels_main,
-                                             main_filenames=main_filenames,
-                                             alternative_filenames=alternative_filenames)
+    # Step 10: Compute standard LED interaction matrices
+    compute_all_standard_led_int_en_matrices(system_labels=system_labels, conversion_factor=conversion_factor, method=method,
+        LEDAW_output_path=normalized_LEDAW_output_path, main_subsystem_matching_labels=main_subsystem_matching_labels,
+        main_filenames=main_filenames, alternative_filenames=alternative_filenames, bsse_found=bsse_found)
 
-    # If relabeling is not specified, determine the number of fragments based on the supersystem labels 
-    # and construct the original label list
-    if relabel_mapping is None or relabel_mapping == []:
-        max_label = max(main_label_mappings[0])
-        relabel_mapping = list(range(1, max_label + 1))
+    # Step 11: Relabel and sort fragments (if mapping is provided)
+    relabel_and_sort_fragments(relabel_mapping=relabel_mapping, LEDAW_output_path=normalized_LEDAW_output_path, method=method)
 
-    # Relabel and sort the interaction energy matrices if relabel_mapping is specified
-    relabel_and_sort_matrices(relabel_mapping=relabel_mapping, LEDAW_output_path=normalized_LEDAW_output_path, method=method)
+    # Step 12: Clean redundant fragments from the interaction energy maps
+    clean_redundant_frags(LEDAW_output_path=normalized_LEDAW_output_path, method=method)
 
-    # Write summary standard LED interaction energy matrices to an excel File
-    write_standard_LED_summary_int_en_matrices(method=method, 
-                                               LEDAW_output_path=normalized_LEDAW_output_path)
+    # Step 13: Write standard summary LED matrices
+    write_standard_LED_summary_int_en_matrices(method=method, LEDAW_output_path=normalized_LEDAW_output_path)
 
-    # Write fp-LED Interaction Energy Matrices to an Excel File
-    process_fp_LED_matrices(method=method, 
-                            main_filenames=list(labeled_main_filenames.keys()), 
-                            alternative_filenames=list(labeled_alt_filenames.keys()), 
-                            conversion_factor=conversion_factor, 
-                            LEDAW_output_path=normalized_LEDAW_output_path)
+    # Step 14: Process and write fp-LED matrices
+    process_fp_LED_matrices(method=method, main_filenames=main_filenames, alternative_filenames=alternative_filenames,
+        conversion_factor=conversion_factor, LEDAW_output_path=normalized_LEDAW_output_path)
 
-    # Delete temporary unprocessed files
-    delete_unprocessed_files(LEDAW_output_path=normalized_LEDAW_output_path)
-    
+    # Step 15: Delete intermediate excel files
+    delete_unprocessed_files(LEDAW_output_path)
+
     print('\n')
     print('*'*120)
     print(f"  N-body LED analyses were terminated NORMALLY. Standard and fp-LED matrices are at {normalized_LEDAW_output_path}")
