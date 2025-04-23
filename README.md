@@ -57,7 +57,7 @@ pyinstaller LEDAW.spec
 
 - Then, run the following command:
 
-``bash
+```bash
 pyinstaller LEDAW.spec
 ```
 
