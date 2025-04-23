@@ -82,7 +82,7 @@ For more code-oriented users, three example Python input scripts are provided:
   Designed for performing **N-body**, **two-body**, and **cooperativity** HFLD/LED analysis of the interaction between a central monomer and its environment in a crystal.
 
 - **`boat.py`**:  
-  A comprehensive example that runs **all modules** of LEDAW, including CPS and CBS extrapolations on the DLPNO-CCSD(T)/LED terms for the boat conformer of a water hexamer.
+  A comprehensive example that runs **all modules** of LEDAW, including CPS and CBS extrapolations on the DLPNO-CCSD(T)/LED terms for the boat conformer of water hexamer.
 
 ---
 
