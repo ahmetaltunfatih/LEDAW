@@ -89,8 +89,8 @@ For more code-oriented users, three example Python input scripts are provided:
 #### **Personalizing the Example Scripts**
 
 - To adapt the provided scripts for your own system:
-  - Adapt the **path and filenames** of your ORCA output files.
-  - Adapt the **output path** where LEDAW should write the results.
+  - Modify the **path and filenames** of your ORCA output files.
+  - Modify the **output path** where LEDAW should write the results.
   - If certain parts of the analysis (e.g., CBS extrapolation, CPS extrapolation, cooperativity analysis) are not needed, simply **comment out** or **remove** the relevant sections.
 
 ---
