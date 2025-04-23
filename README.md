@@ -1,5 +1,5 @@
-#  LEDAW - LED Analysis Wizard   
-## A Python-Based Program Package for Automating Local Energy Decomposition Analysis Using ORCA Outputs 
+#  LEDAW-GUI: LED Analysis Wizard with GUI  
+## A Python-Based Program Package with GUI for Automating Local Energy Decomposition Analysis Using ORCA Outputs 
 ## Author
 
 - Prof. Dr. Ahmet Altun, Max-Planck-Institut für Kohlenforshung, Department of Molecular Theory and Spectroscopy
@@ -7,6 +7,7 @@
 ## Features
 
 - LEDAW automizes all kinds of LED interaction energy analyses such as the interaction of arbitrary number of fragments as in water cluster formation, and interaction of a single or multi-fragment system with other single- and/or multi-fragment system(s) as in lattice energy computations and duplex DNA formation with multiple fragments on each strand.
+- LEDAW features a user-friendly, self-explanatory GUI with built-in info buttons and help messages, providing guidance at every step. For more code-oriented users, example Python input files are also provided. 
 - LEDAW calculates N-body, two-body, and cooperativity LED interaction energy matrices for both standard and fragment pairwise (fp)-LED schemes from ORCA output files irrespective of the number of fragments in the adduct (supersystem) and its subsystems in seconds.
 - LEDAW performs complete PNO space (CPS) and complete basis set (CBS) extrapolations based on the unextrapolated LED terms in ORCA output files and provides corresponding matrices.
 - LEDAW standardizes fragment labels to those in the supersystem file automatically if they are different in supersystem and subsystem ORCA output files.
@@ -17,7 +18,24 @@
 - LEDAW plots finally heat maps for all the LED interaction energy matrices.
 
 ## How to Run
-- Download the ledaw_package directory, the example input Python files (water-dimer.py, crystal.py, and boat.py), and the example ORCA output files directory (ORCA-OUT) into your working directory.
+### Downloading
+- Download the ledaw_package directory, the main.py, LEDAW.spec, and the example input Python files (water-dimer.py, crystal.py, and boat.py), as well as the example ORCA output files directory (ORCA-OUT) into your working directory.
+### Installing LEDAW-GUI
+- LEDAW-GUI is pre-configured to generate an executable file using PyInstaller.
+- To use PyInstaller, Python must be installed on your system.
+- Open a terminal and navigate to the downloaded directory:
+   cd /path/to/this/directory
+- Run the following command to generate the executable for your operating system:
+   pyinstaller LEDAW.spec
+  The generated executable will work without any need to the donloaded directory and Python installation.
+### Running LEDAW-GUI directly with Python
+- As an alternative to installing LEDAW-GUI, one can run it directly with Python. TO do this:
+- Open a terminal and navigate to the downloaded directory:
+   cd /path/to/this/directory
+- Run the main.py file in this directory:
+   python main.py
+### Running LEDAW without GUI
+- For more code-oriented users, three example Python input files were provided. 
 - As most LED applications in literature are for two-fragment systems, as an example, a simple script for BSSE-corrected and BSSE-uncorrected LED analyses is provided for water dimer (water-dimer.py).
 - The generic crystal.py and boat.py scripts can be easily personalized for your specific use case. In addition to the workflow, they contain detailed explanations of all necessary parameters. If you do not wish to perform some parts of the analysis, the related sections can be commented or removed.  
 - In pesonalizing the generic crystal.py and boat.py scripts, you typically just need to specify the path/name of ORCA output files and of where to write LEDAW output files. The parts that you do not have necessary ORCA output files can be commented or deleted.
