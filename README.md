@@ -25,7 +25,7 @@ Department of Molecular Theory and Spectroscopy
 - Detects the use of **implicit solvation schemes** (CPCM, SMD, etc.) and distributes dielectric contributions across pairwise terms.
 - Detects automatically if **BSSE-correction** is requested and proceeds subsystem files accordingly.
 - Writes **standard and fp-LED interaction energy matrices** into separate Excel files, with each matrix on a separate sheet.
-- Provides final **heatmap visualizations** of all interaction energy matrices for convenient data interpretation.
+- Provides **heatmaps** of all interaction energy matrices for convenient data interpretation and presentation.
 
 ---
 
