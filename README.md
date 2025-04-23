@@ -71,7 +71,7 @@ cd /path/to/the/working/LEDAW/directory
 python main.py
 ```
 
-### **Running LEDAW Without GUI (Script-Based Workflow)**
+### **Running LEDAW without GUI (Script-Based Workflow)**
 
 For more code-oriented users, three example Python input scripts are provided:
 
