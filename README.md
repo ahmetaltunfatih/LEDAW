@@ -53,11 +53,13 @@ Department of Molecular Theory and Spectroscopy
 ```bash
 cd /path/to/the/downloaded/directory
 pyinstaller LEDAW.spec
+```
 
 - Then, run the following command:
 
 ``bash
 pyinstaller LEDAW.spec
+```
 
 - The generated executable will work without requiring the downloaded directory or Python installation.
 
@@ -68,6 +70,7 @@ pyinstaller LEDAW.spec
 ```bash
 cd /path/to/the/downloaded/directory
 python main.py
+```
 
 ### **Running LEDAW Without GUI (Script-Based Workflow)**
 
