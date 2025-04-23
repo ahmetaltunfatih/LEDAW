@@ -15,10 +15,16 @@
 #               original LED, CPS, and CBS studies, please cite:                       #
 #                                                                                      #
 #                 1) https://github.com/ahmetaltunfatih/LEDAW                          #
-#      2) https://doi.org/10.1002/anie.202421922 (Angew. Chemie, 2024, e202421922)     #
+#                 2) https://doi.org/10.1002/anie.202421922                            #
+#                    (Angew. Chemie. Int. Ed. 64/12, 2025, e202421922)                 #
+#                                                                                      #
+#                                                                                      #
+#                                    License                                           #
+#                             Free for academic use.                                   #
+#           For commercial use or redistribution, contact the author.                  #
+#             The author provides this code as-is, without warranty.                   #
 #                                                                                      #
 ########################################################################################
-
 
 from ledaw_package import *
 
@@ -147,6 +153,5 @@ engine_LED_two_body(one_body_orcaout_filenames=one_body_orcaout_filenames,
                     two_body_orcaout_directory=two_body_orcaout_directory,
                     conversion_factor=conversion_factor, 
                     method=method,
-                    LEDAW_output_path_two_body=LEDAW_output_path_twobody,
-                    use_ref_as_rhf_in_hfld=use_ref_as_rhf_in_hfld,
-                    relabel_mapping=relabel_mapping)
+                    reduced_relabel_mapping = None,
+                    LEDAW_output_path_two_body = LEDAW_output_path_twobody)
