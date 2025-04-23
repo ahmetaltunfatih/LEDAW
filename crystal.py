@@ -15,13 +15,21 @@
 #               original LED, CPS, and CBS studies, please cite:                       #
 #                                                                                      #
 #                 1) https://github.com/ahmetaltunfatih/LEDAW                          #
-#      2) https://doi.org/10.1002/anie.202421922 (Angew. Chemie, 2024, e202421922)     #
+#                 2) https://doi.org/10.1002/anie.202421922                            #
+#                    (Angew. Chemie. Int. Ed. 64/12, 2025, e202421922)                 #
+#                                                                                      #
+#                                                                                      #
+#                                    License                                           #
+#                             Free for academic use.                                   #
+#           For commercial use or redistribution, contact the author.                  #
+#             The author provides this code as-is, without warranty.                   #
 #                                                                                      #
 ########################################################################################
 
+
 ### The following is an automated LEDAW procedure for obtaining LED interactoin energy matrices and heat maps 
 ### on the interaction of a central monomer in a crystal with its environment from ORCA output files.
-### For more details, see https://doi.org/10.1002/anie.202421922 (Angew. Chemie, 2024, e202421922).
+### For more details, see https://doi.org/10.1002/anie.202421922 (Angew. Chemie. Int. Ed. 64/12, 2025, e202421922).
 ### N-body, two-body, and cooperativty LED maps are generated within standard and fp-LED schemes,
 ### followed by the plot of the corresponding heat maps.
 
@@ -53,7 +61,7 @@ conversion_factor = 627.5095  # for kj/mol, use: 2625.5
 # ORCA jobs. The code automatically standardize subsystem fragment labelings to those in supersystem file.  
 
 relabel_mapping = [1,6,4,5,3,2,7,8,9,10,11] 
-# Applied for consistency with https://doi.org/10.1002/anie.202421922 (Angew. Chemie, 2024, e202421922)
+# Applied for consistency with https://doi.org/10.1002/anie.202421922 (Angew. Chemie. Int. Ed. 64/12, 2025, e202421922)
 
 
 nbody_title='''
@@ -118,9 +126,9 @@ engine_LED_N_body(main_filenames=main_filenames,
 
 #-----------------------------------------------------------------------------------------------------------------
 #                                 TYPICAL LED ANALYSIS JOB ENDED HERE. 
-# If you further want assess cooperative effect of the interactions, proceed with the corresponding ORCA output 
-# files as in the following "TWO-BOY LED" and "COOPREATIVITY". blocks.
-# Otherwise commnet/delete them until "HEAT MAP PLOT "
+# If you further want assess cooperative effect on the interactions, proceed with the corresponding ORCA output 
+# files as in the following "TWO-BOY LED" and "COOPREATIVITY" blocks.
+# Otherwise commnet/delete them until "HEAT MAP PLOT"
 #-----------------------------------------------------------------------------------------------------------------
 
 
@@ -136,11 +144,13 @@ print(twobody_title)
 ## First Way ##
 # Compare the labels of supersystem file with onebody files and automatically 
 # standardize the labelling of monomers to the original supersystem labelling.
-# In this example, as relabel_mapping is initiated at the beginning of this file ([1,6,4,5,3,2,7,8,9,10,11]),
-# labels will be reordered.
+# In this example, as relabel_mapping is initiated at the beginning of this file ([1,6,4,5,3,2,7,8,9,10,11]), labels will be reordered. 
+# reduced_relabel_mapping accounts the cases where fragment labels do not start from 1 and/or not sequential in the supersystem ORCA 
+# output file. It must be set to None if N-body LED is not requested before two-body LED.
 # Note: onebody_out_directory directory must contain only the necessary one-body ORCA output files.
 
 supersystem_file = r'./ORCA-OUT/CRYSTAL/MULTIFRAG/dimer.mpi4.out'
+reduced_relabel_mapping = get_reduced_relabel_mapping(supersystem_file=supersystem_file, relabel_mapping=relabel_mapping)
 onebody_out_directory = r'./ORCA-OUT/CRYSTAL/ONEBODY'
 one_body_orcaout_filenames = extract_one_body_orcaout_filenames(supersystem_file, onebody_out_directory)
 
@@ -196,9 +206,10 @@ engine_LED_two_body(one_body_orcaout_filenames=one_body_orcaout_filenames,
                     two_body_orcaout_directory=two_body_orcaout_directory,
                     conversion_factor=conversion_factor, 
                     method=method,
-                    LEDAW_output_path_two_body=LEDAW_output_path_twobody,
-                    use_ref_as_rhf_in_hfld=use_ref_as_rhf_in_hfld,
-                    relabel_mapping=relabel_mapping)
+                    reduced_relabel_mapping = reduced_relabel_mapping,
+                    LEDAW_output_path_two_body = LEDAW_output_path_twobody,
+                    LEDAW_output_path_nbody = LEDAW_output_path)
+
 
 
 coop_title='''
@@ -213,7 +224,6 @@ print(coop_title)
 # and save them to the base_path/COOPERATIVITY directory generated (if directory_level=1),
 # or its second or third level subdirectories (directory_level= 2 or 3): Default = 1
 cooperativity_engine(base_path=r'./LEDAW-OUT/CRYSTAL', nbody_dir_name='NBODY', twobody_dir_name='TWOBODY', directory_level=1)
-
 
 
 heat_map_title='''
@@ -252,7 +262,7 @@ plot_params_for_fp_led_matrices = {
 # Generate heat maps from Summary_Standard_LED_matrices.xlsx and Summary_fp_LED_matrices.xlsx.
 # Save them to HEAT-MAP-STD-LED and HEAT-MAP-fp-LED directories generated in base_path (if directory_level=0),
 # or its first or second level subdirectories (directory_level= 1 or 2): Default = 0
-heatmap_plot_engine(base_path=r'./LEDAW-OUT/CRYSTAL', 
+heatmap_plot_engine_no_gui(base_path=r'./LEDAW-OUT/CRYSTAL', 
                     plot_params_for_std_led_matrices=plot_params_for_std_led_matrices,
                     plot_params_for_fp_led_matrices=plot_params_for_fp_led_matrices,
                     show_diag_cells_for_fp_led=False,
