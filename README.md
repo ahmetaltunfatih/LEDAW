@@ -100,9 +100,7 @@ For more code-oriented users, three example Python input scripts are provided:
 - It is recommended to first explore **`crystal.py`** to understand the basic LEDAW logic and workflow.
 - Use **`boat.py`** if you want to explore **all available modules**, including CPS and CBS extrapolations.  
   This script includes multiple file path specifications and several calls to the engine functions, demonstrating the full flexibility of LEDAW.
-
-> **Tip:**  
-> If your ORCA outputs do not contain certain energy terms, the corresponding parts of the example scripts can be commented out or removed.
+- If your ORCA outputs do not contain certain section (N-body LED, two-body LED, CPS, or CBS), the corresponding parts of the example scripts can be commented out or removed.
 
 ---
 
