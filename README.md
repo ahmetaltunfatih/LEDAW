@@ -91,7 +91,7 @@ For more code-oriented users, three example Python input scripts are provided:
 - To adapt the provided scripts for your own system:
   - Modify the **path and filenames** of your ORCA output files.
   - Modify the **output path** where LEDAW should write the results.
-  - If certain parts of the analysis (e.g., CBS extrapolation, CPS extrapolation, cooperativity analysis) are not needed, simply **comment out** or **remove** the relevant sections.
+  - If certain parts of the analysis (e.g., N-body LED, two-body LED, and cooperativity analyses, CBS and/or CPS extrapolation) are not needed or corresponding ORCA output files are not available, simply **comment out** or **remove** the relevant sections.
 
 ---
 
@@ -100,8 +100,6 @@ For more code-oriented users, three example Python input scripts are provided:
 - It is recommended to first explore **`crystal.py`** to understand the basic LEDAW logic and workflow.
 - Use **`boat.py`** if you want to explore **all available modules**, including CPS and CBS extrapolations.  
   This script includes multiple file path specifications and several calls to the engine functions, demonstrating the full flexibility of LEDAW.
-- If your ORCA outputs do not contain certain analysis sections (N-body LED, two-body LED, CPS, or CBS), the corresponding parts of the example scripts can be commented out or removed.
-
 ---
 
 ## **References**
