@@ -126,8 +126,7 @@ Copyright (c) 2025
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction for **academic and non-commercial use**, including without limitation the rights to use, copy, modify, merge, publish, and distribute copies of the Software, subject to the following conditions:
 
-> **Commercial use, including redistribution or incorporation into commercial products, is not permitted without prior written permission from the author.  
-> Please contact the author for commercial licensing.**
+> **Commercial use, including redistribution or incorporation into commercial products, is not permitted without prior written permission from the author. Please contact the author for commercial licensing.**
 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
