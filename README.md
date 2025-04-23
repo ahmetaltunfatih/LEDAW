@@ -51,7 +51,6 @@ Department of Molecular Theory and Spectroscopy
 
 ```bash
 cd /path/to/the/working/LEDAW/directory
-pyinstaller LEDAW.spec
 ```
 
 - Then, run the following command:
@@ -68,6 +67,11 @@ pyinstaller LEDAW.spec
 
 ```bash
 cd /path/to/the/working/LEDAW/directory
+```
+
+- Then, run the following command:
+
+```
 python main.py
 ```
 
