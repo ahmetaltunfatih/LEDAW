@@ -44,7 +44,7 @@ def plot_heatmap_std_led(file_name, sheet_name, figsize, vmin, vmax, fig_format,
     Details:
     --------
     - vmin and vmax control the color mapping of the heatmap. Values outside this range are clamped to the closest color.
-    - The heatmap will have a gray grid separating the cells, and the color bar will display the range of values.
+    - The heatmap will have a #f5ecb3 grid separating the cells, and the color bar will display the range of values.
 
     Example Usage:
     --------------
@@ -101,15 +101,15 @@ def plot_heatmap_std_led(file_name, sheet_name, figsize, vmin, vmax, fig_format,
     # Use a custom grid for the upper triangle and the diagonals
     for i in range(df.shape[0]):
         for j in range(i + 1, df.shape[1]):
-            ax.add_patch(plt.Rectangle((j, i), 1, 1, fill=False, edgecolor='gray', lw=3))
+            ax.add_patch(plt.Rectangle((j, i), 1, 1, fill=False, edgecolor='#f5ecb3', lw=3))
 
     # Add an extra box-shaped border for the diagonal cells
     for i in range(df.shape[1]):
-        ax.add_patch(plt.Rectangle((i, i), 1, 1, fill=False, edgecolor='gray', lw=3))
+        ax.add_patch(plt.Rectangle((i, i), 1, 1, fill=False, edgecolor='#f5ecb3', lw=3))
 
     # Adjust the outer frame at the top and right
-    ax.axhline(y=0, color='gray', linewidth=6)
-    ax.axvline(x=df.shape[0], color='gray', linewidth=7)
+    ax.axhline(y=0, color='#f5ecb3', linewidth=6)
+    ax.axvline(x=df.shape[0], color='#f5ecb3', linewidth=7)
             
     # Adjustment of the lengths of lines to be added to the left of the first diagonal and to the bottom of the last diagonal
     linewidth = 5
@@ -120,13 +120,13 @@ def plot_heatmap_std_led(file_name, sheet_name, figsize, vmin, vmax, fig_format,
     last_column_index = df.shape[1] - 1
     bottom_line_start = (last_column_index + adjustment_factor, last_row_index + 1 - adjustment_factor)
     bottom_line_end = (last_column_index + 1 - adjustment_factor, last_row_index + 1 - adjustment_factor)
-    ax.add_line(plt.Line2D([bottom_line_start[0], bottom_line_end[0]], [bottom_line_start[1], bottom_line_end[1]], color='gray', linewidth=linewidth))
+    ax.add_line(plt.Line2D([bottom_line_start[0], bottom_line_end[0]], [bottom_line_start[1], bottom_line_end[1]], color='#f5ecb3', linewidth=linewidth))
     
     # Add a line at the left of the first cell of the first row
     first_cell = (0, 0)
     left_line_end = (0, 1 - adjustment_factor)
     left_line_start = (0, 0 - adjustment_factor)
-    ax.add_line(plt.Line2D([left_line_start[0], left_line_end[0]], [left_line_start[1], left_line_end[1]], color='gray', linewidth=linewidth))
+    ax.add_line(plt.Line2D([left_line_start[0], left_line_end[0]], [left_line_start[1], left_line_end[1]], color='#f5ecb3', linewidth=linewidth))
     
     # Surround submatrix by a black box from the specified coordinates in submatrix_coords_to_be_highlighted
     if submatrix_coords_to_be_highlighted is not None:
@@ -207,7 +207,7 @@ def plot_heatmap_fp_led(file_name, sheet_name, figsize, vmin, vmax, fig_format, 
     Details:
     --------
     - vmin and vmax control the color mapping of the heatmap. Values outside this range are clamped to the closest color.
-    - The heatmap will have a gray grid separating the cells, and the color bar will display the range of values.
+    - The heatmap will have a light yellow grid separating the cells, and the color bar will display the range of values.
 
     Example Usage:
     --------------
@@ -260,7 +260,7 @@ def plot_heatmap_fp_led(file_name, sheet_name, figsize, vmin, vmax, fig_format, 
     # Use a custom grid for the upper triangle
     for i in range(df.shape[0]):
         for j in range(i + 1, df.shape[1]):
-            ax.add_patch(plt.Rectangle((j, i), 1, 1, fill=False, edgecolor='gray', lw=3))
+            ax.add_patch(plt.Rectangle((j, i), 1, 1, fill=False, edgecolor='#f5ecb3', lw=3))
 
     # Adjustment of the lengths of lines to be added to the left of first diagonal and to the bottom of the last diagonal
     linewidth = 5
@@ -269,12 +269,12 @@ def plot_heatmap_fp_led(file_name, sheet_name, figsize, vmin, vmax, fig_format, 
     # Add a border line starting from column 1
     border_line_start_x = 1 + adjustment_factor
     border_line_end_x = df.shape[1] 
-    ax.add_line(plt.Line2D([border_line_start_x, border_line_end_x], [0, 0], color='gray', linewidth=linewidth))
+    ax.add_line(plt.Line2D([border_line_start_x, border_line_end_x], [0, 0], color='#f5ecb3', linewidth=linewidth))
 
     # Add a vertical border line at the right
     border_line_start_y = 0
     border_line_end_y = df.shape[0]-1 - adjustment_factor
-    ax.add_line(plt.Line2D([df.shape[1], df.shape[1]], [border_line_start_y, border_line_end_y], color='gray', linewidth=6))    
+    ax.add_line(plt.Line2D([df.shape[1], df.shape[1]], [border_line_start_y, border_line_end_y], color='#f5ecb3', linewidth=6))    
 
     # Surround submatrix by a black box from the specified coordinates in submatrix_coords_to_be_highlighted
     if submatrix_coords_to_be_highlighted is not None:
@@ -423,7 +423,88 @@ def process_fp_led_heatmaps_alt(directory, params):
                     submatrix_coords_to_be_highlighted=params["submatrix_coords_to_be_highlighted"]
                 )
 
-def heatmap_plot_engine(base_path, plot_params_for_std_led_matrices, plot_params_for_fp_led_matrices, show_diag_cells_for_fp_led=False, delete_existing_heatmap_directories_first=True, directory_level=0):
+
+def heatmap_plot_engine(app_instance, base_path, plot_params_for_std_led_matrices, plot_params_for_fp_led_matrices, show_diag_cells_for_fp_led=False, delete_existing_heatmap_directories_first=True, directory_level=0):
+    """
+    Main function to process all subdirectories and generate heat maps.
+
+    Parameters:
+    -----------
+    base_path : str
+        The base directory where the subdirectories are located.
+    
+    show_diag_cells_for_fp_led : bool, optional, default=False
+        If True, diagonal cells with NaN values are shown on fp-LED heat maps for consistency with standard LED.
+        
+    delete_existing_heatmap_directories_first : bool, optional, default=True
+        If True, existing directories where the plots will be saved are deleted before generating new ones.
+
+    directory_level : int, optional, default=2
+        The depth level of directories to search for the Excel files.
+        0 for base path, 1 for first level, 2 for second level.
+    
+    plot_params_for_std_led_matrices : dict
+        Dictionary containing the plotting parameters for standard LED matrices.
+        
+    plot_params_for_fp_led_matrices : dict
+        Dictionary containing the plotting parameters for fp-LED matrices.
+    """
+    
+    # Normalize the base path
+    normalized_base_path = normalize_path(base_path)
+
+    # Find subdirectories based on the specified directory level
+    if app_instance.worker.is_cancelled:
+        return
+
+    subdirectories = find_subdirs_under_base_path(normalized_base_path, depth_level=directory_level)
+
+    for directory in subdirectories:
+        normalized_directory = normalize_path(directory)
+        print(f"Saving heat maps under: {normalized_directory}")
+
+        # Optionally delete existing heatmap directories
+        if delete_existing_heatmap_directories_first: 
+            delete_existing_plot_directories_first(normalized_directory)
+
+        if app_instance.worker.is_cancelled:
+            return
+
+        # Generate and save the heatmaps for standard LED matrices
+        process_std_led_heatmaps(normalized_directory, plot_params_for_std_led_matrices)
+        
+        if app_instance.worker.is_cancelled:
+            return
+
+        print(f"   Standard LED heat maps were saved to HEAT-MAP-STD-LED")
+        
+        # Process fp-LED heatmaps based on the diagonal cell option
+        if show_diag_cells_for_fp_led:
+            if app_instance.worker.is_cancelled:
+                return
+
+            process_fp_led_heatmaps_alt(normalized_directory, plot_params_for_fp_led_matrices)
+
+            if app_instance.worker.is_cancelled:
+                return
+        else:
+            if app_instance.worker.is_cancelled:
+                return
+
+            process_fp_led_heatmaps(normalized_directory, plot_params_for_fp_led_matrices)
+
+            if app_instance.worker.is_cancelled:
+                return
+            
+        print(f"   fp-LED heat maps were saved to HEAT-MAP-fp-LED")
+    
+    print('\n')
+    print('*' * 100)
+    print("Heat map generation job was terminated NORMALLY")
+    print('*' * 100)
+
+
+def heatmap_plot_engine_no_gui(base_path, plot_params_for_std_led_matrices, plot_params_for_fp_led_matrices, show_diag_cells_for_fp_led=False, delete_existing_heatmap_directories_first=True, directory_level=0):
     """
     Main function to process all subdirectories and generate heat maps.
 
