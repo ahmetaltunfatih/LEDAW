@@ -15,13 +15,20 @@
 #               original LED, CPS, and CBS studies, please cite:                       #
 #                                                                                      #
 #                 1) https://github.com/ahmetaltunfatih/LEDAW                          #
-#      2) https://doi.org/10.1002/anie.202421922 (Angew. Chemie, 2024, e202421922)     #
+#                 2) https://doi.org/10.1002/anie.202421922                            #
+#                    (Angew. Chemie. Int. Ed. 64/12, 2025, e202421922)                 #
+#                                                                                      #
+#                                                                                      #
+#                                    License                                           #
+#                             Free for academic use.                                   #
+#           For commercial use or redistribution, contact the author.                  #
+#             The author provides this code as-is, without warranty.                   #
 #                                                                                      #
 ########################################################################################
 
 ### The following is an automated LEDAW procedure for obtaining LED interactoin energy matrices and heat maps 
 ### on the interaction energy of the boat conformer of water hexamer from ORCA output files.
-### For more details, see https://doi.org/10.1002/anie.202421922 (Angew. Chemie, 2024, e202421922).
+### For more details, see https://doi.org/10.1002/anie.202421922 (Angew. Chemie. Int. Ed. 64/12, 2025, e202421922).
 ### N-body, two-body, and cpooperativty LED maps are generated within standard and fp-LED schemes for each 
 ### computational setting. At the same time, LED terms are extrapolated to CPS and CBS limits. 
 ### Finally, standard and fp-LED LED heat maps are generated for all cases.
@@ -262,11 +269,16 @@ print(twobody_title)
 # If onebody ORA output directory is specified without any file name, the code compares the labels of the supersystem file with 
 # onebody files and automatically standardize the labeling of monomers to the original supersystem labeling.
 # In this example, as relabel_mapping is initiated at the beginning of this file ([1,3,2,4,6,5]), labels will then be reordered.
+# reduced_relabel_mapping accounts the cases where fragment labels do not start from 1 and/or not sequential in the supersystem ORCA output file.
+# It must be set to None if N-body LED is not requested before two-body LED.
 # Note: onebody_out_directory directory must contain only the necessary one-body ORCA output files.
 # In the following it is assumed that fragment labeling in all supersystem files are the same.
-# Otherwise, you need to specify all the supersystem files that has differing labeling schemes.
+# Otherwise, you need to specify all the supersystem files that has differing labeling schemes and thus relabel_mapping and reduced_relabel_mapping.
 
-supersystem_file = r'./ORCA-OUT/BOAT/aTZ/PNO6/HEXAMER/ADDUCT.mpi16.out' 
+
+supersystem_file = r'./ORCA-OUT/BOAT/aTZ/PNO6/HEXAMER/ADDUCT.mpi16.out'
+reduced_relabel_mapping = get_reduced_relabel_mapping(supersystem_file=supersystem_file, relabel_mapping=relabel_mapping)
+
 onebody_out_directory_SB_LPNO = r'./ORCA-OUT/BOAT/aTZ/PNO6/ONEBODY'
 onebody_out_directory_SB_TPNO = r'./ORCA-OUT/BOAT/aTZ/PNO7/ONEBODY'
 onebody_out_directory_LB_LPNO = r'./ORCA-OUT/BOAT/aQZ/PNO6/ONEBODY'
@@ -327,36 +339,37 @@ engine_LED_two_body(one_body_orcaout_filenames = one_body_orcaout_filenames_SB_L
                     two_body_orcaout_directory = two_body_orcaout_directory_SB_LPNO,
                     conversion_factor = conversion_factor, 
                     method = method,
-                    relabel_mapping=relabel_mapping,
-                    use_ref_as_rhf_in_hfld=use_ref_as_rhf_in_hfld,
-                    LEDAW_output_path_two_body = LEDAW_output_path_twobody_SB_LPNO)
+                    reduced_relabel_mapping = reduced_relabel_mapping,
+                    LEDAW_output_path_two_body = LEDAW_output_path_twobody_SB_LPNO,
+                    LEDAW_output_path_nbody = LEDAW_output_path_SB_LPNO)
+
 
 # for smaller basis set and tighter TCutPNO setting
 engine_LED_two_body(one_body_orcaout_filenames = one_body_orcaout_filenames_SB_TPNO,
                     two_body_orcaout_directory = two_body_orcaout_directory_SB_TPNO,
                     conversion_factor = conversion_factor, 
                     method = method,
-                    relabel_mapping=relabel_mapping,
-                    use_ref_as_rhf_in_hfld=use_ref_as_rhf_in_hfld,
-                    LEDAW_output_path_two_body = LEDAW_output_path_twobody_SB_TPNO)
+                    reduced_relabel_mapping = reduced_relabel_mapping,
+                    LEDAW_output_path_two_body = LEDAW_output_path_twobody_SB_TPNO,
+                    LEDAW_output_path_nbody = LEDAW_output_path_SB_TPNO)
 
 # for larger basis set and looser TCutPNO setting
 engine_LED_two_body(one_body_orcaout_filenames = one_body_orcaout_filenames_LB_LPNO,
                     two_body_orcaout_directory = two_body_orcaout_directory_LB_LPNO,
                     conversion_factor = conversion_factor, 
                     method = method,
-                    relabel_mapping=relabel_mapping,
-                    use_ref_as_rhf_in_hfld=use_ref_as_rhf_in_hfld,
-                    LEDAW_output_path_two_body = LEDAW_output_path_twobody_LB_LPNO)
+                    reduced_relabel_mapping = reduced_relabel_mapping,
+                    LEDAW_output_path_two_body = LEDAW_output_path_twobody_LB_LPNO,
+                    LEDAW_output_path_nbody = LEDAW_output_path_LB_LPNO)
 
 # for larger basis set and tighter TCutPNO setting
 engine_LED_two_body(one_body_orcaout_filenames = one_body_orcaout_filenames_LB_TPNO,
                     two_body_orcaout_directory = two_body_orcaout_directory_LB_TPNO,
                     conversion_factor = conversion_factor, 
                     method = method,
-                    relabel_mapping=relabel_mapping,
-                    use_ref_as_rhf_in_hfld=use_ref_as_rhf_in_hfld,
-                    LEDAW_output_path_two_body = LEDAW_output_path_twobody_LB_TPNO)
+                    reduced_relabel_mapping = reduced_relabel_mapping,
+                    LEDAW_output_path_two_body = LEDAW_output_path_twobody_LB_TPNO,
+                    LEDAW_output_path_nbody = LEDAW_output_path_LB_TPNO)
 
 
 ### Extrapolate LPNO and TPNO two-body results to CPS limit.
@@ -452,7 +465,7 @@ plot_params_for_fp_led_matrices = {
 # Generate heat maps from Summary_Standard_LED_matrices.xlsx and Summary_fp_LED_matrices.xlsx.
 # Save them to HEAT-MAP-STD-LED and HEAT-MAP-fp-LED directories generated in base_path (if directory_level=0),
 # or its first or second level subdirectories (directory_level= 1 or 2): Default = 0
-heatmap_plot_engine(base_path=r'./LEDAW-OUT/BOAT', 
+heatmap_plot_engine_no_gui(base_path=r'./LEDAW-OUT/BOAT', 
                     plot_params_for_std_led_matrices=plot_params_for_std_led_matrices,
                     plot_params_for_fp_led_matrices=plot_params_for_fp_led_matrices,
                     show_diag_cells_for_fp_led=False,
