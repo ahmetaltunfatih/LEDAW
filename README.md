@@ -40,18 +40,18 @@ Department of Molecular Theory and Spectroscopy
     - `crystal.py`  
     - `boat.py`  
   - Example ORCA output files directory: `ORCA-OUT`
-- Place these into your working directory.
+- Place these into your working LEDAW directory.
 
 ---
 
 ### **Installing LEDAW-GUI (Executable Generation)**
 
 - **LEDAW-GUI** is pre-configured to generate an executable using **PyInstaller**.
-- Python must be installed on your system.
+- Hence, Python with Pyinstaller must be available on your system.
 - To create the executable:
 
 ```bash
-cd /path/to/the/downloaded/directory
+cd /path/to/the/working/LEDAW/directory
 pyinstaller LEDAW.spec
 ```
 
@@ -68,7 +68,7 @@ pyinstaller LEDAW.spec
 - As an alternative to generating the executable, you can run LEDAW-GUI directly with Python:
 
 ```bash
-cd /path/to/the/downloaded/directory
+cd /path/to/the/working/LEDAW/directory
 python main.py
 ```
 
