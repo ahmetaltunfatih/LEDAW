@@ -46,8 +46,7 @@ Department of Molecular Theory and Spectroscopy
 
 ### **Installing LEDAW-GUI (Executable Generation)**
 
-- **LEDAW-GUI** is pre-configured to generate an executable using **PyInstaller**.
-- Hence, Python with Pyinstaller must be available on your system.
+- **LEDAW-GUI** is pre-configured to generate an executable using **PyInstaller**. Hence, Python with Pyinstaller must be available on your system.
 - To create the executable:
 
 ```bash
