@@ -113,7 +113,7 @@ If you use any part of this code or its results in your research, in addition to
 - **LEDAW GitHub Repository:**  
   [https://github.com/ahmetaltunfatih/LEDAW](https://github.com/ahmetaltunfatih/LEDAW)  
 
-- **Main fp-LED Paper:**  
+- **Main fp-LED Paper Summarizing the Theory behind LEDAW:**  
   [https://doi.org/10.1002/anie.202421922](https://doi.org/10.1002/anie.202421922) (Angew. Chemie. Int. Ed. 64/12, 2025, e202421922)
 ---
 
