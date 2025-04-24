@@ -20,10 +20,10 @@ Department of Molecular Theory and Spectroscopy
 - Performs **Complete PNO Space (CPS)** and **Complete Basis Set (CBS) extrapolations** based on unextrapolated LED terms from ORCA outputs and generates corresponding energy matrices.
 - **Automatically standardizes fragment labels** to match those in the supersystem file if they differ between supersystem and subsystem ORCA output files.
 - Allows **relabeling of fragments** if the user wishes to adjust the fragment labeling in the supersystem ORCA output.
-- Supports specifying an **alternative file** if the primary ORCA output file lacks certain required energy terms.
+- Supports specifying an **alternative file** if the primary ORCA output file lacks certain required energy terms for N-body LED.
 - Collects LED terms **method-specifically** (for DLPNO-CCSD(T), DLPNO-CCSD, and HFLD), including terms like London dispersion.
 - Detects the use of **implicit solvation schemes** (CPCM, SMD, etc.) and distributes dielectric contributions across pairwise terms.
-- Detects automatically if **BSSE-correction** is requested and proceeds subsystem files accordingly.
+- Detects automatically if **BSSE correction** is requested and proceeds subsystem files accordingly.
 - Writes **standard and fp-LED interaction energy matrices** into separate Excel files, with each matrix on a separate sheet.
 - Provides **heatmaps** of all interaction energy matrices for convenient data interpretation and presentation.
 
