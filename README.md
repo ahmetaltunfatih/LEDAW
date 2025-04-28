@@ -1,4 +1,4 @@
-# **LEDAW-GUI: LED Analysis Wizard with GUI**  
+# **LEDAW: LED Analysis Wizard**  
 
 ## **A Python-Based Program Package with GUI for Automating Local Energy Decomposition Analysis Using ORCA Outputs**  
 
