@@ -77,13 +77,13 @@ python main.py
 For more code-oriented users, several example Python input scripts are provided for processing the files in ORCA-OUT directory:
 
 - **`water-dimer.py`**:  
-  Demonstrates BSSE-corrected and BSSE-uncorrected LED analyses for a water dimer (a two-fragment system) together with differential BSSE effect.
+  Demonstrates BSSE-corrected and BSSE-uncorrected LED analyses as well as differential BSSE effect for a water dimer (a two-fragment system).
 
 - **`crystal.py`**:  
   Designed for performing **N-body**, **two-body**, and **cooperativity** HFLD/LED analysis of the interaction between a central monomer and its environment in a crystal.
 
-- The four **`dna-*.py`** files:  
-  Designed for performing **N-body**, **two-body**, and **cooperativity** LED analysis of the BSSE-corrected and BSSE-uncorrected inter-strand interaction energy of a DNA duplex at the DLPNO-CCSD(T) and HFLD levels.
+- **`dna-*.py`**:  
+  Designed for performing **N-body**, **two-body**, and **cooperativity** LED analysis of the inter-strand interaction energy of a DNA duplex. The four **dna-*.py** files correspond to four computational settings: BSSE-corrected and BSSE-uncorrected interaction energy computations using both DLPNO-CCSD(T) and HFLD.
 
 - **`boat.py`**:  
   A comprehensive example that runs **all modules** of LEDAW, including CPS and CBS extrapolations on the DLPNO-CCSD(T)/LED terms for the boat conformer of water hexamer.
