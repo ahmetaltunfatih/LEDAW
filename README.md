@@ -35,11 +35,8 @@ Department of Molecular Theory and Spectroscopy
 - Download the `ledaw_package` directory along with:
   - `main.py`
   - `LEDAW.spec`
-  - Example input Python files:  
-    - `water-dimer.py`  
-    - `crystal.py`  
-    - `boat.py`  
   - Example ORCA output files directory: `ORCA-OUT`
+  - Example LEDAW input Python files directory: LEDAW-INPS   
 - Place these into your working LEDAW directory.
 
 ---
@@ -77,13 +74,16 @@ python main.py
 
 ### **Running LEDAW without GUI (Script-Based Workflow)**
 
-For more code-oriented users, three example Python input scripts are provided:
+For more code-oriented users, several example Python input scripts are provided for processing the files in ORCA-OUT directory:
 
 - **`water-dimer.py`**:  
-  Demonstrates BSSE-corrected and BSSE-uncorrected LED analyses for a water dimer (a two-fragment system).
+  Demonstrates BSSE-corrected and BSSE-uncorrected LED analyses for a water dimer (a two-fragment system) together with differential BSSE effect.
 
 - **`crystal.py`**:  
   Designed for performing **N-body**, **two-body**, and **cooperativity** HFLD/LED analysis of the interaction between a central monomer and its environment in a crystal.
+
+- The four **`dna-*.py`** files:  
+  Designed for performing **N-body**, **two-body**, and **cooperativity** LED analysis of the BSSE-corrected and BSSE-uncorrected inter-strand interaction energy of a DNA duplex at the DLPNO-CCSD(T) and HFLD levels.
 
 - **`boat.py`**:  
   A comprehensive example that runs **all modules** of LEDAW, including CPS and CBS extrapolations on the DLPNO-CCSD(T)/LED terms for the boat conformer of water hexamer.
@@ -101,9 +101,11 @@ For more code-oriented users, three example Python input scripts are provided:
 
 #### **Recommended Workflow**
 
-- It is recommended to first explore **`crystal.py`** to understand the basic LEDAW logic and workflow.
 - Use **`boat.py`** if you want to explore **all available modules**, including CPS and CBS extrapolations.  
   This script includes multiple file path specifications and several calls to the engine functions, demonstrating the full flexibility of LEDAW.
+  For more detailed explanations on this system, consult the LEDAW manual.
+ - Follow **`dna-*.py`** files together with the detailed explanations on this example in the LEDAW manual.
+ - To further practice the basic LEDAW logic and workflow, explore **`crystal.py`** and **`water-dimer.py`**  
 ---
 
 ## **References**
