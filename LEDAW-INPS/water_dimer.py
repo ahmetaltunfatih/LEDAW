@@ -102,9 +102,9 @@ nbody_title='''
 
 print(nbody_title)
 
-main_filenames = [r'./ORCA-OUT/WATER-DIMER/DIMER/DIMER.out', 
-                          r'./ORCA-OUT/WATER-DIMER/MONO-CP/BSSE1.out',
-                          r'./ORCA-OUT/WATER-DIMER/MONO-CP/BSSE2.out',
+main_filenames = [r'../ORCA-OUT/WATER-DIMER/DIMER/DIMER.out', 
+                          r'../ORCA-OUT/WATER-DIMER/MONO-CP/BSSE1.out',
+                          r'../ORCA-OUT/WATER-DIMER/MONO-CP/BSSE2.out',
                  ]
 
 alternative_filenames = ['', '', '']
@@ -112,7 +112,7 @@ alternative_filenames = ['', '', '']
 
 ### Specify the Directories where LEDAW will write N-Body LED Matrices, which will be
 # read from ORCA output files
-LEDAW_output_path = r'./LEDAW-OUT/WATER-DIMER/withBSSE'
+LEDAW_output_path = r'../LEDAW-OUT/WATER-DIMER/withBSSE'
 
 ### Run N-Body LED engine.
 # Standard and fp-LED N-body matrices will be written to excel files in specified LEDAW output directory
@@ -136,17 +136,17 @@ print(twobody_title)
 # The order of fragments in the list matters. In the follwing, we list consistent with the fragment labeling sequence in the adduct file.
 # However, there  are other ways. To get a feeling, see other examples.
 
-one_body_orcaout_filenames = [r'./ORCA-OUT/WATER-DIMER/MONO/MONO1.out',
-                                r'./ORCA-OUT/WATER-DIMER/MONO/MONO2.out']
+one_body_orcaout_filenames = [r'../ORCA-OUT/WATER-DIMER/MONO/MONO1.out',
+                                r'../ORCA-OUT/WATER-DIMER/MONO/MONO2.out']
 
 
 ### Specify the two-body ORCA output file directory
 # Note: This directory must contain only the necessary two-body ORCA output file.
-two_body_orcaout_directory = r'./ORCA-OUT/WATER-DIMER/DIMER'
+two_body_orcaout_directory = r'../ORCA-OUT/WATER-DIMER/DIMER'
 
 
 ### Specify the Directory where LEDAW will write Two-Body LED Matrices
-LEDAW_output_path_twobody = r'./LEDAW-OUT/WATER-DIMER/withoutBSSE'
+LEDAW_output_path_twobody = r'../LEDAW-OUT/WATER-DIMER/withoutBSSE'
 
 
 ### Run two-body LED engine
@@ -168,4 +168,4 @@ print(coop_title)
 # Calculate cooperativity LED matrices from the excel files under the base_path/withBSSE and base_path/withoutBSSE directories
 # and save them to the base_path/COOPERATIVITY directory generated (if directory_level=1),
 # or its second or third level subdirectories (directory_level= 2 or 3): Default = 1
-cooperativity_engine(base_path=r'./LEDAW-OUT/WATER-DIMER', nbody_dir_name='withBSSE', twobody_dir_name='withoutBSSE', directory_level=1)
+cooperativity_engine(base_path=r'../LEDAW-OUT/WATER-DIMER', nbody_dir_name='withBSSE', twobody_dir_name='withoutBSSE', directory_level=1)
