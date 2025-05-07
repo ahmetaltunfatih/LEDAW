@@ -36,7 +36,7 @@ Department of Molecular Theory and Spectroscopy
   - `main.py`
   - `LEDAW.spec`
   - Example ORCA output files directory: `ORCA-OUT`
-  - Example LEDAW input Python files directory: LEDAW-INPS   
+  - Example LEDAW input Python files directory for code-oriented users: `LEDAW-INPS`   
 - Place these into your working LEDAW directory.
 
 ---
