@@ -155,3 +155,15 @@ engine_LED_two_body(one_body_orcaout_filenames=one_body_orcaout_filenames,
                     method=method,
                     reduced_relabel_mapping = None,
                     LEDAW_output_path_two_body = LEDAW_output_path_twobody)
+
+coop_title='''
+# ##################################################################################################
+# #                             BSSE-CONTRIBUTION USING COOPERATIVITY ENGINE                       #
+# ##################################################################################################
+# '''
+print(coop_title)
+
+# Calculate cooperativity LED matrices from the excel files under the base_path/withBSSE and base_path/withoutBSSE directories
+# and save them to the base_path/COOPERATIVITY directory generated (if directory_level=1),
+# or its second or third level subdirectories (directory_level= 2 or 3): Default = 1
+cooperativity_engine(base_path=r'./LEDAW-OUT/WATER-DIMER', nbody_dir_name='withBSSE', twobody_dir_name='withoutBSSE', directory_level=1)
