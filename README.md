@@ -14,16 +14,18 @@ Department of Molecular Theory and Spectroscopy
 - **LEDAW** automates all types of LED interaction energy analyses, including:
   - Interactions between arbitrary numbers of fragments (e.g., water cluster formation).
   - Interactions of single- or multi-fragment systems with other single- or multi-fragment systems (e.g., lattice energy calculations, duplex DNA formation with multiple fragments per strand).
-- Features a **user-friendly, self-explanatory GUI** with built-in info buttons and help messages, providing guidance at every step.
-- Provides **example Python input files** for code-oriented users who prefer script-based workflows.
-- Calculates **N-body, two-body, and cooperativity LED interaction energy matrices** for both standard and fragment pairwise (fp)-LED schemes from ORCA output files — independent of the number of fragments in the supersystem and its subsystems, within seconds.
+- Features a **user-friendly, self-explanatory GUI** with built-in info buttons and help messages to guide users at every step.
+- Includes example Python input scripts for users who prefer script-based workflows.
+- Calculates **N-body, two-body, and cooperativity LED interaction energy matrices** for both standard and fragment pairwise (fp)-LED schemes from ORCA output files.
+- Works with any number of fragments in the supersystem and its subsystems, independent of how fragments are labeled.
+- Produces results and writes them to Excel files within seconds; generating heatmap figures may take a few minutes.
 - Performs **Complete PNO Space (CPS)** and **Complete Basis Set (CBS) extrapolations** based on unextrapolated LED terms from ORCA outputs and generates corresponding energy matrices.
 - **Automatically standardizes fragment labels** to match those in the supersystem file if they differ between supersystem and subsystem ORCA output files.
 - Allows **relabeling of fragments** if the user wishes to adjust the fragment labeling in the supersystem ORCA output.
 - Supports specifying an **alternative file** if the primary ORCA output file lacks certain required energy terms for N-body LED.
 - Collects LED terms **method-specifically** (for DLPNO-CCSD(T), DLPNO-CCSD, and HFLD), including terms like London dispersion.
 - Detects the use of **implicit solvation schemes** (CPCM, SMD, etc.) and distributes dielectric contributions across pairwise terms.
-- Detects automatically if **BSSE correction** is requested and proceeds subsystem files accordingly.
+- Automatically detects whether **BSSE correction** is requested and handles subsystem files accordingly.
 - Writes **standard and fp-LED interaction energy matrices** into separate Excel files, with each matrix on a separate sheet.
 - Provides **heatmaps** of all interaction energy matrices for convenient data interpretation and presentation.
 
@@ -32,12 +34,14 @@ Department of Molecular Theory and Spectroscopy
 ## **How to Run**
 
 ### **Downloading**
-- Download the `ledaw_package` directory along with:
-  - `main.py`
-  - `LEDAW.spec`
-  - Example ORCA output files directory: `ORCA-OUT`
-  - Example LEDAW input Python files directory for code-oriented users: `LEDAW-INPS`   
-- Place these into your working LEDAW directory.
+Download the following components into your working LEDAW directory:
+- `ledaw_package` directory  
+- `main.py`  
+- `ledaw.spec`  
+- `docs` directory (LEDAW manual)  
+- `examples` directory containing:
+  - `orca-outputs`: ORCA output files for several interaction types  
+  - `ledaw-inputs`: Example Python scripts to run LEDAW on the `orca-outputs` files (intended for code-oriented users)
 
 ---
 
@@ -53,10 +57,10 @@ cd /path/to/the/working/LEDAW/directory
 - Then, run the following command:
 
 ```bash
-pyinstaller LEDAW.spec
+pyinstaller ledaw.spec
 ```
 
-- The generated executable will work without requiring the downloaded directory or Python installation.
+- The generated executable will work independently — Python does not need to be installed, and the source files are not required after compilation.
 
 ### **Running LEDAW-GUI Directly with Python**
 
@@ -77,13 +81,14 @@ python main.py
 For more code-oriented users, several example Python input scripts are provided for processing the files in ORCA-OUT directory:
 
 - **`water-dimer.py`**:  
-  Demonstrates BSSE-corrected and BSSE-uncorrected LED analyses as well as differential BSSE effect for a water dimer (a two-fragment system).
+  Performs BSSE-corrected and BSSE-uncorrected LED analyses, and computes differential BSSE effect on LED terms for a water dimer (two fragments).
 
 - **`crystal.py`**:  
-  Designed for performing **N-body**, **two-body**, and **cooperativity** HFLD/LED analysis of the interaction between a central monomer and its environment in a crystal.
+ Performs **N-body**, **two-body**, and **cooperativity** HFLD/LED analysis of the interaction between a central monomer and its environment in a crystal.
 
 - **`dna-*.py`**:  
-  Designed for performing **N-body**, **two-body**, and **cooperativity** LED analysis of the inter-strand interaction energy of a DNA duplex. The four **dna-*.py** files correspond to four computational settings: BSSE-corrected and BSSE-uncorrected interaction energy computations using both DLPNO-CCSD(T) and HFLD.
+  Performs **N-body**, **two-body**, and **cooperativity** LED analysis of the inter-strand interaction energy in a DNA duplex. The four **dna-*.py** files are
+  for BSSE-corrected and BSSE-uncorrected analyses using both DLPNO-CCSD(T) and HFLD.
 
 - **`boat.py`**:  
   A comprehensive example that runs **all modules** of LEDAW, including CPS and CBS extrapolations on the DLPNO-CCSD(T)/LED terms for the boat conformer of water hexamer.
@@ -93,19 +98,20 @@ For more code-oriented users, several example Python input scripts are provided 
 #### **Personalizing the Example Scripts**
 
 - To adapt the provided scripts for your own system:
-  - Modify the **path and filenames** of your ORCA output files.
-  - Modify the **output path** where LEDAW should write the results.
-  - If certain parts of the analysis (e.g., N-body LED, two-body LED, and cooperativity analyses, CBS and/or CPS extrapolation) are not needed or corresponding ORCA output files are not available, simply **comment out** or **remove** the relevant sections.
+  - Update the **path and filenames** of the ORCA output files.
+  - Update the **output path** where LEDAW should write the results.
+  - **Comment out** or **remove** any analysis steps (e.g., N-body LED, two-body LED, cooperativity, CBS/CPS extrapolations) for which corresponding ORCA output files are unavailable or unnecessary.
 
 ---
 
 #### **Recommended Workflow**
 
-- Use **`boat.py`** if you want to explore **all available modules**, including CPS and CBS extrapolations.  
+- Use **`boat.py`** to explore **all available modules**, including CPS and CBS extrapolations.  
   This script includes multiple file path specifications and several calls to the engine functions, demonstrating the full flexibility of LEDAW.
   For more detailed explanations on this system, consult the LEDAW manual.
- - Follow **`dna-*.py`** files together with the detailed explanations on this example in the LEDAW manual.
- - To further practice the basic LEDAW logic and workflow, explore **`crystal.py`** and **`water-dimer.py`**  
+ - Use **`dna-*.py`** scripts alongside the detailed explanations on this example in the LEDAW manual.
+ - To practice the basic LEDAW logic and workflow, explore **`crystal.py`** and **`water-dimer.py`**
+   
 ---
 
 ## **References**
