@@ -78,7 +78,7 @@ python main.py
 
 ### **Running LEDAW without GUI (Script-Based Workflow)**
 
-For more code-oriented users, several example Python input scripts are provided for processing the files in ORCA-OUT directory:
+For more code-oriented users, several example Python input scripts are provided for processing the files in the orca-outputs directory:
 
 - **`water-dimer.py`**:  
   Performs BSSE-corrected and BSSE-uncorrected LED analyses, and computes differential BSSE effect on LED terms for a water dimer (two fragments).
