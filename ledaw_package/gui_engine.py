@@ -188,10 +188,11 @@ class LEDAWApp(QMainWindow):
         msg.setText(
             "Example: WATER-HEXAMER\n\n"
             "Note: By default, a subdirectory with the specified job name will be created in\n"
-            "./LEDAW-OUT to store the LEDAW results. If the specified path already exists, "
+            "./LEDAW-OUT/ to store the LEDAW results. If the specified subdirectory already exists, "
             "LEDAW will overwrite its contents, and existing files/subdirectories may interfere with the LEDAW run. "
-            "It is strongly recommended to use an empty directory to avoid potential conflicts.\n\n"
-            "If needed, you can change the default LEDAW output directory in the following field."
+            "It is strongly recommended to use a unique job name that does not match existing subdirectory names "
+            "under ./LEDAW-OUT/ to avoid potential conflicts.\n\n"
+            "If needed, the default ./LEDAW-OUT/ path can be changed by filling the next field."
         )
 
         # Show the message box
@@ -4727,7 +4728,7 @@ class LEDAWApp(QMainWindow):
         layout.setAlignment(Qt.AlignTop)
 
         # Create the label with selectable text
-        label = QLabel("\nWritten by Ahmet Altun ©\n\nIt is free for academic use. Contact with the author for commercial use.\n\nIf you use any part of this code, in addition to original LED, CPS, and CBS studies, please cite:\n1) https://github.com/ahmetaltunfatih/LEDAW\n2) https://doi.org/10.1002/anie.202421922 (Angew. Chemie, 2024, e202421922)")
+        label = QLabel("\nWritten by Ahmet Altun ©\n\nIt is free for academic use. Contact with the author for commercial use.\nFor the full license information, see the LEDAW repository or its manual.\n\nIf you use any part of this code, in addition to original LED, CPS, and CBS studies, please cite:\n1) https://github.com/ahmetaltunfatih/LEDAW\n2) https://doi.org/10.1002/anie.202421922 (Angew. Chem. Int. Ed. 2025, e202421922)")
 
         # Enable text interaction for selecting the text
         label.setTextInteractionFlags(Qt.TextSelectableByMouse)
