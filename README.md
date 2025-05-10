@@ -34,7 +34,7 @@ Department of Molecular Theory and Spectroscopy
 ## **How to Run**
 
 ### **Getting the Package**
-Fownload (and then, unzip) or clone the entire LEDAW directory, including:
+Download (and then, unzip) or clone the entire LEDAW directory, including:
 - `ledaw_package` directory  
 - `main.py`  
 - `ledaw.spec`  
@@ -51,7 +51,7 @@ Fownload (and then, unzip) or clone the entire LEDAW directory, including:
 - To create the executable:
 
 ```bash
-cd /path/to/the/working/LEDAW/directory
+cd /path/to/the/LEDAW/directory
 ```
 
 - Then, run the following command:
@@ -67,7 +67,7 @@ pyinstaller ledaw.spec
 - As an alternative to generating the executable, you can run LEDAW-GUI directly with Python:
 
 ```bash
-cd /path/to/the/working/LEDAW/directory
+cd /path/to/the/LEDAW/directory
 ```
 
 - Then, run the following command:
