@@ -33,8 +33,8 @@ Department of Molecular Theory and Spectroscopy
 
 ## **How to Run**
 
-### **Downloading**
-Download the following components into your working LEDAW directory:
+### **Getting the Package**
+Fownload (and then, unzip) or clone the entire LEDAW directory, including:
 - `ledaw_package` directory  
 - `main.py`  
 - `ledaw.spec`  
