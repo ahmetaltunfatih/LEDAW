@@ -27,7 +27,7 @@
 ########################################################################################
 
 import sys
-sys.path.insert(0,"..")
+sys.path.insert(0,"../..")
 from ledaw_package import *
 
 ### Choose the method
@@ -85,7 +85,7 @@ nbody_title='''
 # DLPNO-CCSD output can  still be provided in the main or alternative file name.
 # Note 4: The corresponding main and alternative ORCA output files must be given at the same index in the file lists.
 # One letter or one number file names may sometimes cause problems. Hence, awoid using such short names, e.g., "A.mpi4.out".
-# If you are on windows, it is safer to specify all file paths as raw string and use forward slash, e.g., r'./ORCA-OUT/ADDUCT.mpi4.out'
+# If you are on windows, it is safer to specify all file paths as raw string and use forward slash, e.g., r'./orca-outputs/ADDUCT.mpi4.out'
 # Note 5: You do not have to specify any file name for alternative_filenames. But an empty list with the length of main_filenames must be initiated. 
 # Note 6: If you specified the same fragment with different labels in supersystem and subsystem ORCA output files, 
 # the code automatically labels subsystem fragment labels as in the supersystem output file.
@@ -102,9 +102,9 @@ nbody_title='''
 
 print(nbody_title)
 
-main_filenames = [r'../ORCA-OUT/WATER-DIMER/DIMER/DIMER.out', 
-                          r'../ORCA-OUT/WATER-DIMER/MONO-CP/BSSE1.out',
-                          r'../ORCA-OUT/WATER-DIMER/MONO-CP/BSSE2.out',
+main_filenames = [r'../orca-outputs/WATER-DIMER/DIMER/DIMER.out', 
+                          r'../orca-outputs/WATER-DIMER/MONO-CP/BSSE1.out',
+                          r'../orca-outputs/WATER-DIMER/MONO-CP/BSSE2.out',
                  ]
 
 alternative_filenames = ['', '', '']
@@ -136,13 +136,13 @@ print(twobody_title)
 # The order of fragments in the list matters. In the follwing, we list consistent with the fragment labeling sequence in the adduct file.
 # However, there  are other ways. To get a feeling, see other examples.
 
-one_body_orcaout_filenames = [r'../ORCA-OUT/WATER-DIMER/MONO/MONO1.out',
-                                r'../ORCA-OUT/WATER-DIMER/MONO/MONO2.out']
+one_body_orcaout_filenames = [r'../orca-outputs/WATER-DIMER/MONO/MONO1.out',
+                                r'../orca-outputs/WATER-DIMER/MONO/MONO2.out']
 
 
 ### Specify the two-body ORCA output file directory
 # Note: This directory must contain only the necessary two-body ORCA output file.
-two_body_orcaout_directory = r'../ORCA-OUT/WATER-DIMER/DIMER'
+two_body_orcaout_directory = r'../orca-outputs/WATER-DIMER/DIMER'
 
 
 ### Specify the Directory where LEDAW will write Two-Body LED Matrices

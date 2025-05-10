@@ -34,7 +34,7 @@
 ### Finally, standard and fp-LED LED heat maps are generated for all cases.
 
 import sys
-sys.path.insert(0,"..")
+sys.path.insert(0,"../..")
 from ledaw_package import *
 
 ### Choose the method
@@ -99,7 +99,7 @@ print(nbody_title)
 # DLPNO-CCSD output can  still be provided in the main or alternative file name.
 # Note 4: The corresponding main and alternative ORCA output files must be given at the same index in the file lists.
 # One letter or one number file names may sometimes cause problems. Hence, awoid using such short names, e.g., "A.mpi4.out".
-# If you are on windows, it is safer to specify all file paths as raw string and use forward slash, e.g., r'./ORCA-OUT/ADDUCT.mpi4.out'
+# If you are on windows, it is safer to specify all file paths as raw string and use forward slash, e.g., r'./orca-outputs/ADDUCT.mpi4.out'
 # Note 5: You do not have to specify any file name for alternative_filenames. But an empty list with the length of main_filenames must be initiated. 
 # Note 6: If you specified the same fragment with different labels in supersystem and subsystem ORCA output files, 
 # the code automatically labels subsystem fragment labels as in the supersystem output file.
@@ -114,48 +114,48 @@ print(nbody_title)
 # In the list variables, for example, SB_LPNO corresponds to the calculations with smaller basis set and looser TCutPNO setting.
 # The code does not check basis set and TCutPNO values from output files but relies on the user input in the lists below.
 
-main_filenames_SB_LPNO = [r'../ORCA-OUT/BOAT/aTZ/PNO6/HEXAMER/ADDUCT.mpi16.out', 
-                          r'../ORCA-OUT/BOAT/aTZ/PNO6/ONEBODY/frag1.mpi4.out',
-                          r'../ORCA-OUT/BOAT/aTZ/PNO6/ONEBODY/frag2.mpi4.out',
-                          r'../ORCA-OUT/BOAT/aTZ/PNO6/ONEBODY/frag3.mpi4.out',
-                          r'../ORCA-OUT/BOAT/aTZ/PNO6/ONEBODY/frag4.mpi4.out',
-                          r'../ORCA-OUT/BOAT/aTZ/PNO6/ONEBODY/frag5.mpi4.out',
-                          r'../ORCA-OUT/BOAT/aTZ/PNO6/ONEBODY/frag6.mpi4.out',
+main_filenames_SB_LPNO = [r'../orca-outputs/BOAT/aTZ/PNO6/HEXAMER/ADDUCT.mpi16.out', 
+                          r'../orca-outputs/BOAT/aTZ/PNO6/ONEBODY/frag1.mpi4.out',
+                          r'../orca-outputs/BOAT/aTZ/PNO6/ONEBODY/frag2.mpi4.out',
+                          r'../orca-outputs/BOAT/aTZ/PNO6/ONEBODY/frag3.mpi4.out',
+                          r'../orca-outputs/BOAT/aTZ/PNO6/ONEBODY/frag4.mpi4.out',
+                          r'../orca-outputs/BOAT/aTZ/PNO6/ONEBODY/frag5.mpi4.out',
+                          r'../orca-outputs/BOAT/aTZ/PNO6/ONEBODY/frag6.mpi4.out',
                  ]
 
 alternative_filenames_SB_LPNO = ['', '', '', '', '', '' ,'']
 
 
-main_filenames_SB_TPNO = [r'../ORCA-OUT/BOAT/aTZ/PNO7/HEXAMER/ADDUCT.mpi16.out', 
-                          r'../ORCA-OUT/BOAT/aTZ/PNO7/ONEBODY/frag1.mpi4.out',
-                          r'../ORCA-OUT/BOAT/aTZ/PNO7/ONEBODY/frag2.mpi4.out',
-                          r'../ORCA-OUT/BOAT/aTZ/PNO7/ONEBODY/frag3.mpi4.out',
-                          r'../ORCA-OUT/BOAT/aTZ/PNO7/ONEBODY/frag4.mpi4.out',
-                          r'../ORCA-OUT/BOAT/aTZ/PNO7/ONEBODY/frag5.mpi4.out',
-                          r'../ORCA-OUT/BOAT/aTZ/PNO7/ONEBODY/frag6.mpi4.out',
+main_filenames_SB_TPNO = [r'../orca-outputs/BOAT/aTZ/PNO7/HEXAMER/ADDUCT.mpi16.out', 
+                          r'../orca-outputs/BOAT/aTZ/PNO7/ONEBODY/frag1.mpi4.out',
+                          r'../orca-outputs/BOAT/aTZ/PNO7/ONEBODY/frag2.mpi4.out',
+                          r'../orca-outputs/BOAT/aTZ/PNO7/ONEBODY/frag3.mpi4.out',
+                          r'../orca-outputs/BOAT/aTZ/PNO7/ONEBODY/frag4.mpi4.out',
+                          r'../orca-outputs/BOAT/aTZ/PNO7/ONEBODY/frag5.mpi4.out',
+                          r'../orca-outputs/BOAT/aTZ/PNO7/ONEBODY/frag6.mpi4.out',
                  ]
 
 alternative_filenames_SB_TPNO = ['', '', '', '', '', '' ,'']
 
-main_filenames_LB_LPNO = [r'../ORCA-OUT/BOAT/aQZ/PNO6/HEXAMER/ADDUCT.mpi16.out', 
-                          r'../ORCA-OUT/BOAT/aQZ/PNO6/ONEBODY/frag1.mpi4.out',
-                          r'../ORCA-OUT/BOAT/aQZ/PNO6/ONEBODY/frag2.mpi4.out',
-                          r'../ORCA-OUT/BOAT/aQZ/PNO6/ONEBODY/frag3.mpi4.out',
-                          r'../ORCA-OUT/BOAT/aQZ/PNO6/ONEBODY/frag4.mpi4.out',
-                          r'../ORCA-OUT/BOAT/aQZ/PNO6/ONEBODY/frag5.mpi4.out',
-                          r'../ORCA-OUT/BOAT/aQZ/PNO6/ONEBODY/frag6.mpi4.out',
+main_filenames_LB_LPNO = [r'../orca-outputs/BOAT/aQZ/PNO6/HEXAMER/ADDUCT.mpi16.out', 
+                          r'../orca-outputs/BOAT/aQZ/PNO6/ONEBODY/frag1.mpi4.out',
+                          r'../orca-outputs/BOAT/aQZ/PNO6/ONEBODY/frag2.mpi4.out',
+                          r'../orca-outputs/BOAT/aQZ/PNO6/ONEBODY/frag3.mpi4.out',
+                          r'../orca-outputs/BOAT/aQZ/PNO6/ONEBODY/frag4.mpi4.out',
+                          r'../orca-outputs/BOAT/aQZ/PNO6/ONEBODY/frag5.mpi4.out',
+                          r'../orca-outputs/BOAT/aQZ/PNO6/ONEBODY/frag6.mpi4.out',
                  ]
 
 alternative_filenames_LB_LPNO = ['', '', '', '', '', '', '']
 
 
-main_filenames_LB_TPNO = [r'../ORCA-OUT/BOAT/aQZ/PNO7/HEXAMER/ADDUCT.mpi16.out', 
-                          r'../ORCA-OUT/BOAT/aQZ/PNO7/ONEBODY/frag1.mpi4.out',
-                          r'../ORCA-OUT/BOAT/aQZ/PNO7/ONEBODY/frag2.mpi4.out',
-                          r'../ORCA-OUT/BOAT/aQZ/PNO7/ONEBODY/frag3.mpi4.out',
-                          r'../ORCA-OUT/BOAT/aQZ/PNO7/ONEBODY/frag4.mpi4.out',
-                          r'../ORCA-OUT/BOAT/aQZ/PNO7/ONEBODY/frag5.mpi4.out',
-                          r'../ORCA-OUT/BOAT/aQZ/PNO7/ONEBODY/frag6.mpi4.out',
+main_filenames_LB_TPNO = [r'../orca-outputs/BOAT/aQZ/PNO7/HEXAMER/ADDUCT.mpi16.out', 
+                          r'../orca-outputs/BOAT/aQZ/PNO7/ONEBODY/frag1.mpi4.out',
+                          r'../orca-outputs/BOAT/aQZ/PNO7/ONEBODY/frag2.mpi4.out',
+                          r'../orca-outputs/BOAT/aQZ/PNO7/ONEBODY/frag3.mpi4.out',
+                          r'../orca-outputs/BOAT/aQZ/PNO7/ONEBODY/frag4.mpi4.out',
+                          r'../orca-outputs/BOAT/aQZ/PNO7/ONEBODY/frag5.mpi4.out',
+                          r'../orca-outputs/BOAT/aQZ/PNO7/ONEBODY/frag6.mpi4.out',
                  ]
 
 alternative_filenames_LB_TPNO = ['', '', '', '', '', '', '']
@@ -278,13 +278,13 @@ print(twobody_title)
 # Otherwise, you need to specify all the supersystem files that has differing labeling schemes and thus relabel_mapping and reduced_relabel_mapping.
 
 
-supersystem_file = r'../ORCA-OUT/BOAT/aTZ/PNO6/HEXAMER/ADDUCT.mpi16.out'
+supersystem_file = r'../orca-outputs/BOAT/aTZ/PNO6/HEXAMER/ADDUCT.mpi16.out'
 reduced_relabel_mapping = get_reduced_relabel_mapping(supersystem_file=supersystem_file, relabel_mapping=relabel_mapping)
 
-onebody_out_directory_SB_LPNO = r'../ORCA-OUT/BOAT/aTZ/PNO6/ONEBODY'
-onebody_out_directory_SB_TPNO = r'../ORCA-OUT/BOAT/aTZ/PNO7/ONEBODY'
-onebody_out_directory_LB_LPNO = r'../ORCA-OUT/BOAT/aQZ/PNO6/ONEBODY'
-onebody_out_directory_LB_TPNO = r'../ORCA-OUT/BOAT/aQZ/PNO7/ONEBODY'
+onebody_out_directory_SB_LPNO = r'../orca-outputs/BOAT/aTZ/PNO6/ONEBODY'
+onebody_out_directory_SB_TPNO = r'../orca-outputs/BOAT/aTZ/PNO7/ONEBODY'
+onebody_out_directory_LB_LPNO = r'../orca-outputs/BOAT/aQZ/PNO6/ONEBODY'
+onebody_out_directory_LB_TPNO = r'../orca-outputs/BOAT/aQZ/PNO7/ONEBODY'
 
 one_body_orcaout_filenames_SB_LPNO = extract_one_body_orcaout_filenames(supersystem_file, onebody_out_directory=onebody_out_directory_SB_LPNO)
 one_body_orcaout_filenames_SB_TPNO = extract_one_body_orcaout_filenames(supersystem_file, onebody_out_directory=onebody_out_directory_SB_TPNO)
@@ -294,12 +294,12 @@ one_body_orcaout_filenames_LB_TPNO = extract_one_body_orcaout_filenames(supersys
 
 # Alternatively, you can enter the list of ORCA output files manually. But, in this approach, the order you specify the file names
 # matters: (a) if it is as in the supersystem output file, i.e.,:
-# one_body_orcaout_filenames_SB_LPNO = [r'../ORCA-OUT/BOAT/aTZ/PNO6/ONEBODY/frag1.mpi4.out',
-#                                       r'../ORCA-OUT/BOAT/aTZ/PNO6/ONEBODY/frag3.mpi4.out',
-#                                       r'../ORCA-OUT/BOAT/aTZ/PNO6/ONEBODY/frag2.mpi4.out',
-#                                       r'../ORCA-OUT/BOAT/aTZ/PNO6/ONEBODY/frag4.mpi4.out',
-#                                       r'../ORCA-OUT/BOAT/aTZ/PNO6/ONEBODY/frag6.mpi4.out',
-#                                       r'../ORCA-OUT/BOAT/aTZ/PNO6/ONEBODY/frag5.mpi4.out',
+# one_body_orcaout_filenames_SB_LPNO = [r'../orca-outputs/BOAT/aTZ/PNO6/ONEBODY/frag1.mpi4.out',
+#                                       r'../orca-outputs/BOAT/aTZ/PNO6/ONEBODY/frag3.mpi4.out',
+#                                       r'../orca-outputs/BOAT/aTZ/PNO6/ONEBODY/frag2.mpi4.out',
+#                                       r'../orca-outputs/BOAT/aTZ/PNO6/ONEBODY/frag4.mpi4.out',
+#                                       r'../orca-outputs/BOAT/aTZ/PNO6/ONEBODY/frag6.mpi4.out',
+#                                       r'../orca-outputs/BOAT/aTZ/PNO6/ONEBODY/frag5.mpi4.out',
 #                                      ]
 # ... (for the other computational settings, onebody orcaout file names must be given as separate lists.)   
 # As relabel_mapping is initiated at the beginning of this file, these will then be reordered.
@@ -313,10 +313,10 @@ one_body_orcaout_filenames_LB_TPNO = extract_one_body_orcaout_filenames(supersys
 # The code will automatically read the files in this directory and label the fragments
 # consistent first with the labeling in "one_body_orcaout_filenames" variables above and
 # then with that in supersystem files. 
-two_body_orcaout_directory_SB_LPNO = r'../ORCA-OUT/BOAT/aTZ/PNO6/TWOBODY'
-two_body_orcaout_directory_SB_TPNO = r'../ORCA-OUT/BOAT/aTZ/PNO7/TWOBODY'
-two_body_orcaout_directory_LB_LPNO = r'../ORCA-OUT/BOAT/aQZ/PNO6/TWOBODY'
-two_body_orcaout_directory_LB_TPNO = r'../ORCA-OUT/BOAT/aQZ/PNO7/TWOBODY'
+two_body_orcaout_directory_SB_LPNO = r'../orca-outputs/BOAT/aTZ/PNO6/TWOBODY'
+two_body_orcaout_directory_SB_TPNO = r'../orca-outputs/BOAT/aTZ/PNO7/TWOBODY'
+two_body_orcaout_directory_LB_LPNO = r'../orca-outputs/BOAT/aQZ/PNO6/TWOBODY'
+two_body_orcaout_directory_LB_TPNO = r'../orca-outputs/BOAT/aQZ/PNO7/TWOBODY'
 
 
 ### Specify the directories where LEDAW will write Two-Body LED Matrices, which will be

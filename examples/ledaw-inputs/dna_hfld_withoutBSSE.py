@@ -34,7 +34,7 @@
 ###  within standard and fp-LED schemes, followed by the plot of the corresponding heat maps.
 
 import sys
-sys.path.insert(0,"..")
+sys.path.insert(0,"../..")
 from ledaw_package import *
 
 ### Choose the method
@@ -84,7 +84,7 @@ nbody_title='''
 # DLPNO-CCSD output can  still be provided in the main or alternative file name.
 # Note 4: The corresponding main and alternative ORCA output files must be given at the same index in the file lists.
 # One letter or one number file names may sometimes cause problems. Hence, awoid using such short names, e.g., "A.mpi4.out".
-# If you are on windows, it is safer to specify all file paths as raw string and use forward slash, e.g., r'./ORCA-OUT/ADDUCT.mpi4.out'
+# If you are on windows, it is safer to specify all file paths as raw string and use forward slash, e.g., r'./orca-outputs/ADDUCT.mpi4.out'
 # Note 5: You do not have to specify any file name for alternative_filenames. But an empty list with the length of main_filenames must be initiated. 
 # Note 6: If you specified the same fragment with different labels in supersystem and subsystem ORCA output files, 
 # the code automatically labels subsystem fragment labels as in the supersystem output file.
@@ -101,9 +101,9 @@ nbody_title='''
 
 print(nbody_title)
 
-main_filenames = [r'../ORCA-OUT/DNA-HFLD/NBODY-ALL/SuperSys.out', 
-                          r'../ORCA-OUT/DNA-HFLD/NBODY-ALL/SubSysK.out',
-                          r'../ORCA-OUT/DNA-HFLD/NBODY-ALL/SubSysL.out',
+main_filenames = [r'../orca-outputs/DNA-HFLD/NBODY-ALL/SuperSys.out', 
+                          r'../orca-outputs/DNA-HFLD/NBODY-ALL/SubSysK.out',
+                          r'../orca-outputs/DNA-HFLD/NBODY-ALL/SubSysL.out',
                  ]
 
 alternative_filenames = ['', '', '']
@@ -150,9 +150,9 @@ print(twobody_title)
 # output file. It must be set to None if N-body LED is not requested before two-body LED.
 # Note: onebody_out_directory directory must contain only the necessary one-body ORCA output files.
 
-supersystem_file = r'../ORCA-OUT/DNA-HFLD/NBODY-ALL/SuperSys.out'
+supersystem_file = r'../orca-outputs/DNA-HFLD/NBODY-ALL/SuperSys.out'
 reduced_relabel_mapping = get_reduced_relabel_mapping(supersystem_file=supersystem_file, relabel_mapping=relabel_mapping)
-onebody_out_directory = r'../ORCA-OUT/DNA-HFLD/ONEBODY'
+onebody_out_directory = r'../orca-outputs/DNA-HFLD/ONEBODY'
 one_body_orcaout_filenames = extract_one_body_orcaout_filenames(supersystem_file, onebody_out_directory)
 
 # See the other input files for other ways of listing one-body ORCA output files. 
@@ -160,7 +160,7 @@ one_body_orcaout_filenames = extract_one_body_orcaout_filenames(supersystem_file
 ### Specify the two-body ORCA output file directory
 # Note: This directory must contain only the necessary two-body ORCA output files.
 # The code will automatically read the files in this directory and label the fragments consistent with the order you specified fragments in "one_body_orcaout_filenames" variables above. 
-two_body_orcaout_directory = r'../ORCA-OUT/DNA-HFLD/TWOBODY'
+two_body_orcaout_directory = r'../orca-outputs/DNA-HFLD/TWOBODY'
 
 
 ### Specify the Directory where LEDAW will write Two-Body LED Matrices
