@@ -4506,7 +4506,7 @@ class LEDAWApp(QMainWindow):
             info_text="If None is selected, all values will be annotated on the heatmap. If a value X is specified, values between -X and X will not be annotated on the heat maps."
         )
         submatrix_row, self.std_submatrix_input, self.fp_submatrix_input = create_row(
-            "Enclose a Submatrix with Coordinates", "None", "None", 
+            "Enclose a Submatrix with a Black Box", "None", "None", 
             info_text="To enclose the border of a specified submatrix with a black box.\n\nIf None is selected, no submatrix will be surrounded by a black box.\n\n"
                           "Format: ((top left corner row index, top left corner column index), (bottom right cell's row index, bottom right column index)).\n\n"
                           "Index starts from zero.\n\n"
