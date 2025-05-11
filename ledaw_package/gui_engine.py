@@ -4508,7 +4508,7 @@ class LEDAWApp(QMainWindow):
         submatrix_row, self.std_submatrix_input, self.fp_submatrix_input = create_row(
             "Enclose a Submatrix with a Black Box", "None", "None", 
             info_text="To enclose the border of a specified submatrix with a black box.\n\nIf None is selected, no submatrix will be surrounded by a black box.\n\n"
-                          "Format: (starting row, starting column), (ending row, ending column).\n\n"
+                          "Format: (starting row, starting column), (ending row, ending column)\n\n"
                           "Index starts from zero.\n\n"
                           "Example: ((0,1),(1,6))"
         )
