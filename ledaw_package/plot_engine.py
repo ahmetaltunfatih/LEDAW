@@ -36,7 +36,7 @@ def plot_heatmap_std_led(file_name, sheet_name, figsize, vmin, vmax, fig_format,
         Default is None, meaning all values will be annotated.
     submatrix_coords_to_be_highlighted : tuple of tuples, optional
         A tuple specifying the coordinates of the submatrix to be highlighted with a black border.
-        Format: ((top left corner row index, top left corner column index), (bottom right cell's row index, bottom right column index)).
+        Format: ((starting row, starting column), (ending row, ending column)).
         Default is None, meaning no submatrix will be highlighted.
 	display_heatmap: boolean
 		If True, it displays the plot in the environment where the code is executed.
