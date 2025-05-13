@@ -4507,10 +4507,15 @@ class LEDAWApp(QMainWindow):
         )
         submatrix_row, self.std_submatrix_input, self.fp_submatrix_input = create_row(
             "Enclose a Submatrix with a Black Box", "None", "None", 
-            info_text="To enclose the border of a specified submatrix with a black box.\n\nIf None is selected, no submatrix will be surrounded by a black box.\n\n"
-                          "Format: (starting row, starting column), (ending row, ending column)\n\n"
-                          "Index starts from zero.\n\n"
-                          "Example: ((0,1),(1,6))"
+            info_text= "To enclose the border of a submatrix with a black box, enter the 0-based indices of the rows and columns "
+					"within this submatrix in the following format: \n\n"
+					"(starting row, starting column), (ending row, ending column) \n\n"
+					"For example, the top-right 3×3 corner of a 6×6 matrix includes rows 0, 1, and 2 (starting row = 0, ending row = 2) "
+					"and columns 3, 4, and 5 (starting column = 3, ending column = 5). "
+					"Thus, in this field you must enter \n\n"
+					"(0, 3), (2, 5) \n\n"
+					"to enclose the top-right 3×3 matrix with a black box. \n\n"
+					"Default: None"
         )
 
         # 'i' button for Figure Format with available options from matplotlib
