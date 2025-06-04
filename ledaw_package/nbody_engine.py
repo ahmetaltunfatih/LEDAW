@@ -533,7 +533,7 @@ def extract_first_match_from_file(filename, patterns, method, use_ref_as_rhf_in_
         else:
             e_sp = 0.0
 
-        # Subtract dielectric if found
+        # Subtract dielectric either from REF or Total energy
         diel_match = re.search(r"CPCM Dielectric\s*:\s*([-+]?\d*\.\d+|\d+)", content)
 
         if e_ref == 0.0 and method.lower() == 'hfld' and use_ref_as_rhf_in_hfld:
