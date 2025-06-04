@@ -533,18 +533,17 @@ def extract_first_match_from_file(filename, patterns, method, use_ref_as_rhf_in_
         else:
             e_sp = 0.0
 
-
         # Subtract dielectric if found
         diel_match = re.search(r"CPCM Dielectric\s*:\s*([-+]?\d*\.\d+|\d+)", content)
-        if diel_match:
-            e_ref -= float(diel_match.group(1))
 
-        # Fallback for HFLD
         if e_ref == 0.0 and method.lower() == 'hfld' and use_ref_as_rhf_in_hfld:
             total_match = re.search(r"Total Energy\s+:\s+([-]?\d+\.\d+)", content)
-            diel_match = re.search(r"CPCM Dielectric\s+:\s+([-]?\d+\.\d+)", content)
             if total_match:
-                e_ref = float(total_match.group(1)) - float(diel_match.group(1)) if diel_match else float(total_match.group(1))
+                e_ref = float(total_match.group(1))
+                if diel_match:
+                    e_ref -= float(diel_match.group(1))
+        elif diel_match:
+            e_ref -= float(diel_match.group(1))
 
         if method.lower() == 'hfld' and use_ref_as_rhf_in_hfld:
             e_sp = e_sp or e_ref
