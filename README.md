@@ -102,6 +102,13 @@ cd /path/to/the/LEDAW/directory
 python main.py
 ```
 
+### **LEDAW-GUI Tabs**
+
+- The **Home** tab of LEDAW-GUI is shown below. Based on the selections made in this tab, new tabs—**N-body**, **Two-body**, **Plot**, and **Run**—are 
+dynamically generated. The contents of these tabs vary depending on the user's selections.
+
+![LEDAW-GUI Home Tab](docs/img/GUI-Home.svg "LEDAW-GUI Home Tab")
+
 ### **Running LEDAW without GUI (Script-Based Workflow)**
 
 For code-oriented users, several example Python input scripts are provided for processing the files in the orca-outputs directory:
