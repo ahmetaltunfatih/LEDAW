@@ -10,7 +10,7 @@ Department of Molecular Theory and Spectroscopy
 ---
 ## **Workflow of LEDAW**
 
-![Diagram of LEDAW Workflow](docs/img/WORKFLOW.swg "Workflow of LEDAW")
+![Diagram of LEDAW Workflow](docs/img/WORKFLOW.svg "Workflow of LEDAW")
 ---
 
 ## **Features**
