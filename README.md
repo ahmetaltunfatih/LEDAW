@@ -1,6 +1,6 @@
 # **LEDAW: LED Analysis Wizard**  
 
-## **A Python-Based Program Package with GUI for Automating Local Energy Decomposition Analysis Using ORCA Outputs**  
+## **A Python-Based Program Package for Automating Local Energy Decomposition Analysis: Script-Based ORCA Input Preparation and Output Post-Processing with GUI**  
 
 ### **Author**  
 **Prof. Dr. Ahmet Altun**  
@@ -10,6 +10,16 @@ Department of Molecular Theory and Spectroscopy
 ---
 
 ## **Features**
+
+### 🔹 LEDIP (Input Preparation)
+
+- Automates ORCA input file generation for LED calculations.
+- Supports **NBODY**, **TWOBODY**, and **BSSE-(un)corrected** setups.
+- Automatically fragments XYZ structures using `fragmentation_engine()` based on atom connectivity, recognizing partial fragment labels.
+- Provides a simple Python interface (`led_input_prep_engine()`) to generate `.inp` files for ORCA.
+- Organizes input files into clean directory structures (e.g., `NBODY`, `TWOBODY`, etc.) with proper naming.
+
+### 🔹 LEDAW (Output Processing)
 
 - **LEDAW** automates all types of LED interaction energy analyses, including:
   - Interactions between arbitrary numbers of fragments (e.g., water cluster formation).
@@ -35,6 +45,7 @@ Department of Molecular Theory and Spectroscopy
 
 ### **Getting the Package**
 Download (and then, unzip) or clone the entire LEDAW directory, including:
+- `ledip_package` directory
 - `ledaw_package` directory  
 - `main.py`  
 - `ledaw.spec`  
@@ -42,6 +53,17 @@ Download (and then, unzip) or clone the entire LEDAW directory, including:
 - `examples` directory containing:
   - `orca-outputs`: ORCA output files for several interaction types  
   - `ledaw-inputs`: Example Python scripts to run LEDAW on the `orca-outputs` files (intended for code-oriented users)
+  - `ledip-inputs`: Example Python scripts to run LEDIP 
+
+---
+
+### **LEDIP Usage (Script-Based-Only)**
+
+- No separate installation is needed. Run the LEDIP modules directly from Python.
+- `fragmentation_engine.py` – Detects and labels molecular fragments from the XYZ file of the supersystem.
+- `led_input_prep_engine.py` – Generates all required ORCA LED input files for N-body and two-body analyses, both with and without BSSE correction.
+- Sample Python scripts to run these two engines are provided in the `/examples/ledip-inputs/` directory.
+- Consult `LEDAW` manual in the `/docs` directory for options and detailed usage of these modules.
 
 ---
 
@@ -78,7 +100,7 @@ python main.py
 
 ### **Running LEDAW without GUI (Script-Based Workflow)**
 
-For more code-oriented users, several example Python input scripts are provided for processing the files in the orca-outputs directory:
+For code-oriented users, several example Python input scripts are provided for processing the files in the orca-outputs directory:
 
 - **`water-dimer.py`**:  
   Performs BSSE-corrected and BSSE-uncorrected LED analyses, and computes differential BSSE effect on LED terms for a water dimer (two fragments).
@@ -110,7 +132,7 @@ For more code-oriented users, several example Python input scripts are provided 
   This script includes multiple file path specifications and several calls to the engine functions, demonstrating the full flexibility of LEDAW.
   For more detailed explanations on this system, consult the LEDAW manual.
  - Use **`dna-*.py`** scripts alongside the detailed explanations on this example in the LEDAW manual.
- - To practice the basic LEDAW logic and workflow, explore **`crystal.py`** and **`water-dimer.py`**
+ - To practice the basic LEDAW logic and workflow, explore **`crystal.py`** and **`water-dimer.py`**.
    
 ---
 
