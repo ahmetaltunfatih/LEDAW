@@ -3768,55 +3768,64 @@ class LEDAWApp(QMainWindow):
 
         # Show the dialog and check user response
         if confirmation_dialog.exec_() == QDialog.Accepted:
+            # Create a temporary directory in the output root, removing it first if it exists
+            self.tmp_dir = os.path.join(self.ledaw_out_root, "tmp")
+            if os.path.exists(self.tmp_dir):
+                shutil.rmtree(self.tmp_dir)
+            os.makedirs(self.tmp_dir)
+
+            # Define subdirectories for each one-body and two-body category
+            self.onebody_orcaout_directory_SB_LPNO = os.path.join(self.tmp_dir, 'onebody_orcaout_directory_SB_LPNO')
+            self.onebody_orcaout_directory_SB_TPNO = os.path.join(self.tmp_dir, 'onebody_orcaout_directory_SB_TPNO')
+            self.onebody_orcaout_directory_LB_LPNO = os.path.join(self.tmp_dir, 'onebody_orcaout_directory_LB_LPNO')
+            self.onebody_orcaout_directory_LB_TPNO = os.path.join(self.tmp_dir, 'onebody_orcaout_directory_LB_TPNO')
+
+            self.twobody_orcaout_directory_SB_LPNO = os.path.join(self.tmp_dir, 'twobody_orcaout_directory_SB_LPNO')
+            self.twobody_orcaout_directory_SB_TPNO = os.path.join(self.tmp_dir, 'twobody_orcaout_directory_SB_TPNO')
+            self.twobody_orcaout_directory_LB_LPNO = os.path.join(self.tmp_dir, 'twobody_orcaout_directory_LB_LPNO')
+            self.twobody_orcaout_directory_LB_TPNO = os.path.join(self.tmp_dir, 'twobody_orcaout_directory_LB_TPNO')
+
+            # Create directories for one-body outputs
+            os.makedirs(self.onebody_orcaout_directory_SB_LPNO, exist_ok=True)
+            os.makedirs(self.onebody_orcaout_directory_SB_TPNO, exist_ok=True)
+            os.makedirs(self.onebody_orcaout_directory_LB_LPNO, exist_ok=True)
+            os.makedirs(self.onebody_orcaout_directory_LB_TPNO, exist_ok=True)
+
+            # Create directories for two-body outputs
+            os.makedirs(self.twobody_orcaout_directory_SB_LPNO, exist_ok=True)
+            os.makedirs(self.twobody_orcaout_directory_SB_TPNO, exist_ok=True)
+            os.makedirs(self.twobody_orcaout_directory_LB_LPNO, exist_ok=True)
+            os.makedirs(self.twobody_orcaout_directory_LB_TPNO, exist_ok=True)
+
+            # Copy files to the corresponding directories
+            file_mappings = {
+                self.onebody_orcaout_directory_SB_LPNO: self.onebody_orcaout_files_SB_LPNO,
+                self.onebody_orcaout_directory_SB_TPNO: self.onebody_orcaout_files_SB_TPNO,
+                self.onebody_orcaout_directory_LB_LPNO: self.onebody_orcaout_files_LB_LPNO,
+                self.onebody_orcaout_directory_LB_TPNO: self.onebody_orcaout_files_LB_TPNO,
+                self.twobody_orcaout_directory_SB_LPNO: self.twobody_orcaout_files_SB_LPNO,
+                self.twobody_orcaout_directory_SB_TPNO: self.twobody_orcaout_files_SB_TPNO,
+                self.twobody_orcaout_directory_LB_LPNO: self.twobody_orcaout_files_LB_LPNO,
+                self.twobody_orcaout_directory_LB_TPNO: self.twobody_orcaout_files_LB_TPNO
+            }
+
+            for target_dir, file_list in file_mappings.items():
+                for file in file_list:
+                    if os.path.isfile(file):
+                        original_filename = os.path.basename(file)
+                        base_name, extension = os.path.splitext(original_filename)
+                        destination_path = os.path.join(target_dir, original_filename)
+                        counter = 1
+
+                        while os.path.exists(destination_path):
+                            new_filename = f"{base_name}_{counter}{extension}"
+                            destination_path = os.path.join(target_dir, new_filename)
+                            counter += 1
+
+                        shutil.copy(file, destination_path)
+
             self.lock_tab(self.twobody_tab)
             self.switch_to_next_dynamic_tab()
-
-        # Create a temporary directory in the output root, removing it first if it exists
-        self.tmp_dir = os.path.join(self.ledaw_out_root, "tmp")
-        if os.path.exists(self.tmp_dir):
-            shutil.rmtree(self.tmp_dir)
-        os.makedirs(self.tmp_dir)
-
-        # Create subdirectories for each one-body and two-body category
-        self.onebody_orcaout_directory_SB_LPNO = os.path.join(self.tmp_dir, 'onebody_orcaout_directory_SB_LPNO')
-        self.onebody_orcaout_directory_SB_TPNO = os.path.join(self.tmp_dir, 'onebody_orcaout_directory_SB_TPNO')
-        self.onebody_orcaout_directory_LB_LPNO = os.path.join(self.tmp_dir, 'onebody_orcaout_directory_LB_LPNO')
-        self.onebody_orcaout_directory_LB_TPNO = os.path.join(self.tmp_dir, 'onebody_orcaout_directory_LB_TPNO')
-
-        self.twobody_orcaout_directory_SB_LPNO = os.path.join(self.tmp_dir, 'twobody_orcaout_directory_SB_LPNO')
-        self.twobody_orcaout_directory_SB_TPNO = os.path.join(self.tmp_dir, 'twobody_orcaout_directory_SB_TPNO')
-        self.twobody_orcaout_directory_LB_LPNO = os.path.join(self.tmp_dir, 'twobody_orcaout_directory_LB_LPNO')
-        self.twobody_orcaout_directory_LB_TPNO = os.path.join(self.tmp_dir, 'twobody_orcaout_directory_LB_TPNO')
-
-        # Create directories for one-body outputs
-        os.makedirs(self.onebody_orcaout_directory_SB_LPNO, exist_ok=True)
-        os.makedirs(self.onebody_orcaout_directory_SB_TPNO, exist_ok=True)
-        os.makedirs(self.onebody_orcaout_directory_LB_LPNO, exist_ok=True)
-        os.makedirs(self.onebody_orcaout_directory_LB_TPNO, exist_ok=True)
-
-        # Create directories for two-body outputs
-        os.makedirs(self.twobody_orcaout_directory_SB_LPNO, exist_ok=True)
-        os.makedirs(self.twobody_orcaout_directory_SB_TPNO, exist_ok=True)
-        os.makedirs(self.twobody_orcaout_directory_LB_LPNO, exist_ok=True)
-        os.makedirs(self.twobody_orcaout_directory_LB_TPNO, exist_ok=True)
-
-        # Copy files to the corresponding directories
-        file_mappings = {
-            self.onebody_orcaout_directory_SB_LPNO: self.onebody_orcaout_files_SB_LPNO,
-            self.onebody_orcaout_directory_SB_TPNO: self.onebody_orcaout_files_SB_TPNO,
-            self.onebody_orcaout_directory_LB_LPNO: self.onebody_orcaout_files_LB_LPNO,
-            self.onebody_orcaout_directory_LB_TPNO: self.onebody_orcaout_files_LB_TPNO,
-            self.twobody_orcaout_directory_SB_LPNO: self.twobody_orcaout_files_SB_LPNO,
-            self.twobody_orcaout_directory_SB_TPNO: self.twobody_orcaout_files_SB_TPNO,
-            self.twobody_orcaout_directory_LB_LPNO: self.twobody_orcaout_files_LB_LPNO,
-            self.twobody_orcaout_directory_LB_TPNO: self.twobody_orcaout_files_LB_TPNO
-        }
-
-        for target_dir, file_list in file_mappings.items():
-            for file in file_list:
-                if os.path.isfile(file):
-                    shutil.copy(file, target_dir)
-
 
     def add_cps_twobody_layout(self, layout):
         """Create a CPS layout for the Two-body tab, with file selection for both One-body and Two-body sections."""
@@ -4023,7 +4032,17 @@ class LEDAWApp(QMainWindow):
             for target_dir, file_list in file_mappings.items():
                 for file in file_list:
                     if os.path.isfile(file):
-                        shutil.copy(file, target_dir)
+                        original_filename = os.path.basename(file)
+                        base_name, extension = os.path.splitext(original_filename)
+                        destination_path = os.path.join(target_dir, original_filename)
+                        counter = 1
+    
+                        while os.path.exists(destination_path):
+                            new_filename = f"{base_name}_{counter}{extension}"
+                            destination_path = os.path.join(target_dir, new_filename)
+                            counter += 1
+    
+                        shutil.copy(file, destination_path)
 
             # Lock the tab and switch to the next dynamic tab
             self.lock_tab(self.twobody_tab)
@@ -4230,7 +4249,17 @@ class LEDAWApp(QMainWindow):
             for target_dir, file_list in file_mappings.items():
                 for file in file_list:
                     if os.path.isfile(file):
-                        shutil.copy(file, target_dir)
+                        original_filename = os.path.basename(file)
+                        base_name, extension = os.path.splitext(original_filename)
+                        destination_path = os.path.join(target_dir, original_filename)
+                        counter = 1
+    
+                        while os.path.exists(destination_path):
+                            new_filename = f"{base_name}_{counter}{extension}"
+                            destination_path = os.path.join(target_dir, new_filename)
+                            counter += 1
+    
+                        shutil.copy(file, destination_path)
 
             # Lock the tab and switch to the next dynamic tab
             self.lock_tab(self.twobody_tab)
@@ -4397,7 +4426,17 @@ class LEDAWApp(QMainWindow):
             for target_dir, file_list in file_mappings.items():
                 for file in file_list:
                     if os.path.isfile(file):
-                        shutil.copy(file, target_dir)
+                        original_filename = os.path.basename(file)
+                        base_name, extension = os.path.splitext(original_filename)
+                        destination_path = os.path.join(target_dir, original_filename)
+                        counter = 1
+    
+                        while os.path.exists(destination_path):
+                            new_filename = f"{base_name}_{counter}{extension}"
+                            destination_path = os.path.join(target_dir, new_filename)
+                            counter += 1
+    
+                        shutil.copy(file, destination_path)
 
             # Lock the tab and switch to the next dynamic tab
             self.lock_tab(self.twobody_tab)
