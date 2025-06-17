@@ -1656,10 +1656,8 @@ def calculate_twobody_standard_LED_summary_matrices(LEDAW_output_path_two_body, 
 
 def compute_and_write_solv_std(LEDAW_output_path_two_body, method, nonaggregated_el_prep):
     """
-    Computes and writes the SOLV-STD matrix and its individual components
-    (REF-DIEL-STD, REF-CDS-STD, CORR-DIEL-STD) to SOLV-STD.xlsx,
-    based on pairwise computation from SOLV-fp components.
-    Also updates the Summary_Standard_LED_matrices.xlsx.
+    Computes and writes the SOLV-STD matrix and its individual components (REF-DIEL, REF-CDS, CORR-DIEL) to SOLV-STD.xlsx,
+    based on pairwise computation from SOLV-fp components. Also updates the Summary_Standard_LED_matrices.xlsx.
     """
     normalized_path = normalize_path(LEDAW_output_path_two_body)
 
@@ -1692,8 +1690,6 @@ def compute_and_write_solv_std(LEDAW_output_path_two_body, method, nonaggregated
 
     if not perform_full_solv_std:
         # This block is executed if SOLV-fp.xlsx is missing/empty or 'SOLV' sheet is not found.
-        # It's a slightly refactored version of the original 'if not os.path.exists(solv_fp_file)' block.
-        
         summary_sheets = pd.read_excel(summary_file, sheet_name=None, index_col=0)
 
         # Compute TOTAL based on existing sheets, excluding SOLV
@@ -1754,19 +1750,19 @@ def compute_and_write_solv_std(LEDAW_output_path_two_body, method, nonaggregated
         ref_diel_fp_df = pd.read_excel(solv_fp_file, sheet_name='REF-DIEL', index_col=0).fillna(0.0)
         has_ref_diel = True
     except ValueError:
-        print(f"Warning: Sheet 'REF-DIEL' not found in '{solv_fp_file}'. Calculations for REF-DIEL-STD will use zeros and this sheet will not be written to SOLV-STD.xlsx.")
+        print(f"Warning: Sheet 'REF-DIEL' not found in '{solv_fp_file}'.")
     
     try:
         ref_cds_fp_df = pd.read_excel(solv_fp_file, sheet_name='REF-CDS', index_col=0).fillna(0.0)
         has_ref_cds = True
     except ValueError:
-        print(f"Warning: Sheet 'REF-CDS' not found in '{solv_fp_file}'. Calculations for REF-CDS-STD will use zeros and this sheet will not be written to SOLV-STD.xlsx.")
+        print(f"Warning: Sheet 'REF-CDS' not found in '{solv_fp_file}'.")
 
     try:
         corr_diel_fp_df = pd.read_excel(solv_fp_file, sheet_name='CORR-DIEL', index_col=0).fillna(0.0)
         has_corr_diel = True
     except ValueError:
-        print(f"Warning: Sheet 'CORR-DIEL' not found in '{solv_fp_file}'. Calculations for CORR-DIEL-STD will use zeros and this sheet will not be written to SOLV-STD.xlsx.")
+        print(f"Warning: Sheet 'CORR-DIEL' not found in '{solv_fp_file}'.")
 
     summary_sheets = pd.read_excel(summary_file, sheet_name=None, index_col=0)
 
@@ -1906,25 +1902,15 @@ def compute_and_write_solv_std(LEDAW_output_path_two_body, method, nonaggregated
         # Only write sheets that were successfully processed (their source sheet existed)
         if has_ref_diel:
             ref_diel_std_df.to_excel(writer, sheet_name='REF-DIEL')
-            print(f"REF-DIEL STD matrix written to '{normalize_path(solv_std_file)}' on sheet 'REF-DIEL'.")
-        else:
-            print(f"Skipping writing 'REF-DIEL' sheet to '{normalize_path(solv_std_file)}' as the source sheet was not found in SOLV-fp.xlsx.")
 
         if has_ref_cds:
             ref_cds_std_df.to_excel(writer, sheet_name='REF-CDS')
-            print(f"REF-CDS STD matrix written to '{normalize_path(solv_std_file)}' on sheet 'REF-CDS'.")
-        else:
-            print(f"Skipping writing 'REF-CDS' sheet to '{normalize_path(solv_std_file)}' as the source sheet was not found in SOLV-fp.xlsx.")
 
         if has_corr_diel:
             corr_diel_std_df.to_excel(writer, sheet_name='CORR-DIEL')
-            print(f"CORR-DIEL STD matrix written to '{normalize_path(solv_std_file)}' on sheet 'CORR-DIEL'.")
-        else:
-            print(f"Skipping writing 'CORR-DIEL' sheet to '{normalize_path(solv_std_file)}' as the source sheet was not found in SOLV-fp.xlsx.")
 
         # The 'SOLV' sheet is always written if perform_full_solv_std was True
         solv_std_df.to_excel(writer, sheet_name='SOLV')
-        print(f"SOLV STD matrix written to '{normalize_path(solv_std_file)}' on sheet 'SOLV'.")
 
     # Create SOLV sheet (upper triangle only) and update summary_file
     solv_summary_df = solv_std_df.where(np.triu(np.ones(solv_std_df.shape), k=0).astype(bool))
