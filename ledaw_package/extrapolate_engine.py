@@ -11,7 +11,7 @@ def extrapolate_matrices(X, Y, F):
 def categorize_sheets(sheet_name):
     """Categorize the sheets based on their names."""
     sheet_name_upper = sheet_name.upper()
-    reference = ['REF', 'ELECTROSTAT', 'EXCHANGE', 'REF-EL-PREP', 'DIEL']
+    reference = ['REF', 'ELECTROSTAT', 'EXCHANGE', 'REF-EL-PREP', 'SOLV']
     correlation_prefixes = ['C-', 'DISP', 'INTER-NONDISP']
     total = ['TOTAL', 'CCSD-EL-PREP', 'CCSD(T)-EL-PREP']
 
@@ -28,26 +28,26 @@ def categorize_sheets(sheet_name):
 def calculate_total(summary_sheets, method):
     """Calculate the TOTAL matrix based on the specified method."""
     ref = summary_sheets.get('REF', pd.DataFrame())
-    diel = summary_sheets.get('DIEL', pd.DataFrame())
+    solv = summary_sheets.get('SOLV', pd.DataFrame())
 
     if method.lower() == 'dlpno-ccsd(t)':
         c_ccsd_t = summary_sheets.get('C-CCSD(T)', pd.DataFrame())
-        if diel.empty:
+        if solv.empty:
             total = ref + c_ccsd_t
         else:
-            total = ref + c_ccsd_t + diel
+            total = ref + c_ccsd_t + solv
     elif method.lower() == 'dlpno-ccsd':
         c_ccsd = summary_sheets.get('C-CCSD', pd.DataFrame())
-        if diel.empty:
+        if solv.empty:
             total = ref + c_ccsd
         else:
-            total = ref + c_ccsd + diel
+            total = ref + c_ccsd + solv
     elif method.lower() == 'hfld':
         disp_hfld = summary_sheets.get('Disp HFLD', pd.DataFrame())
-        if diel.empty:
+        if solv.empty:
             total = ref + disp_hfld
         else:
-            total = ref + disp_hfld + diel
+            total = ref + disp_hfld + solv
     else:
         total = pd.DataFrame()  # Empty DataFrame if method is unrecognized
     
@@ -163,7 +163,7 @@ def extrapolate_engine(standard_LED_summary_file_X, standard_LED_summary_file_Y,
 
             # Write all sheets to Excel
             sheet_order = [
-                'TOTAL', 'DIEL', 'REF', 'Electrostat', 'Exchange', 'REF-EL-PREP',
+                'TOTAL', 'SOLV', 'REF', 'Electrostat', 'Exchange', 'REF-EL-PREP',
                 'C-CCSD' if method.lower() == 'dlpno-ccsd' else 'C-CCSD(T)',
                 'Disp CCSD' if method.lower() == 'dlpno-ccsd' else 'Disp CCSD(T)' if method.lower() == 'dlpno-ccsd(t)' else 'Disp HFLD',
                 'Inter-NonDisp-C-CCSD' if method.lower() == 'dlpno-ccsd' else 'Inter-NonDisp-C-CCSD(T)',

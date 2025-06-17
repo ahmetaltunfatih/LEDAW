@@ -4692,7 +4692,7 @@ class LEDAWApp(QMainWindow):
             def validate_figsize(figsize_text):
                 """Ensure that the figure size is a tuple of two elements."""
                 try:
-                    figsize = tuple(map(int, figsize_text.split(",")))
+                    figsize = tuple(map(float, figsize_text.split(",")))
                     if len(figsize) != 2:
                         raise ValueError
                     return figsize

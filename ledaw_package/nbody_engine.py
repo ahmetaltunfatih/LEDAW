@@ -432,6 +432,61 @@ def compute_ref_diel_int_en(main_filenames, alternative_filenames, conversion_fa
     return ref_diel_values, ref_diel_int_energy
 
 
+def compute_ref_cds_int_en(main_filenames, alternative_filenames, conversion_factor):
+    """Extract REF CDS interaction energy from SMD CDS values."""
+    ref_cds_values = {}
+    subsystem_cds_values = {}
+
+    # Modified pattern to target SMD CDS (Gcds)
+    pattern = r"SMD CDS \(Gcds\)\s*:\s*([-+]?\d*\.\d+)"
+
+    def extract_cds(filename):
+        filename = normalize_path(filename)
+        if not filename:  # Avoid error message for empty string or None in ALT file list
+            return None
+        try:
+            with open(filename, 'r') as f:
+                for line in f:
+                    match = re.search(pattern, line)
+                    if match:
+                        return float(match.group(1))
+        except FileNotFoundError:
+            print(f"File not found: {filename}")
+        except Exception as e:
+            print(f"Error reading {filename} for CDS: {e}")
+        return None
+
+    # Extract CDS for the SUPERSYS, with fallback
+    ref_cds_values["SUPERSYS"] = extract_cds(main_filenames[0])
+    if ref_cds_values["SUPERSYS"] is None and len(alternative_filenames) > 0 and alternative_filenames[0]:
+        ref_cds_values["SUPERSYS"] = extract_cds(alternative_filenames[0])
+
+    # Extract CDS for each SUBSYS, with fallback
+    for i in range(1, len(main_filenames)):
+        label = f"SUBSYS{i}"
+        cds = extract_cds(main_filenames[i])
+        if cds is None and len(alternative_filenames) > i and alternative_filenames[i]:
+            cds = extract_cds(alternative_filenames[i])
+            
+        ref_cds_values[label] = cds
+        if cds is not None:
+            subsystem_cds_values[label] = cds
+
+    # Check for completeness of extracted CDS values
+    if ref_cds_values["SUPERSYS"] is None or len(subsystem_cds_values) != len(main_filenames) - 1:
+        print("REF CDS values incomplete; REF CDS int energy set to 0")
+        # Ensure all expected subsystem labels are in ref_cds_values, even if None
+        for i in range(1, len(main_filenames)):
+            label = f"SUBSYS{i}"
+            if label not in ref_cds_values:
+                ref_cds_values[label] = None
+        return ref_cds_values, 0.0
+
+    # Calculate REF CDS interaction energy
+    ref_cds_int_energy = (ref_cds_values["SUPERSYS"] - sum(subsystem_cds_values.values())) * conversion_factor
+    return ref_cds_values, ref_cds_int_energy
+
+
 def compute_corr_diel_int_en(main_filenames, alternative_filenames, conversion_factor, method):
     """Extract CORR DIEL interaction energy from C-PCM corr. term."""
     corr_diel_values = {}
@@ -472,17 +527,19 @@ def compute_corr_diel_int_en(main_filenames, alternative_filenames, conversion_f
     return corr_diel_values, corr_diel_int_energy
 
 
-def compute_total_diel_int_en(main_filenames, alternative_filenames, conversion_factor, method):
-    """Compute total dielectric interaction energy as REF DIEL + CORR DIEL."""
+def compute_bulk_solvation_contribution(main_filenames, alternative_filenames, conversion_factor, method):
+    """Compute bulk solvent interaction energy as REF DIEL + CORR DIEL + SMD CDS.
+	Besides this cumulative term, QM energy incorporates polarization contribution from DIEL."""
     ref_diel_values, ref_diel_int_energy = compute_ref_diel_int_en(main_filenames, alternative_filenames, conversion_factor)
+    ref_cds_values, ref_cds_int_energy = compute_ref_cds_int_en(main_filenames, alternative_filenames, conversion_factor)
     corr_diel_values, corr_diel_int_energy = compute_corr_diel_int_en(main_filenames, alternative_filenames, conversion_factor, method)
 
-    diel_values = {}
-    for key in set(ref_diel_values) | set(corr_diel_values):
-        diel_values[key] = (ref_diel_values.get(key) or 0.0) + (corr_diel_values.get(key) or 0.0)
+    solv_values = {}
+    for key in set(ref_diel_values) | set(corr_diel_values) | set(ref_cds_values):
+        solv_values[key] = (ref_diel_values.get(key) or 0.0) + (corr_diel_values.get(key) or 0.0) + (ref_cds_values.get(key) or 0.0)
 
-    diel_int_energy = ref_diel_int_energy + corr_diel_int_energy
-    return diel_values, diel_int_energy
+    solv_int_energy = ref_diel_int_energy + corr_diel_int_energy + ref_cds_int_energy
+    return solv_values, solv_int_energy, ref_diel_int_energy, ref_cds_int_energy, corr_diel_int_energy
 
 
 def check_local_energy_decomposition(filename, patterns):
@@ -533,8 +590,9 @@ def extract_first_match_from_file(filename, patterns, method, use_ref_as_rhf_in_
         else:
             e_sp = 0.0
 
-        # Subtract dielectric either from REF or Total energy
+        # Subtract dielectric and cds either from REF or Total energy
         diel_match = re.search(r"CPCM Dielectric\s*:\s*([-+]?\d*\.\d+|\d+)", content)
+        cds_match = re.search(r"SMD CDS \(Gcds\)\s*:\s*([-+]?\d*\.\d+)", content)
 
         if e_ref == 0.0 and method.lower() == 'hfld' and use_ref_as_rhf_in_hfld:
             total_match = re.search(r"Total Energy\s+:\s+([-]?\d+\.\d+)", content)
@@ -542,13 +600,13 @@ def extract_first_match_from_file(filename, patterns, method, use_ref_as_rhf_in_
                 e_ref = float(total_match.group(1))
                 if diel_match:
                     e_ref -= float(diel_match.group(1))
-        elif diel_match:
-            e_ref -= float(diel_match.group(1))
-
-        if method.lower() == 'hfld' and use_ref_as_rhf_in_hfld:
-            e_sp = e_sp or e_ref
-            e_wp = e_wp or e_ref
-            e_t = e_t or e_ref
+                if cds_match:
+                    e_ref -= float(cds_match.group(1))
+        elif diel_match or cds_match:
+            if diel_match:
+                e_ref -= float(diel_match.group(1))
+            if cds_match:
+                e_ref -= float(cds_match.group(1))
 
         return e_ref, e_sp, e_wp, e_t
 
@@ -1284,29 +1342,29 @@ def compute_all_standard_led_int_en_matrices(system_labels, conversion_factor, m
             
             matrices['TOTAL'] = df_total
 
-    # Compute the total dielectric interaction energy
-    diel_values, diel_int_energy = compute_total_diel_int_en(main_filenames, alternative_filenames, conversion_factor, method)
+    # Compute the total SOLV interaction energy
+    solv_values, solv_int_energy, _, _, _ = compute_bulk_solvation_contribution(main_filenames, alternative_filenames, conversion_factor, method)
 
-    # Add the DIEL matrix and update TOTAL if applicable
-    if 'TOTAL' in matrices and diel_int_energy != 0:
+    # Add the SOLV matrix and update TOTAL if applicable
+    if 'TOTAL' in matrices and solv_int_energy != 0:
         total_matrix = matrices['TOTAL']
-        total_sum_wo_diel = total_matrix.sum().sum()
+        total_sum_wo_solv = total_matrix.sum().sum()
 
-        if total_sum_wo_diel != 0:
-            diel_matrix = total_matrix * (diel_int_energy / total_sum_wo_diel)
-            matrices['DIEL'] = diel_matrix
-            matrices['TOTAL'] = total_matrix + diel_matrix
+        if total_sum_wo_solv != 0:
+            solv_matrix = total_matrix * (solv_int_energy / total_sum_wo_solv)
+            matrices['SOLV'] = solv_matrix
+            matrices['TOTAL'] = total_matrix + solv_matrix
 
     # Write the matrices from the dictionary to the output Excel file
     with pd.ExcelWriter(output_excel_file, engine='openpyxl') as writer:
         if 'TOTAL' in matrices:
             matrices['TOTAL'].to_excel(writer, sheet_name='TOTAL')
-        if 'DIEL' in matrices:
-            matrices['DIEL'].to_excel(writer, sheet_name='DIEL')
+        if 'SOLV' in matrices:
+            matrices['SOLV'].to_excel(writer, sheet_name='SOLV')
 
         # Write all other matrices
         for sheet_name, df in matrices.items():
-            if sheet_name not in ['TOTAL', 'DIEL']:
+            if sheet_name not in ['TOTAL', 'SOLV']:
                 df.to_excel(writer, sheet_name=sheet_name)
 
     normalized_output_file = normalize_path(output_excel_file)
@@ -1440,17 +1498,17 @@ def write_standard_LED_summary_int_en_matrices(method, LEDAW_output_path):
     # Define the sheets to be written
     if method.lower() == "dlpno-ccsd(t)":
         sheets_to_transfer = [
-            'TOTAL', 'DIEL', 'REF', 'Electrostat', 'Exchange',
+            'TOTAL', 'SOLV', 'REF', 'Electrostat', 'Exchange',
             'C-CCSD(T)', 'Disp CCSD(T)', 'Inter-NonDisp-C-CCSD(T)'
         ]
     elif method.lower() == "dlpno-ccsd":
         sheets_to_transfer = [
-            'TOTAL', 'DIEL', 'REF', 'Electrostat', 'Exchange',
+            'TOTAL', 'SOLV', 'REF', 'Electrostat', 'Exchange',
             'C-CCSD', 'Disp CCSD', 'Inter-NonDisp-C-CCSD'
         ]
     elif method.lower() == "hfld":
         sheets_to_transfer = [
-            'TOTAL', 'DIEL', 'REF', 'Electrostat', 'Exchange',
+            'TOTAL', 'SOLV', 'REF', 'Electrostat', 'Exchange',
             'Disp HFLD'
         ]
     else:
@@ -1521,8 +1579,8 @@ def process_fp_LED_matrices(method, main_filenames, alternative_filenames, conve
     df_ref_distributed = compute_fp_el_prep(df_ref)
     df_ref_distributed.columns.name = 'REF-EL-PREP'
 
-    # Get dielectric values and calculate dielectric interaction energy
-    diel_values, e_diel_int_en = compute_total_diel_int_en(main_filenames, alternative_filenames, conversion_factor, method)
+    # Get SOLV values and calculate SOLV interaction energy
+    solv_values, e_solv_int_en, _, _, _ = compute_bulk_solvation_contribution(main_filenames, alternative_filenames, conversion_factor, method)
 
     # Initialize a new Excel writer object
     with pd.ExcelWriter(output_excel_file, engine='openpyxl') as writer:
@@ -1541,17 +1599,17 @@ def process_fp_LED_matrices(method, main_filenames, alternative_filenames, conve
             df_total.columns = [int(c) for c in df_total.columns]
             df_total.index = [int(i) for i in df_total.index]
 
-            # Subtract DIEL to get standard LED total without DIEL
+            # Subtract SOLV to get standard LED total without SOLV
             try:
-                df_diel = pd.read_excel(xl, sheet_name='DIEL', index_col=0)
-                df_diel.columns = [int(c) for c in df_diel.columns]
-                df_diel.index = [int(i) for i in df_diel.index]
-                std_df_total_no_diel = df_total - df_diel
+                df_solv = pd.read_excel(xl, sheet_name='SOLV', index_col=0)
+                df_solv.columns = [int(c) for c in df_solv.columns]
+                df_solv.index = [int(i) for i in df_solv.index]
+                std_df_total_no_solv = df_total - df_solv
             except ValueError:
-                std_df_total_no_diel = df_total
+                std_df_total_no_solv = df_total
 
-            # Correlation EL-PREP on standard total without DIEL
-            df_total_distributed = compute_fp_el_prep(std_df_total_no_diel)
+            # Correlation EL-PREP on standard total without SOLV
+            df_total_distributed = compute_fp_el_prep(std_df_total_no_solv)
             df_total_distributed.columns.name = 'C-CCSD(T)-EL-PREP' if method.lower() == "dlpno-ccsd(t)" else 'C-CCSD-EL-PREP'
 
             df_c_ccsd = df_total_distributed - df_ref_distributed
@@ -1565,19 +1623,19 @@ def process_fp_LED_matrices(method, main_filenames, alternative_filenames, conve
             df_inter_nondisp.columns = [int(c) for c in df_inter_nondisp.columns]
             df_inter_nondisp.index = [int(i) for i in df_inter_nondisp.index]
 
-            # Reconstruct total without diel from fp-LED logic
+            # Reconstruct total without SOLV from fp-LED logic
             df_ref_final = df_electrostat + df_exchange + df_ref_distributed
             df_c_ccsd_final = df_c_ccsd + df_disp_ccsd + df_inter_nondisp
-            df_total_no_diel = df_ref_final + df_c_ccsd_final
+            df_total_no_solv = df_ref_final + df_c_ccsd_final
 
-            # Apply fp-LED diel if needed
-            if e_diel_int_en != 0:
-                diel_matrix = df_total_no_diel * (e_diel_int_en / df_total_no_diel.sum().sum())
-                df_total_final = df_total_no_diel + diel_matrix
+            # Apply fp-LED SOLV if needed
+            if e_solv_int_en != 0:
+                solv_matrix = df_total_no_solv * (e_solv_int_en / df_total_no_solv.sum().sum())
+                df_total_final = df_total_no_solv + solv_matrix
                 df_total_final.to_excel(writer, sheet_name='TOTAL')
-                diel_matrix.to_excel(writer, sheet_name='DIEL')
+                solv_matrix.to_excel(writer, sheet_name='SOLV')
             else:
-                df_total_final = df_total_no_diel
+                df_total_final = df_total_no_solv
                 df_total_final.to_excel(writer, sheet_name='TOTAL')
 
             # Write all matrices
@@ -1603,12 +1661,12 @@ def process_fp_LED_matrices(method, main_filenames, alternative_filenames, conve
             df_total_hfld = df_ref_final + df_disp_hfld
             df_total_hfld.columns.name = 'TOTAL'
 
-            # If dielectric interaction energy is not zero, calculate and add the DIEL matrix
-            if e_diel_int_en != 0:
-                diel_matrix = df_total_hfld * (e_diel_int_en / df_total_hfld.sum().sum())
-                df_total_hfld += diel_matrix
+            # If SOLV interaction energy is not zero, calculate and add the SOLV matrix
+            if e_solv_int_en != 0:
+                solv_matrix = df_total_hfld * (e_solv_int_en / df_total_hfld.sum().sum())
+                df_total_hfld += solv_matrix
                 df_total_hfld.to_excel(writer, sheet_name='TOTAL')
-                diel_matrix.to_excel(writer, sheet_name='DIEL')
+                solv_matrix.to_excel(writer, sheet_name='SOLV')
             else:
                 df_total_hfld.to_excel(writer, sheet_name='TOTAL')
 
@@ -1621,6 +1679,123 @@ def process_fp_LED_matrices(method, main_filenames, alternative_filenames, conve
 
         normalized_output_file = normalize_path(output_excel_file)
         print(f"fp-LED interaction energy matrices were written to '{normalized_output_file}'")
+
+
+def write_nbody_solv_files(LEDAW_output_path, total_solv_int_energy, ref_diel_int_energy, ref_cds_int_energy, corr_diel_int_energy):
+    """
+    Writes SOLV-fp.xlsx and SOLV-STD.xlsx for the individual componennts of SOLV contribution.
+    Reads base SOLV matrices from Summary_Standard_LED_matrices.xlsx and Summary_fp-LED_matrices.xlsx
+    and scales them with appropriate factors for computing individual components.
+    Applies specific NaN masking based on FP (diagonal and below NaN) or STD (below diagonal NaN) schemes.
+    """
+    normalized_path = normalize_path(LEDAW_output_path)
+    solv_fp_output_file = os.path.join(normalized_path, 'SOLV-fp.xlsx')
+    solv_std_output_file = os.path.join(normalized_path, 'SOLV-STD.xlsx')
+    summary_std_input_file = os.path.join(normalized_path, 'Summary_Standard_LED_matrices.xlsx')
+    summary_fp_input_file = os.path.join(normalized_path, 'Summary_fp-LED_matrices.xlsx')
+
+    os.makedirs(normalized_path, exist_ok=True)
+
+    # Helper function to calculate scaled matrix, handles division by zero and empty matrices
+    def get_scaled_matrix(base_matrix, component_int_energy, total_int_energy):
+        if base_matrix is None or base_matrix.empty:
+            return pd.DataFrame() # Return an empty DataFrame if base is not valid
+        if total_int_energy == 0:
+            # If total_int_energy is 0, all components are 0.
+            # Create a zero matrix of the same shape as base_matrix.
+            return pd.DataFrame(np.zeros(base_matrix.shape), index=base_matrix.index, columns=base_matrix.columns)
+        
+        scale_factor = component_int_energy / total_int_energy
+        return base_matrix * scale_factor
+
+    # Helper to apply the masking (below diagonal NaN)
+    def mask_below_diagonal(df):
+        if df.empty:
+            return df
+        # Create a boolean mask for the upper triangle (k=0 includes diagonal)
+        mask = np.triu(np.ones(df.shape), k=0).astype(bool)
+        return df.where(mask)
+
+    # Helper to apply the masking (diagonal and below NaN)
+    def mask_diagonal_and_below(df):
+        if df.empty:
+            return df
+        # Create a boolean mask for the upper triangle (k=1 excludes diagonal)
+        mask = np.triu(np.ones(df.shape), k=1).astype(bool)
+        return df.where(mask)
+
+    # --- Process and Write SOLV-fp.xlsx ---
+    try:
+        # Read the base SOLV matrix from Summary_fp-LED_matrices.xlsx
+        # Use .fillna(0.0) to treat missing values as zero for scaling
+        base_solv_fp_df = pd.read_excel(summary_fp_input_file, sheet_name='SOLV', index_col=0).fillna(0.0)
+        # Ensure numeric column/index names if they were read as strings, keeping original if not numeric
+        base_solv_fp_df.columns = [int(c) if str(c).isdigit() else c for c in base_solv_fp_df.columns]
+        base_solv_fp_df.index = [int(i) if str(i).isdigit() else i for i in base_solv_fp_df.index]
+
+        with pd.ExcelWriter(solv_fp_output_file, engine='openpyxl', mode='w') as writer:
+            # Write the base SOLV matrix for FP scheme, with diagonal and below as NaN
+            masked_solv_fp_df = mask_diagonal_and_below(base_solv_fp_df)
+            masked_solv_fp_df.to_excel(writer, sheet_name='SOLV')
+
+            # Calculate and write individual components for FP scheme, with diagonal and below as NaN
+            ref_diel_fp_df = get_scaled_matrix(base_solv_fp_df, ref_diel_int_energy, total_solv_int_energy)
+            masked_ref_diel_fp_df = mask_diagonal_and_below(ref_diel_fp_df)
+            masked_ref_diel_fp_df.to_excel(writer, sheet_name='REF-DIEL')
+
+            ref_cds_fp_df = get_scaled_matrix(base_solv_fp_df, ref_cds_int_energy, total_solv_int_energy)
+            masked_ref_cds_fp_df = mask_diagonal_and_below(ref_cds_fp_df)
+            masked_ref_cds_fp_df.to_excel(writer, sheet_name='REF-CDS')
+
+            corr_diel_fp_df = get_scaled_matrix(base_solv_fp_df, corr_diel_int_energy, total_solv_int_energy)
+            masked_corr_diel_fp_df = mask_diagonal_and_below(corr_diel_fp_df)
+            masked_corr_diel_fp_df.to_excel(writer, sheet_name='CORR-DIEL')
+
+        print(f"SOLV-fp.xlsx created successfully at '{normalize_path(solv_fp_output_file)}'")
+
+    except FileNotFoundError:
+        print(f"Warning: '{os.path.basename(summary_fp_input_file)}' not found. Skipping SOLV-fp.xlsx creation.")
+    except KeyError:
+        print(f"Warning: 'SOLV' sheet not found in '{os.path.basename(summary_fp_input_file)}'. Skipping SOLV-fp.xlsx creation.")
+    except Exception as e:
+        print(f"An error occurred while creating SOLV-fp.xlsx: {e}")
+
+
+    # --- Process and Write SOLV-STD.xlsx ---
+    try:
+        # Read the base SOLV matrix from Summary_Standard_LED_matrices.xlsx
+        # Use .fillna(0.0) to treat missing values as zero for scaling
+        base_solv_std_df = pd.read_excel(summary_std_input_file, sheet_name='SOLV', index_col=0).fillna(0.0)
+        # Ensure numeric column/index names if they were read as strings
+        base_solv_std_df.columns = [int(c) if str(c).isdigit() else c for c in base_solv_std_df.columns]
+        base_solv_std_df.index = [int(i) if str(i).isdigit() else i for i in base_solv_std_df.index]
+
+        with pd.ExcelWriter(solv_std_output_file, engine='openpyxl', mode='w') as writer:
+            # Write the base SOLV matrix for STD scheme, with below diagonal as NaN
+            masked_solv_std_df = mask_below_diagonal(base_solv_std_df)
+            masked_solv_std_df.to_excel(writer, sheet_name='SOLV')
+
+            # Calculate and write individual components for STD scheme, with below diagonal as NaN
+            ref_diel_std_df = get_scaled_matrix(base_solv_std_df, ref_diel_int_energy, total_solv_int_energy)
+            masked_ref_diel_std_df = mask_below_diagonal(ref_diel_std_df)
+            masked_ref_diel_std_df.to_excel(writer, sheet_name='REF-DIEL')
+
+            ref_cds_std_df = get_scaled_matrix(base_solv_std_df, ref_cds_int_energy, total_solv_int_energy)
+            masked_ref_cds_std_df = mask_below_diagonal(ref_cds_std_df)
+            masked_ref_cds_std_df.to_excel(writer, sheet_name='REF-CDS')
+
+            corr_diel_std_df = get_scaled_matrix(base_solv_std_df, corr_diel_int_energy, total_solv_int_energy)
+            masked_corr_diel_std_df = mask_below_diagonal(corr_diel_std_df)
+            masked_corr_diel_std_df.to_excel(writer, sheet_name='CORR-DIEL')
+
+        print(f"SOLV-STD.xlsx created successfully at '{normalize_path(solv_std_output_file)}'")
+
+    except FileNotFoundError:
+        print(f"Warning: '{os.path.basename(summary_std_input_file)}' not found. Skipping SOLV-STD.xlsx creation.")
+    except KeyError:
+        print(f"Warning: 'SOLV' sheet not found in '{os.path.basename(summary_std_input_file)}'. Skipping SOLV-STD.xlsx creation.")
+    except Exception as e:
+        print(f"An error occurred while creating SOLV-STD.xlsx: {e}")
 
 
 def delete_unprocessed_files(LEDAW_output_path):
@@ -1710,7 +1885,13 @@ def engine_LED_N_body(main_filenames, alternative_filenames, conversion_factor, 
     process_fp_LED_matrices(method=method, main_filenames=main_filenames, alternative_filenames=alternative_filenames,
         conversion_factor=conversion_factor, LEDAW_output_path=normalized_LEDAW_output_path)
 
-    # Step 15: Delete intermediate excel files
+    # Step 15: Compute SOLV components and write them to SOLV-fp.xlsx and SOLV-STD.xlsx
+    solv_values, total_solv_int_energy, ref_diel_int_energy, ref_cds_int_energy, corr_diel_int_energy = \
+        compute_bulk_solvation_contribution(main_filenames, alternative_filenames, conversion_factor, method)
+    write_nbody_solv_files(normalized_LEDAW_output_path, total_solv_int_energy,
+                           ref_diel_int_energy, ref_cds_int_energy, corr_diel_int_energy)
+
+    # Step 16: Delete intermediate excel files
     delete_unprocessed_files(LEDAW_output_path)
 
     print('\n')
