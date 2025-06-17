@@ -103,7 +103,6 @@ def cooperativity_engine(base_path, nbody_dir_name='NBODY', twobody_dir_name='TW
                     
                     # Process the files
                     calculate_cooperativity_matrices(nbody_filepath, twobody_filepath, output_filepath)
-                    print(f"Processed and saved to: {output_dir}")
                 else:
                     print(f"TWOBODY file not found for: {nbody_file}")
     
