@@ -6,95 +6,68 @@ from collections import Counter
 
 def apply_conditional_heading_removals(heading_content):
     """
-    Removes LED and DoLEDHF keywords if only one (real) fragment exists in an INP file.
+    Removes keywords and blocks from an ORCA input heading involving a single real fragment.
+    For single fragment cases:
+    - The 'LED' keyword is removed.
+    - 'DoLEDHF' directive is removed from the mdci block.
+    - If the method is 'HFLD':
+        - 'HFLD', 'LoosePNO', 'NormalPNO', and 'TightPNO' keywords are removed.
+        - The %mdci block is removed.
     """
+
+    lines = heading_content.splitlines()
+
+    base_removal_keywords = re.compile(r'\b(LED)\b', flags=re.IGNORECASE)
+    hfld_related_keywords = re.compile(r'\b(HFLD|LoosePNO|NormalPNO|TightPNO)\b', flags=re.IGNORECASE)
+    doledhf_removal_regex = re.compile(r'\bDoLEDHF\s+(True|False)\b', flags=re.IGNORECASE)
+
+    hfld_present = re.search(r'\bHFLD\b', heading_content, flags=re.IGNORECASE)
+    is_removing_mdci_lines = False
+    
     processed_lines = []
-    in_mdci_block = False
-    mdci_block_lines = [] # To store lines within the current mdci block for later check
 
-    for line_idx, line in enumerate(heading_content.splitlines()):
-        original_line_content = line # Preserve the original line, including leading/trailing spaces
-        lower_line = line.lower()
+    for original_line in lines:
+        current_line_content = original_line # Start with the original line
 
-        is_mdci_start = False
-        is_mdci_end = False
+        # 1. Apply DoLEDHF removal (always)
+        current_line_content = doledhf_removal_regex.sub('', current_line_content)
 
-        # Update mdci block state (robustly handle spaces between % and mdci)
-        if re.search(r'%\s*mdci', lower_line):
-            is_mdci_start = True
-            in_mdci_block = True
-        elif lower_line.strip() == 'end' and in_mdci_block: # Ensure 'end' closes a block
-            is_mdci_end = True
-            in_mdci_block = False
-
-        cleaned_line = original_line_content # Start with the original line for processing
-
-        # Apply LED removal
-        cleaned_line = re.sub(r'\bLED\b', '', cleaned_line, flags=re.IGNORECASE)
-
-        # If HFLD is present in a line starting with '!', remove it (case-insensitive, whole word)
-        if cleaned_line.strip().startswith('!') and re.search(r'\bHFLD\b', cleaned_line, flags=re.IGNORECASE):
-            cleaned_line = re.sub(r'\bHFLD\b', '', cleaned_line, flags=re.IGNORECASE)
-
-        # Apply DoLEDHF removal if within an %mdci block
-        if is_mdci_start or in_mdci_block or is_mdci_end: # Process lines within or defining the block
-            cleaned_line = re.sub(r'\bDoLEDHF\s+True\b', '', cleaned_line, flags=re.IGNORECASE)
-            cleaned_line = re.sub(r'\bDoLEDHF\s+False\b', '', cleaned_line, flags=re.IGNORECASE)
+        # 2. Handle HFLD-specific removals and block logic
+        if hfld_present:
+            # Check for MDCI block start/end or within block removal
+            if is_removing_mdci_lines:
+                # If we are currently removing lines, check for a terminator
+                if re.search(r'(!|\*|%)', current_line_content):
+                    is_removing_mdci_lines = False
+                else:
+                    continue # Skip this line, it's part of the removed block
             
-            # Clean up any extra spaces left by these specific removals within the block
-            # This strip() is important to ensure 'unique' removal works correctly
-            cleaned_line = re.sub(r'\s{2,}', ' ', cleaned_line).strip()
+            if re.search(r'^\s*%\s*mdci', current_line_content, re.IGNORECASE):
+                is_removing_mdci_lines = True
+                continue # Skip the %mdci line itself if HFLD is present
+
+            # Apply HFLD related keyword removals
+            current_line_content = hfld_related_keywords.sub('', current_line_content)
+
+        # 3. Apply LED removal (always)
+        current_line_content = base_removal_keywords.sub('', current_line_content)
+
+        # 4. Condense spaces and handle leading spaces/stripping
+        original_leading_spaces = original_line[:len(original_line) - len(original_line.lstrip())]
+        stripped_line = re.sub(r'\s{2,}', ' ', current_line_content).strip()
+
+        # Decide whether to keep leading spaces or fully strip
+        if not stripped_line or stripped_line.startswith(('!', '%', '*')):
+            final_line = stripped_line
         else:
-            # For lines outside mdci, just general space cleanup (e.g. if only LED was removed)
-            cleaned_line = re.sub(r'\s{2,}', ' ', cleaned_line).strip() # Apply strip for final check
+            final_line = original_leading_spaces + stripped_line
 
-        # --- Blank Line, '!' only, and full content removal Logic ---
-        # 1. Check if the line originally had content but now became empty or '!'
-        if original_line_content.strip() and (not cleaned_line.strip() or cleaned_line.strip() == '!'):
-            # If line had content, but it was fully removed (or only '!' remains), then remove the line.
-            current_line_to_add = None # Mark for removal
-        else:
-            current_line_to_add = cleaned_line # Keep the processed line
 
-        # Store lines for later %mdci block emptiness check
-        if is_mdci_start:
-            mdci_block_lines = [current_line_to_add if current_line_to_add is not None else ""] # Start new block
-        elif is_mdci_end:
-            mdci_block_lines.append(current_line_to_add if current_line_to_add is not None else "")
-            
-            # Check if the entire %mdci block is empty
-            content_in_block = False
-            for block_line in mdci_block_lines:
-                # Exclude the %mdci and end lines themselves from counting as "content"
-                if block_line and block_line.strip() != 'end' and not re.search(r'%\s*mdci', block_line.lower()):
-                    content_in_block = True
-                    break
-            
-            if not content_in_block:
-                # If block is empty, remove all lines that were added for this block
-                # Find the start of the block and remove all lines from %mdci to end
-                temp_processed_lines = []
-                last_mdci_start_idx = -1
-                for i in range(len(processed_lines) -1, -1, -1): # Iterate backwards
-                    if re.search(r'%\s*mdci', processed_lines[i].lower()):
-                        last_mdci_start_idx = i
-                        break
-                if last_mdci_start_idx != -1:
-                    processed_lines = processed_lines[:last_mdci_start_idx] # Remove the block
-                # else: This case implies %mdci was not added, which shouldn't happen if is_mdci_start was true.
-                # If the end tag is encountered without a start, it just won't be removed here.
-            else:
-                processed_lines.extend(mdci_block_lines) # Add the accumulated block lines
-            mdci_block_lines = [] # Reset for next block
-        elif in_mdci_block:
-            mdci_block_lines.append(current_line_to_add if current_line_to_add is not None else "")
-        else: # Outside any mdci block
-            if current_line_to_add is not None:
-                processed_lines.append(current_line_to_add)
-
-    # After loop, if there's an unterminated mdci block, add its lines
-    if mdci_block_lines:
-        processed_lines.extend(mdci_block_lines)
+        # 5. Final line inclusion check
+        if original_line.strip() and (not final_line.strip() or final_line.strip() == '!'):
+            continue # Original line had content, but became empty or '!'
+        
+        processed_lines.append(final_line)
 
     return "\n".join(processed_lines)
 
