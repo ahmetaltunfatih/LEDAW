@@ -15,6 +15,7 @@ def apply_conditional_heading_removals(heading_content):
         - The %mdci block is removed.
 	Some stylistic modifications are also done after removal of these keywords and blocks.
     """
+
     lines = heading_content.splitlines()
 
     base_removal_keywords = re.compile(r'\b(LED)\b', re.IGNORECASE)
@@ -87,7 +88,7 @@ def apply_conditional_heading_removals(heading_content):
                 i += 1
                 continue
 
-        # -- Outside %mdci block --
+        # -- Handle outside %mdci block --
         line_mod = doledhf_regex.sub('', line)
         if hfld_present:
             line_mod = hfld_related_keywords.sub('', line_mod)
