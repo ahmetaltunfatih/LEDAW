@@ -13,61 +13,101 @@ def apply_conditional_heading_removals(heading_content):
     - If the method is 'HFLD':
         - 'HFLD', 'LoosePNO', 'NormalPNO', and 'TightPNO' keywords are removed.
         - The %mdci block is removed.
+	Some stylistic modifications are also done after removal of these keywords and blocks.
     """
-
     lines = heading_content.splitlines()
 
-    base_removal_keywords = re.compile(r'\b(LED)\b', flags=re.IGNORECASE)
-    hfld_related_keywords = re.compile(r'\b(HFLD|LoosePNO|NormalPNO|TightPNO)\b', flags=re.IGNORECASE)
-    doledhf_removal_regex = re.compile(r'\bDoLEDHF\s+(True|False)\b', flags=re.IGNORECASE)
+    base_removal_keywords = re.compile(r'\b(LED)\b', re.IGNORECASE)
+    hfld_related_keywords = re.compile(r'\b(HFLD|LoosePNO|NormalPNO|TightPNO)\b', re.IGNORECASE)
+    doledhf_regex = re.compile(r'\bDoLEDHF\s+(True|False)\b', re.IGNORECASE)
 
-    hfld_present = re.search(r'\bHFLD\b', heading_content, flags=re.IGNORECASE)
-    is_removing_mdci_lines = False
-    
+    hfld_present = bool(re.search(r'\bHFLD\b', heading_content, re.IGNORECASE))
+
     processed_lines = []
+    i = 0
+    n = len(lines)
 
-    for original_line in lines:
-        current_line_content = original_line # Start with the original line
+    while i < n:
+        line = lines[i]
 
-        # 1. Apply DoLEDHF removal (always)
-        current_line_content = doledhf_removal_regex.sub('', current_line_content)
+        # -- Handle %mdci block --
+        if re.match(r'^\s*%\s*mdci\b', line, re.IGNORECASE):
+            block_lines = []
+            block_start_index = len(processed_lines)
+            while i < n:
+                block_lines.append(lines[i])
+                if re.match(r'^\s*end\s*$', lines[i], re.IGNORECASE):
+                    break
+                i += 1
 
-        # 2. Handle HFLD-specific removals and block logic
-        if hfld_present:
-            # Check for MDCI block start/end or within block removal
-            if is_removing_mdci_lines:
-                # If we are currently removing lines, check for a terminator
-                if re.search(r'(!|\*|%)', current_line_content):
-                    is_removing_mdci_lines = False
+            if hfld_present:
+                i += 1  # skip 'end'
+                # clean up extra empty lines above
+                while block_start_index > 0 and processed_lines and not processed_lines[-1].strip():
+                    processed_lines.pop()
+                    block_start_index -= 1
+                # add a single empty line if needed
+                if processed_lines and (i < n and lines[i].strip()):
+                    processed_lines.append('')
+                continue
+
+            cleaned_block = []
+            has_substance = False
+            doledhf_removed = False
+
+            for bl in block_lines:
+                bl_mod = doledhf_regex.sub('', bl)
+                if bl_mod != bl:
+                    doledhf_removed = True
+
+                stripped = re.sub(r'\s{2,}', ' ', bl_mod).strip()
+                if not stripped or stripped == '!':
+                    continue
+
+                if not re.match(r'^\s*%\s*mdci\b', bl, re.IGNORECASE) and not re.match(r'^\s*end\s*$', bl, re.IGNORECASE):
+                    if not stripped.startswith(('!', '*')):
+                        has_substance = True
+
+                if stripped.startswith(('!', '%', '*')):
+                    cleaned_block.append(stripped)
                 else:
-                    continue # Skip this line, it's part of the removed block
-            
-            if re.search(r'^\s*%\s*mdci', current_line_content, re.IGNORECASE):
-                is_removing_mdci_lines = True
-                continue # Skip the %mdci line itself if HFLD is present
+                    leading = bl[:len(bl) - len(bl.lstrip())]
+                    cleaned_block.append(leading + stripped)
 
-            # Apply HFLD related keyword removals
-            current_line_content = hfld_related_keywords.sub('', current_line_content)
+            if doledhf_removed and not has_substance:
+                i += 1  # skip past 'end'
+                while block_start_index > 0 and processed_lines and not processed_lines[-1].strip():
+                    processed_lines.pop()
+                    block_start_index -= 1
+                if processed_lines and (i < n and lines[i].strip()):
+                    processed_lines.append('')
+                continue
+            else:
+                processed_lines.extend(cleaned_block)
+                i += 1
+                continue
 
-        # 3. Apply LED removal (always)
-        current_line_content = base_removal_keywords.sub('', current_line_content)
+        # -- Outside %mdci block --
+        line_mod = doledhf_regex.sub('', line)
+        if hfld_present:
+            line_mod = hfld_related_keywords.sub('', line_mod)
+        line_mod = base_removal_keywords.sub('', line_mod)
 
-        # 4. Condense spaces and handle leading spaces/stripping
-        original_leading_spaces = original_line[:len(original_line) - len(original_line.lstrip())]
-        stripped_line = re.sub(r'\s{2,}', ' ', current_line_content).strip()
+        stripped = re.sub(r'\s{2,}', ' ', line_mod).strip()
 
-        # Decide whether to keep leading spaces or fully strip
-        if not stripped_line or stripped_line.startswith(('!', '%', '*')):
-            final_line = stripped_line
+        # Remove if line is just '!'
+        if stripped == '!':
+            i += 1
+            continue
+
+        # Keep user-inserted empty lines
+        if not stripped:
+            processed_lines.append('')
         else:
-            final_line = original_leading_spaces + stripped_line
+            leading = line[:len(line) - len(line.lstrip())]
+            processed_lines.append(leading + stripped)
 
-
-        # 5. Final line inclusion check
-        if original_line.strip() and (not final_line.strip() or final_line.strip() == '!'):
-            continue # Original line had content, but became empty or '!'
-        
-        processed_lines.append(final_line)
+        i += 1
 
     return "\n".join(processed_lines)
 
