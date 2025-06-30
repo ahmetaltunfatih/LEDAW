@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QFrame, QScrollArea, QDialog, QTextEdit, QProgressBar, QDialogButtonBox, QFileDialog, QVBoxLayout, QLabel, QPushButton, QLineEdit, QTabWidget, QFormLayout, QComboBox, QCheckBox, QMessageBox, QHBoxLayout, QSizePolicy, QSpacerItem
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal, pyqtSlot
 import matplotlib.pyplot as plt
 from .job_engine import JobWorker, PlotJobWorker
 import shutil
@@ -92,8 +92,24 @@ class LEDAWApp(QMainWindow):
         self.last_selected_dir = './'
         self.plot_unlock_count = 0  # Initialize a counter for Plot tab unlocks
 
+        # Initialize output_dir_input
+        self.output_dir_input = QLineEdit()
+
         # Connect the 'editingFinished' event to trigger the update after typing is done
         self.output_dir_input.editingFinished.connect(self.update_output_directory)
+
+        # Initialize worker threads
+        self.worker = JobWorker(self)
+        self.plot_worker = PlotJobWorker(self)
+
+        # Connect the error signals from workers to a slot
+        self.worker.error_signal.connect(self.show_error_message)
+        self.plot_worker.error_signal.connect(self.show_error_message)
+
+
+    @pyqtSlot(str, str)
+    def show_error_message(self, title, message):
+        QMessageBox.critical(self, title, message)
 
 
     def normalize_path_gui(self, path):
@@ -377,7 +393,7 @@ class LEDAWApp(QMainWindow):
         self.layout.addRow(cbs_method_layout)
         self.layout.addRow(self.cbs_error_label)  # Error message row
 
-        # Initially, hide F inputs
+        # Initially hide F inputs
         self.cbs_label.setVisible(False)
         self.cbs_option.setVisible(False)
         self.f_ref_input.setVisible(False)
@@ -386,8 +402,7 @@ class LEDAWApp(QMainWindow):
         # Ensure alignment from left
         cbs_method_layout.setAlignment(Qt.AlignLeft)
 
-        # Add the entire CBS method layout to the form layout, but initially hide it
-        self.layout.addRow(cbs_method_layout)
+        # Initially hide options to CBS method
         self.cbs_label.setVisible(False)
         self.cbs_option.setVisible(False)
         self.f_ref_input.setVisible(False)

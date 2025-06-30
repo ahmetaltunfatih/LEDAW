@@ -7,7 +7,6 @@ from .cooperativity_engine import cooperativity_engine
 from .extrapolate_engine import extrapolate_engine
 from .plot_engine import heatmap_plot_engine
 from PyQt5.QtCore import QThread, pyqtSignal
-from PyQt5.QtWidgets import QMessageBox
 
 
 def normalize_twobody_path(path):
@@ -913,8 +912,9 @@ def manage_plot_jobs(app_instance):
 class JobWorker(QThread):
     """Worker class for managing the LEDAW job in a separate thread"""
 
-    # Define a signal to update the UI
+    # Define signals for status updates and errors
     status_signal = pyqtSignal(str)
+    error_signal = pyqtSignal(str, str) # title, message
 
     def __init__(self, app_instance, parent=None):
         super().__init__(parent)
@@ -946,7 +946,7 @@ class JobWorker(QThread):
         except Exception as e:
             # Handle exceptions and emit "Failed" status
             self.status_signal.emit("Failed")
-            QMessageBox.critical(self.app_instance, "Run Error", f"Run Error: {str(e)}")
+            self.error_signal.emit("Job Error", f"Run Error: {str(e)}")
             # Ensure cleanup happens even if an error occurs
             self.app_instance.delete_tmp_files()
 
@@ -958,8 +958,9 @@ class JobWorker(QThread):
 class PlotJobWorker(QThread):
     """Worker class for managing the plot job in a separate thread"""
 
-    # Define a signal to update the UI
+    # Define signals for status updates and errors
     status_signal = pyqtSignal(str)
+    error_signal = pyqtSignal(str, str) # title, message
 
     def __init__(self, app_instance, parent=None):
         super().__init__(parent)
@@ -973,6 +974,7 @@ class PlotJobWorker(QThread):
 
             if self.is_cancelled:
                 self.status_signal.emit("Cancelled\n\nIf needed, adjust and then confirm plot parameters in the Plot tab to resubmit the plot job.") 
+                return
 
             # Perform the Plot job, but allow for periodic cancellation checks
             if not self.is_cancelled:
@@ -988,7 +990,7 @@ class PlotJobWorker(QThread):
         except Exception as e:
             # Handle exceptions and emit "Failed" status
             self.status_signal.emit("Failed")
-            QMessageBox.critical(self.app_instance, "Plot Job Error", f"Run Error: {str(e)}")
+            self.error_signal.emit("Plot Job Error", f"Run Error: {str(e)}")
 
     def cancel(self):
         """Call this method to cancel the job."""
