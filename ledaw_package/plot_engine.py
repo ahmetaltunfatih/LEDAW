@@ -3,6 +3,8 @@ import shutil
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 from .nbody_engine import normalize_path
