@@ -926,8 +926,9 @@ class JobWorker(QThread):
             # Emit "In progress" status to update UI
             self.status_signal.emit("In progress...")
 
-#            if self.is_cancelled:
-#                self.status_signal.emit("Cancelled\n\nIf needed, press Run LEDAW button to resubmit the job.") 
+            if self.is_cancelled:
+                self.status_signal.emit("Cancelled\n\nIf needed, press Run LEDAW button to resubmit the job.") 
+                return
 
             # Perform the LEDAW job, but allow for periodic cancellation checks
             if not self.is_cancelled:
