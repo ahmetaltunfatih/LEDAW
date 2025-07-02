@@ -946,7 +946,7 @@ class JobWorker(QThread):
 
         except Exception as e:
             # Handle exceptions and emit "Failed" status
-            self.status_signal.emit("Failed")
+            self.status_signal.emit("Failed.\nPossible Reason: User specified files do not correspond to actual ORCA output files, or there is an issue with file permissions.")
             self.error_signal.emit("Job Error", f"Run Error: {str(e)}")
             # Ensure cleanup happens even if an error occurs
             self.app_instance.delete_tmp_files()
@@ -990,7 +990,7 @@ class PlotJobWorker(QThread):
 
         except Exception as e:
             # Handle exceptions and emit "Failed" status
-            self.status_signal.emit("Failed")
+            self.status_signal.emit("Failed.n\Possible Reason: Necessary Excel files that include interaction energy matrices could not be found, , or there is an issue with file permissions.")
             self.error_signal.emit("Plot Job Error", f"Run Error: {str(e)}")
 
     def cancel(self):
