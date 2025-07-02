@@ -912,9 +912,8 @@ def manage_plot_jobs(app_instance):
 class JobWorker(QThread):
     """Worker class for managing the LEDAW job in a separate thread"""
 
-    # Define signals for status updates and errors
+    # Define signal for status updates
     status_signal = pyqtSignal(str)
-    error_signal = pyqtSignal(str, str) # title, message
 
     def __init__(self, app_instance, parent=None):
         super().__init__(parent)
@@ -945,9 +944,8 @@ class JobWorker(QThread):
                     self.app_instance.delete_tmp_files()
 
         except Exception as e:
-            # Handle exceptions and emit "Failed" status
+            # Emit "Failed" status
             self.status_signal.emit("Failed.\nPossible Reason: User specified files do not correspond to actual ORCA output files, or there is an issue with file permissions.")
-            self.error_signal.emit("Job Error", f"Run Error: {str(e)}")
             # Ensure cleanup happens even if an error occurs
             self.app_instance.delete_tmp_files()
 
@@ -959,10 +957,9 @@ class JobWorker(QThread):
 class PlotJobWorker(QThread):
     """Worker class for managing the plot job in a separate thread"""
 
-    # Define signals for status updates and errors
+    # Define signal for status updates
     status_signal = pyqtSignal(str)
-    error_signal = pyqtSignal(str, str) # title, message
-
+ 
     def __init__(self, app_instance, parent=None):
         super().__init__(parent)
         self.app_instance = app_instance
@@ -989,9 +986,8 @@ class PlotJobWorker(QThread):
                     self.status_signal.emit("Completed\n\nIf needed, adjust and then confirm plot parameters in the Plot tab to rerun the plot job.") 
 
         except Exception as e:
-            # Handle exceptions and emit "Failed" status
+            # Emit "Failed" status
             self.status_signal.emit("Failed.n\Possible Reason: Necessary Excel files that include interaction energy matrices could not be found, or there is an issue with file permissions.")
-            self.error_signal.emit("Plot Job Error", f"Run Error: {str(e)}")
 
     def cancel(self):
         """Call this method to cancel the job."""
