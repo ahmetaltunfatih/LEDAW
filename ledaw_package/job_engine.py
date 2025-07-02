@@ -990,7 +990,7 @@ class PlotJobWorker(QThread):
 
         except Exception as e:
             # Handle exceptions and emit "Failed" status
-            self.status_signal.emit("Failed.n\Possible Reason: Necessary Excel files that include interaction energy matrices could not be found, , or there is an issue with file permissions.")
+            self.status_signal.emit("Failed.n\Possible Reason: Necessary Excel files that include interaction energy matrices could not be found, or there is an issue with file permissions.")
             self.error_signal.emit("Plot Job Error", f"Run Error: {str(e)}")
 
     def cancel(self):
