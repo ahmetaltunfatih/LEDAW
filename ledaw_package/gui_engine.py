@@ -92,19 +92,8 @@ class LEDAWApp(QMainWindow):
         self.last_selected_dir = './'
         self.plot_unlock_count = 0  # Initialize a counter for Plot tab unlocks
 
-        # Initialize output_dir_input
-        self.output_dir_input = QLineEdit()
-
         # Connect the 'editingFinished' event to trigger the update after typing is done
         self.output_dir_input.editingFinished.connect(self.update_output_directory)
-
-        # Initialize worker threads
-        self.worker = JobWorker(self)
-        self.plot_worker = PlotJobWorker(self)
-
-        # Connect the error signals from workers to a slot
-        self.worker.error_signal.connect(self.show_error_message)
-        self.plot_worker.error_signal.connect(self.show_error_message)
 
 
     @pyqtSlot(str, str)
