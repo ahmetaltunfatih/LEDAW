@@ -705,7 +705,7 @@ class LEDAWApp(QMainWindow):
         # Create the confirmation dialog window
         confirm_dialog = QDialog(self)
         confirm_dialog.setWindowTitle("Confirm Parameters")
-        confirm_dialog.setMinimumSize(500, 350)
+        confirm_dialog.setMinimumSize(700, 410)
 
         # Remove the "?" help button
         confirm_dialog.setWindowFlags(confirm_dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
@@ -1307,7 +1307,7 @@ class LEDAWApp(QMainWindow):
     def add_cps_cbs_nbody_layout(self, layout):
         """Create a CPS and CBS layout for the N-body tab"""
 
-        self.nbody_tab.setMinimumSize(700, 900)
+        self.nbody_tab.setMinimumSize(700, 410)
 
         # Initialize lists to hold file paths for CPS and CBS sections
         self.main_filenames_SB_LPNO = ['']
@@ -1939,7 +1939,7 @@ class LEDAWApp(QMainWindow):
     def add_cps_nbody_layout(self, layout):
         """Create a CPS layout for the N-body tab"""
 
-        self.nbody_tab.setMinimumSize(700, 500)
+        self.nbody_tab.setMinimumSize(700, 410)
 
         # Initialize lists to hold file paths
         self.main_filenames_LPNO = ['']
@@ -2361,7 +2361,7 @@ class LEDAWApp(QMainWindow):
     def add_cbs_nbody_layout(self, layout):
         """Create a CBS layout for the N-body tab"""
 
-        self.nbody_tab.setMinimumSize(700, 500)
+        self.nbody_tab.setMinimumSize(700, 410)
 
         # Initialize lists to hold file paths
         self.main_filenames_SB = ['']
@@ -2783,7 +2783,7 @@ class LEDAWApp(QMainWindow):
     def add_standard_nbody_layout(self, layout):
         """Create a standard layout for the N-body tab"""
 
-        self.nbody_tab.setMinimumSize(700, 200)
+        self.nbody_tab.setMinimumSize(700, 410)
 
         # Initialize lists to hold file paths
         self.main_filenames = ['']
@@ -4446,167 +4446,179 @@ class LEDAWApp(QMainWindow):
             self.lock_tab(self.twobody_tab)
             self.switch_to_next_dynamic_tab()
 
+
     def create_plot_tab(self):
-        """Create the Plot tab with LED heat map parameters."""
-        self.plot_tab = QWidget()  # Store the tab in self.plot_tab
-        layout = QVBoxLayout()
+            """Create the Plot tab with LED heat map parameters."""
+            self.plot_tab = QWidget()  # Store the tab in self.plot_tab
+            self.plot_tab.setMinimumSize(700, 410)
+    
+            # Create a scroll area to make the tab content scrollable
+            scroll_area = QScrollArea()
+            scroll_area.setWidgetResizable(True)
+            scroll_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
-        # Create the header for the parameters
-        header_layout = QHBoxLayout()
+            # Create a container widget for the content and set its layout
+            scroll_content_widget = QWidget()
+            scroll_content_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.MinimumExpanding)
+            layout = QVBoxLayout(scroll_content_widget)
+    
+            # Create the header for the parameters
+            header_layout = QHBoxLayout()
+    
+            param_header = QLabel("Parameters")
+            std_led_header = QLabel("Plot Parameters for Standard LED")
+            fp_led_header = QLabel("Plot Parameters for fp-LED")
+    
+            # Set a consistent height for all header labels
+            header_height = 30  # Adjust this value to increase or decrease the height
+    
+            # Set minimum size for the first header cell (similar to parameter rows)
+            min_header_width = 200  # Adjust this value as needed
+            param_header.setMinimumWidth(min_header_width)
+            std_led_header.setMinimumWidth(min_header_width)
+            fp_led_header.setMinimumWidth(min_header_width)
+    
+            param_header.setMinimumHeight(header_height)
+            std_led_header.setMinimumHeight(header_height)
+            fp_led_header.setMinimumHeight(header_height)
+    
+            # Styling the headers
+            header_style = "background-color: #ebedef; font-size: 11px; font-weight: bold; padding: 5px;"
+            param_header.setStyleSheet(header_style)
+            std_led_header.setStyleSheet(header_style)
+            fp_led_header.setStyleSheet(header_style)
+    
+            # Set headers size policy for width flexibility
+            param_header.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            std_led_header.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            fp_led_header.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+    
+            # Add an invisible 'i' button placeholder (taking up space) for the header row
+            header_spacer = QSpacerItem(30, header_height, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)  # Placeholder for alignment
+    
+            # Add the headers and placeholder
+            header_layout.addWidget(param_header)
+            header_layout.addWidget(std_led_header)
+            header_layout.addWidget(fp_led_header)
+            header_layout.addSpacerItem(header_spacer)  # Invisible spacer for alignment
+    
+            layout.addLayout(header_layout)
+    
+    
+            def create_row(param_text, std_default, fp_default, info_text=None, fig_format_info=False):
+                row_layout = QHBoxLayout()
+    
+                param_input = QLineEdit(param_text)
+                param_input.setReadOnly(True)  # Parameter field is unmodifiable
+                param_input.setStyleSheet("background-color: lightgrey;")
+    
+                # Set minimum size for the parameter input (first column)
+                param_input.setMinimumWidth(min_header_width)  # Adjust this value based on the text size
+                param_input.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Fixed)  # Allows it to expand horizontally if necessary
+    
+                # Set consistent size for all input fields
+                std_input = QLineEdit(std_default)
+                fp_input = QLineEdit(fp_default)
+    
+                # Set minimum width for the inputs to ensure column alignment
+                std_input.setMinimumWidth(min_header_width)
+                fp_input.setMinimumWidth(min_header_width)
+    
+                # Use QSizePolicy.Policy.Expanding for dynamic resizing of the input fields
+                std_input.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+                fp_input.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+    
+                row_layout.addWidget(param_input)
+                row_layout.addWidget(std_input)
+                row_layout.addWidget(fp_input)
+    
+                if info_text or fig_format_info:
+                    # Create the visible 'i' button
+                    info_button = QPushButton('i')
+                    info_button.setFixedSize(24, 24)
+                    info_button.setStyleSheet("border-radius: 12px; background-color: lightgray; color: black; font-weight: bold; font-size: 13px;")
+                    info_button.clicked.connect(lambda: self.show_info(info_text, fig_format_info=fig_format_info))  # Show the relevant info
+                    row_layout.addWidget(info_button)
+                else:
+                    # If no info text is provided, add an invisible spacer item 
+                    spacer = QSpacerItem(30, 30, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+                    row_layout.addSpacerItem(spacer)
+    
+                return row_layout, std_input, fp_input
+    
+            # Add rows for each parameter with 'i' buttons where required
+            figure_size_row, self.std_figsize_input, self.fp_figsize_input = create_row(
+                "Figure Size", "6, 6", "6, 6",
+                info_text='Figure size should be provided as "width, height". Ensure that both width and height are specified.\n\nFor n fragments, a figure size of "n, n" is mostly optimal.'
+            )
+    
+            min_colormap_row, self.std_vmin_input, self.fp_vmin_input = create_row("Minimum of Colormap", "-30", "-30")
+            max_colormap_row, self.std_vmax_input, self.fp_vmax_input = create_row("Maximum of Colormap", "30", "30")
+            dpi_row, self.std_dpi_input, self.fp_dpi_input = create_row("DPI", "400", "400")
+            cutoff_row, self.std_cutoff_input, self.fp_cutoff_input = create_row(
+                "Cutoff for Annotation", "None", "None", 
+                info_text="If None is selected, all values will be annotated on the heatmap. If a value X is specified, values between -X and X will not be annotated on the heat maps."
+            )
+            submatrix_row, self.std_submatrix_input, self.fp_submatrix_input = create_row(
+                "Enclose a Submatrix with a Black Box", "None", "None", 
+                info_text= "To enclose the border of a submatrix with a black box, enter the 0-based indices of the rows and columns "
+    					"within this submatrix in the following format: \n\n"
+    					"(starting row, starting column), (ending row, ending column) \n\n"
+    					"For example, the top-right 3×3 corner of a 6×6 matrix includes rows 0, 1, and 2 (starting row = 0, ending row = 2) "
+    					"and columns 3, 4, and 5 (starting column = 3, ending column = 5). "
+    					"Thus, in this field you must enter \n\n"
+    					"(0, 3), (2, 5) \n\n"
+    					"to enclose the top-right 3×3 matrix with a black box. \n\n"
+    					"Default: None"
+            )
+    
+            # 'i' button for Figure Format with available options from matplotlib
+            fig_format_row, self.std_fig_format_input, self.fp_fig_format_input = create_row(
+                "Figure Format", "tif", "tif",
+                info_text="Figure format supported by matplotlib: for example, png, jpg, tif, pdf, etc.",
+                fig_format_info=True  # Pass this argument to dynamically fetch supported formats
+            )
+    
+            # Add rows to layout
+            layout.addLayout(figure_size_row)
+            layout.addLayout(min_colormap_row)
+            layout.addLayout(max_colormap_row)
+            layout.addLayout(fig_format_row)
+            layout.addLayout(dpi_row)
+            layout.addLayout(cutoff_row)
+            layout.addLayout(submatrix_row)
+    
+            # Initialize the checkbox here to ensure it's an attribute of the class
+            self.show_diag_checkbox = QCheckBox("Do you want to demonstrate empty diagonal cells on the fp-LED heat maps?")
+            self.show_diag_checkbox.stateChanged.connect(self.toggle_diag_cells_for_fp_led)
+            layout.addWidget(self.show_diag_checkbox)
+    
+            # Similarly for the delete checkbox
+            self.delete_old_plots_checkbox = QCheckBox("Do you want to delete heat map directories if they exist from earlier runs?")
+            self.delete_old_plots_checkbox.stateChanged.connect(self.toggle_delete_old_plots)
+            layout.addWidget(self.delete_old_plots_checkbox)
+    
+            # Confirm Parameters to Proceed Button
+            validate_button = QPushButton("Confirm Parameters to Proceed")
+            validate_button.setFixedHeight(40)
+            validate_button.setStyleSheet("QPushButton {background-color: #ebedef;} QPushButton:hover {background-color: paleturquoise;}")
+            validate_button.clicked.connect(self.confirm_plot_button_clicked)  # Connect to validation and confirmation
+            layout.addWidget(validate_button)
+            layout.addStretch(1) 
 
-        param_header = QLabel("Parameters")
-        std_led_header = QLabel("Plot Parameters for Standard LED")
-        fp_led_header = QLabel("Plot Parameters for fp-LED")
-
-        # Set a consistent height for all header labels
-        header_height = 30  # Adjust this value to increase or decrease the height
-
-        # Set minimum size for the first header cell (similar to parameter rows)
-        min_header_width = 250  # Adjust this value as needed
-        param_header.setMinimumWidth(min_header_width)
-        std_led_header.setMinimumWidth(min_header_width)
-        fp_led_header.setMinimumWidth(min_header_width)
-
-        param_header.setMinimumHeight(header_height)
-        std_led_header.setMinimumHeight(header_height)
-        fp_led_header.setMinimumHeight(header_height)
-
-        # Styling the headers
-        header_style = "background-color: #ebedef; font-size: 11px; font-weight: bold; padding: 5px;"
-        param_header.setStyleSheet(header_style)
-        std_led_header.setStyleSheet(header_style)
-        fp_led_header.setStyleSheet(header_style)
-
-        # Set headers size policy for width flexibility
-        param_header.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        std_led_header.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        fp_led_header.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-
-        # Add an invisible 'i' button placeholder (taking up space) for the header row
-        header_spacer = QSpacerItem(30, header_height, QSizePolicy.Fixed, QSizePolicy.Fixed)  # Placeholder for alignment
-
-        # Add the headers and placeholder
-        header_layout.addWidget(param_header)
-        header_layout.addWidget(std_led_header)
-        header_layout.addWidget(fp_led_header)
-        header_layout.addSpacerItem(header_spacer)  # Invisible spacer for alignment
-
-        layout.addLayout(header_layout)
-
-
-        def create_row(param_text, std_default, fp_default, info_text=None, fig_format_info=False):
-            row_layout = QHBoxLayout()
-
-            param_input = QLineEdit(param_text)
-            param_input.setReadOnly(True)  # Parameter field is unmodifiable
-            param_input.setStyleSheet("background-color: lightgrey;")
-
-            # Set minimum size for the parameter input (first column)
-            param_input.setMinimumWidth(min_header_width)  # Adjust this value based on the text size
-            param_input.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Fixed)  # Allows it to expand horizontally if necessary
-
-            # Set consistent size for all input fields
-            std_input = QLineEdit(std_default)
-            fp_input = QLineEdit(fp_default)
-
-            # Set minimum width for the inputs to ensure column alignment
-            std_input.setMinimumWidth(min_header_width)
-            fp_input.setMinimumWidth(min_header_width)
-
-            # Use QSizePolicy.Expanding for dynamic resizing of the input fields
-            std_input.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-            fp_input.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-
-            row_layout.addWidget(param_input)
-            row_layout.addWidget(std_input)
-            row_layout.addWidget(fp_input)
-
-            if info_text or fig_format_info:
-                # Create the visible 'i' button
-                info_button = QPushButton('i')
-                info_button.setFixedSize(24, 24)
-                info_button.setStyleSheet("border-radius: 12px; background-color: lightgray; color: black; font-weight: bold; font-size: 13px;")
-                info_button.clicked.connect(lambda: self.show_info(info_text, fig_format_info=fig_format_info))  # Show the relevant info
-                row_layout.addWidget(info_button)
-            else:
-                # If no info text is provided, add an invisible spacer item 
-                spacer = QSpacerItem(30, 30, QSizePolicy.Fixed, QSizePolicy.Fixed)
-                row_layout.addSpacerItem(spacer)
-
-            return row_layout, std_input, fp_input
-
-        # Add rows for each parameter with 'i' buttons where required
-        figure_size_row, self.std_figsize_input, self.fp_figsize_input = create_row(
-            "Figure Size", "6, 6", "6, 6",
-            info_text='Figure size should be provided as "width, height". Ensure that both width and height are specified.\n\nFor n fragments, a figure size of "n, n" is mostly optimal.'
-        )
-
-        min_colormap_row, self.std_vmin_input, self.fp_vmin_input = create_row("Minimum of Colormap", "-30", "-30")
-        max_colormap_row, self.std_vmax_input, self.fp_vmax_input = create_row("Maximum of Colormap", "30", "30")
-        dpi_row, self.std_dpi_input, self.fp_dpi_input = create_row("DPI", "400", "400")
-        cutoff_row, self.std_cutoff_input, self.fp_cutoff_input = create_row(
-            "Cutoff for Annotation", "None", "None", 
-            info_text="If None is selected, all values will be annotated on the heatmap. If a value X is specified, values between -X and X will not be annotated on the heat maps."
-        )
-        submatrix_row, self.std_submatrix_input, self.fp_submatrix_input = create_row(
-            "Enclose a Submatrix with a Black Box", "None", "None", 
-            info_text= "To enclose the border of a submatrix with a black box, enter the 0-based indices of the rows and columns "
-					"within this submatrix in the following format: \n\n"
-					"(starting row, starting column), (ending row, ending column) \n\n"
-					"For example, the top-right 3×3 corner of a 6×6 matrix includes rows 0, 1, and 2 (starting row = 0, ending row = 2) "
-					"and columns 3, 4, and 5 (starting column = 3, ending column = 5). "
-					"Thus, in this field you must enter \n\n"
-					"(0, 3), (2, 5) \n\n"
-					"to enclose the top-right 3×3 matrix with a black box. \n\n"
-					"Default: None"
-        )
-
-        # 'i' button for Figure Format with available options from matplotlib
-        fig_format_row, self.std_fig_format_input, self.fp_fig_format_input = create_row(
-            "Figure Format", "tif", "tif",
-            info_text="Figure format supported by matplotlib: for example, png, jpg, tif, pdf, etc.",
-            fig_format_info=True  # Pass this argument to dynamically fetch supported formats
-        )
-
-        # Add rows to layout
-        layout.addLayout(figure_size_row)
-        layout.addLayout(min_colormap_row)
-        layout.addLayout(max_colormap_row)
-        layout.addLayout(fig_format_row)
-        layout.addLayout(dpi_row)
-        layout.addLayout(cutoff_row)
-        layout.addLayout(submatrix_row)
-
-        # Add a spacer before the checkbox row
-        # layout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding))
-
-        # Initialize the checkbox here to ensure it's an attribute of the class
-        self.show_diag_checkbox = QCheckBox("Do you want to demonstrate empty diagonal cells on the fp-LED heat maps?")
-        self.show_diag_checkbox.stateChanged.connect(self.toggle_diag_cells_for_fp_led)
-        layout.addWidget(self.show_diag_checkbox)
-
-        # Similarly for the delete checkbox
-        self.delete_old_plots_checkbox = QCheckBox("Do you want to delete heat map directories if they exist from earlier runs?")
-        self.delete_old_plots_checkbox.stateChanged.connect(self.toggle_delete_old_plots)
-        layout.addWidget(self.delete_old_plots_checkbox)
-
-        # Add a spacer after the checkbox row
-        # layout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding))
-
-        # Confirm Parameters to Proceed Button
-        validate_button = QPushButton("Confirm Parameters to Proceed")
-        validate_button.setFixedHeight(40)
-        validate_button.setStyleSheet("QPushButton {background-color: #ebedef;} QPushButton:hover {background-color: paleturquoise;}")
-        validate_button.clicked.connect(self.confirm_plot_button_clicked)  # Connect to validation and confirmation
-        layout.addWidget(validate_button)
-
-        self.plot_tab.setLayout(layout)  # Assign layout to self.plot_tab
-
-        # Insert Plot tab before Exit and About
-        exit_index = self.tabs.count() - 2
-        self.tabs.insertTab(exit_index, self.plot_tab, "Plot")
-        self.created_tabs.append(self.plot_tab)
-        return self.tabs.indexOf(self.plot_tab)
+            # Set the content widget for the scroll area
+            scroll_area.setWidget(scroll_content_widget)
+    
+            # Create a main layout for the tab and add the scroll area to it
+            main_layout = QVBoxLayout(self.plot_tab)
+            main_layout.addWidget(scroll_area, 1)
+#            main_layout.addStretch()
+    
+            # Insert Plot tab before Exit and About
+            exit_index = self.tabs.count() - 2
+            self.tabs.insertTab(exit_index, self.plot_tab, "Plot")
+            self.created_tabs.append(self.plot_tab)
+            return self.tabs.indexOf(self.plot_tab)
 
 
     def toggle_diag_cells_for_fp_led(self, state):
