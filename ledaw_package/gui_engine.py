@@ -4615,7 +4615,7 @@ class LEDAWApp(QMainWindow):
 
 
     def toggle_delete_old_plots(self, state):
-        """Toggle the flag for showing diagonal cells in fp-LED heat maps."""
+        """Toggle the flag for deleting old heat map directories."""
         self.delete_old_plots = state == Qt.Checked
 
 
