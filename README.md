@@ -174,4 +174,6 @@ The above copyright notice and this permission notice shall be included in all c
 > **Disclaimer:**  
 > THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHOR OR COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+This software includes third-party libraries used under their respective open-source licenses, including but not limited to PySide6 (LGPL v3), matplotlib (PSF License), numpy (BSD 3-Clause), pandas (BSD 3-Clause), seaborn (BSD 3-Clause), openpyxl (MIT License), and psutil (BSD 3-Clause). Users are responsible for reviewing and complying with the terms of these licenses. The commercial use restriction in this license applies only to the original code written by the author, and does not restrict the use of third-party components under their respective licenses, including PySide6, which permits commercial use under the LGPL v3.
+
 ---
