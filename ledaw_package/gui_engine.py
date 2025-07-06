@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QFrame, QScrollArea, QDialog, QTextEdit, QProgressBar, QDialogButtonBox, QFileDialog, QVBoxLayout, QLabel, QPushButton, QLineEdit, QTabWidget, QFormLayout, QComboBox, QCheckBox, QMessageBox, QHBoxLayout, QSizePolicy, QSpacerItem
-from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal, pyqtSlot
+from PySide6.QtWidgets import QMainWindow, QApplication, QWidget, QFrame, QScrollArea, QDialog, QTextEdit, QProgressBar, QDialogButtonBox, QFileDialog, QVBoxLayout, QLabel, QPushButton, QLineEdit, QTabWidget, QFormLayout, QComboBox, QCheckBox, QMessageBox, QHBoxLayout, QSizePolicy, QSpacerItem
+from PySide6.QtGui import QIcon
+from PySide6.QtCore import Qt, QTimer, Signal, Slot
 import matplotlib.pyplot as plt
 from .job_engine import JobWorker, PlotJobWorker
 import shutil
@@ -96,7 +96,7 @@ class LEDAWApp(QMainWindow):
         self.output_dir_input.editingFinished.connect(self.update_output_directory)
 
 
-    @pyqtSlot(str, str)
+    @Slot(str, str)
     def show_error_message(self, title, message):
         QMessageBox.critical(self, title, message)
 
@@ -201,7 +201,7 @@ class LEDAWApp(QMainWindow):
         )
 
         # Show the message box
-        msg.exec_()
+        msg.exec()
 
 
     def show_method_info(self):
@@ -232,7 +232,7 @@ class LEDAWApp(QMainWindow):
     
         msg.setText("For several reasons, the method name is not directly extracted from ORCA output files. "
                     "LED terms will be collected from the output files according to the chosen method.")
-        msg.exec_()
+        msg.exec()
 
 
     def create_home_tab(self):
@@ -389,7 +389,7 @@ class LEDAWApp(QMainWindow):
         self.f_corr_input.setVisible(False)        
         
         # Ensure alignment from left
-        cbs_method_layout.setAlignment(Qt.AlignLeft)
+        cbs_method_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
         # Initially hide options to CBS method
         self.cbs_label.setVisible(False)
@@ -497,7 +497,7 @@ class LEDAWApp(QMainWindow):
         # Add the content (the overview of files) to the scrollable layout
         content_label = QLabel(content)
         content_label.setWordWrap(True)  # Enable word wrap for long content
-        content_label.setAlignment(Qt.AlignLeft)  # Align the content to the left
+        content_label.setAlignment(Qt.AlignmentFlag.AlignLeft)  # Align the content to the left
         scroll_layout.addWidget(content_label)
 
         # Set the scrollable content widget as the scroll area's widget
@@ -520,9 +520,9 @@ class LEDAWApp(QMainWindow):
         layout.addLayout(button_layout)
 
         # Show the dialog
-        result = dialog.exec_()
+        result = dialog.exec()
 
-        return result == QDialog.Accepted
+        return result == QDialog.DialogCode.Accepted
 
 
     def set_cbs_defaults(self):
@@ -705,10 +705,10 @@ class LEDAWApp(QMainWindow):
         # Create the confirmation dialog window
         confirm_dialog = QDialog(self)
         confirm_dialog.setWindowTitle("Confirm Parameters")
-        confirm_dialog.setMinimumSize(700, 410)
+        confirm_dialog.setMinimumSize(500, 400)
 
         # Remove the "?" help button
-        confirm_dialog.setWindowFlags(confirm_dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        confirm_dialog.setWindowFlags(confirm_dialog.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
 
         # Create a layout for the dialog
         layout = QVBoxLayout()
@@ -758,7 +758,7 @@ class LEDAWApp(QMainWindow):
         confirm_dialog.setLayout(layout)
 
         # Show the dialog
-        if confirm_dialog.exec_() == QDialog.Accepted:
+        if confirm_dialog.exec() == QDialog.DialogCode.Accepted:
             # Add tabs in order based on user selection
             self.add_tabs_in_order()
         else:
@@ -798,7 +798,7 @@ class LEDAWApp(QMainWindow):
             # Continue without crashing if the icon fails to load
     
         msg.setText("To perform this analysis, ORCA output files are required for both the supersystem (i.e., the adduct consisting of two or more fragments, on which interaction energy is calculated) and the subsystems used to compute the interaction energy. No LED data are needed in the ORCA output files for subsystems that consist of only one fragment.")
-        msg.exec_()
+        msg.exec()
 
 
     def show_twobody_info(self):
@@ -829,7 +829,7 @@ class LEDAWApp(QMainWindow):
     
         msg.setText("To perform this analysis, ORCA output files are required for all the two-fragment subsystems of a supersystem, whose fragments belong to different subsystems, and for all the corresponding monomers. No LED data are needed in the ORCA output files of monomers. The two-body module collects LED interaction energy components of the isolated two-fragment subsystems on NxN matrices.\n\n"
                    "If both N-body and two-body analyses are selected, cooperativity analysis will be performed as well.")
-        msg.exec_()
+        msg.exec()
 
 
     def show_cps_info(self):
@@ -860,7 +860,7 @@ class LEDAWApp(QMainWindow):
     
         msg.setText("To perform CPS extrapolation, ORCA output files containing results with both a looser PNO and "
                     "a tighter PNO settings are necessary, with adjacent TCutPNO exponents, such as, TCutPNO = 1e-6 and 1e-7, respectively.")
-        msg.exec_()
+        msg.exec()
 
 
     def show_cbs_info(self):
@@ -893,7 +893,7 @@ class LEDAWApp(QMainWindow):
                     "and a larger basis set with adjacent cardinal numbers are necessary, such as, cc-pVTZ and cc-pVQZ, respectively.\n\n"
                     "For CBS(2/3) and (3/4), F coefficients are chosen as in the Supporting Information of the open-shell HFLD method paper "
                     "(DOI: 10.1021/acs.jctc.1c01295).")
-        msg.exec_()
+        msg.exec()
 
 
     def show_plot_info(self):
@@ -923,7 +923,7 @@ class LEDAWApp(QMainWindow):
             # Continue without crashing if the icon fails to load
     
         msg.setText("It is necessary to select one of N-body LED and two-body LED or to have files of these analyses from previous runs in the LEDAW output directory of the given job name.")
-        msg.exec_()
+        msg.exec()
 
 
     def create_manage_session_tab(self):
@@ -1200,7 +1200,7 @@ class LEDAWApp(QMainWindow):
 					"will interrupt LEDAW’s execution with an error.\n\n"					
 					"Note 3: Regardless of whether a relabel mapping is used, users do not need to worry if the same fragment has different labels across the supersystem main, supersystem alternative, and subsystem ORCA output files. "
                     "All fragment labels are automatically standardized to match the main supersystem file - or its reordered labels if a relabel mapping is applied.")
-        msg.exec_()
+        msg.exec()
 
 
     def add_relabel_mapping_section(self, target_layout, section):
@@ -1240,7 +1240,7 @@ class LEDAWApp(QMainWindow):
         relabel_input.setPlaceholderText("Enter relabel mapping list")
 
         # Set the size policy to ensure it occupies the entire row and resizes dynamically
-        relabel_input.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        relabel_input.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         relabel_input.setFixedHeight(30)  # Adjust height to match other UI components
 
         # Add the input field to the row layout
@@ -1307,7 +1307,7 @@ class LEDAWApp(QMainWindow):
     def add_cps_cbs_nbody_layout(self, layout):
         """Create a CPS and CBS layout for the N-body tab"""
 
-        self.nbody_tab.setMinimumSize(700, 410)
+        self.nbody_tab.setMinimumSize(700, 400)
 
         # Initialize lists to hold file paths for CPS and CBS sections
         self.main_filenames_SB_LPNO = ['']
@@ -1343,7 +1343,7 @@ class LEDAWApp(QMainWindow):
         layout.addLayout(info_layout)  # Info button on its own row
 
         # Spacer between Main and Alternative headers with a fixed size of 3px
-        header_spacer = QSpacerItem(3, 0, QSizePolicy.Fixed, QSizePolicy.Minimum)
+        header_spacer = QSpacerItem(3, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
 
 
         def select_file(button, file_type, row, section, is_supersystem=False):
@@ -1429,8 +1429,8 @@ class LEDAWApp(QMainWindow):
                 subsystem_main.setPlaceholderText("Subsystem Main File")
                 subsystem_alt.setPlaceholderText("Subsystem Alternative File")
 
-                subsystem_main.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-                subsystem_alt.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+                subsystem_main.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+                subsystem_alt.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
                 subsystem_main.setFixedHeight(30)
                 subsystem_alt.setFixedHeight(30)
 
@@ -1510,7 +1510,7 @@ class LEDAWApp(QMainWindow):
         # Adding the "Smaller Basis Set and Looser PNO" Section
         sb_lpno_label = QLabel("Smaller Basis Set and Looser PNO")
         sb_lpno_label.setStyleSheet("background-color: #d3e2f4; font-size: 12px; padding: 5px; text-align: center; font-weight: bold;")
-        sb_lpno_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        sb_lpno_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         layout.addWidget(sb_lpno_label)
 
         # Add relabel mapping section right after the heading
@@ -1525,8 +1525,8 @@ class LEDAWApp(QMainWindow):
         alt_label.setStyleSheet("background-color: #ebedef; font-size: 11px; padding: 5px; text-align: center; font-weight: bold;")
 
         # Set equal size policy for dynamic resizing of both headers
-        main_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        alt_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        main_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        alt_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         # Match the height of the select boxes and headings (assuming 30px for the select buttons)
         select_button_height = 30
@@ -1553,8 +1553,8 @@ class LEDAWApp(QMainWindow):
         self.sb_lpno_supersystem_alt.setPlaceholderText("Supersystem Alternative File")
 
         # Set size policy and height to match the heading size
-        self.sb_lpno_supersystem_main.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.sb_lpno_supersystem_alt.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.sb_lpno_supersystem_main.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.sb_lpno_supersystem_alt.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.sb_lpno_supersystem_main.setFixedHeight(select_button_height)
         self.sb_lpno_supersystem_alt.setFixedHeight(select_button_height)
 
@@ -1597,7 +1597,7 @@ class LEDAWApp(QMainWindow):
         # Adding the "Smaller Basis Set and Tighter PNO" Section
         sb_tpno_label = QLabel("Smaller Basis Set and Tighter PNO")
         sb_tpno_label.setStyleSheet("background-color: #d3e2f4; font-size: 12px; padding: 5px; text-align: center; font-weight: bold;")
-        sb_tpno_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        sb_tpno_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         layout.addWidget(sb_tpno_label)
 
         # Add relabel mapping section right after the heading
@@ -1608,8 +1608,8 @@ class LEDAWApp(QMainWindow):
         alt_label = QLabel("Alternative ORCA Output Files (Optional)")
         main_label.setStyleSheet("background-color: #ebedef; font-size: 11px; padding: 5px; text-align: center; font-weight: bold;")
         alt_label.setStyleSheet("background-color: #ebedef; font-size: 11px; padding: 5px; text-align: center; font-weight: bold;")
-        main_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        alt_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        main_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        alt_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         main_label.setFixedHeight(select_button_height)
         alt_label.setFixedHeight(select_button_height)
 
@@ -1624,8 +1624,8 @@ class LEDAWApp(QMainWindow):
         self.sb_tpno_supersystem_alt = QLineEdit()
         self.sb_tpno_supersystem_main.setPlaceholderText("Supersystem Main File")
         self.sb_tpno_supersystem_alt.setPlaceholderText("Supersystem Alternative File")
-        self.sb_tpno_supersystem_main.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.sb_tpno_supersystem_alt.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.sb_tpno_supersystem_main.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.sb_tpno_supersystem_alt.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.sb_tpno_supersystem_main.setFixedHeight(select_button_height)
         self.sb_tpno_supersystem_alt.setFixedHeight(select_button_height)
 
@@ -1665,7 +1665,7 @@ class LEDAWApp(QMainWindow):
         # Adding the "Larger Basis Set and Looser PNO" Section
         sb_lpno_label = QLabel("Larger Basis Set and Looser PNO")
         sb_lpno_label.setStyleSheet("background-color: #d3e2f4; font-size: 12px; padding: 5px; text-align: center; font-weight: bold;")
-        sb_lpno_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        sb_lpno_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         layout.addWidget(sb_lpno_label)
 
         # Add relabel mapping section right after the heading
@@ -1676,8 +1676,8 @@ class LEDAWApp(QMainWindow):
         alt_label = QLabel("Alternative ORCA Output Files (Optional)")
         main_label.setStyleSheet("background-color: #ebedef; font-size: 11px; padding: 5px; text-align: center; font-weight: bold;")
         alt_label.setStyleSheet("background-color: #ebedef; font-size: 11px; padding: 5px; text-align: center; font-weight: bold;")
-        main_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        alt_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        main_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        alt_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         main_label.setFixedHeight(select_button_height)
         alt_label.setFixedHeight(select_button_height)
 
@@ -1692,8 +1692,8 @@ class LEDAWApp(QMainWindow):
         self.lb_lpno_supersystem_alt = QLineEdit()
         self.lb_lpno_supersystem_main.setPlaceholderText("Supersystem Main File")
         self.lb_lpno_supersystem_alt.setPlaceholderText("Supersystem Alternative File")
-        self.lb_lpno_supersystem_main.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.lb_lpno_supersystem_alt.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.lb_lpno_supersystem_main.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.lb_lpno_supersystem_alt.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.lb_lpno_supersystem_main.setFixedHeight(select_button_height)
         self.lb_lpno_supersystem_alt.setFixedHeight(select_button_height)
 
@@ -1733,7 +1733,7 @@ class LEDAWApp(QMainWindow):
         # Adding the "Larger Basis Set and Tighter PNO" Section
         lb_tpno_label = QLabel("Larger Basis Set and Tighter PNO")
         lb_tpno_label.setStyleSheet("background-color: #d3e2f4; font-size: 12px; padding: 5px; text-align: center; font-weight: bold;")
-        lb_tpno_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        lb_tpno_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         layout.addWidget(lb_tpno_label)
 
         # Add relabel mapping section right after the heading
@@ -1744,8 +1744,8 @@ class LEDAWApp(QMainWindow):
         alt_label = QLabel("Alternative ORCA Output Files (Optional)")
         main_label.setStyleSheet("background-color: #ebedef; font-size: 11px; padding: 5px; text-align: center; font-weight: bold;")
         alt_label.setStyleSheet("background-color: #ebedef; font-size: 11px; padding: 5px; text-align: center; font-weight: bold;")
-        main_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        alt_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        main_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        alt_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         main_label.setFixedHeight(select_button_height)
         alt_label.setFixedHeight(select_button_height)
 
@@ -1760,8 +1760,8 @@ class LEDAWApp(QMainWindow):
         self.lb_tpno_supersystem_alt = QLineEdit()
         self.lb_tpno_supersystem_main.setPlaceholderText("Supersystem Main File")
         self.lb_tpno_supersystem_alt.setPlaceholderText("Supersystem Alternative File")
-        self.lb_tpno_supersystem_main.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.lb_tpno_supersystem_alt.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.lb_tpno_supersystem_main.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.lb_tpno_supersystem_alt.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.lb_tpno_supersystem_main.setFixedHeight(select_button_height)
         self.lb_tpno_supersystem_alt.setFixedHeight(select_button_height)
 
@@ -1806,12 +1806,12 @@ class LEDAWApp(QMainWindow):
         confirm_button.clicked.connect(self.confirm_cps_cbs_nbody_to_proceed)
         layout.addWidget(confirm_button)
 
-        layout.addSpacing(10)
+        layout.addStretch()
 
         # Status label for the job process (error message can be copied)
         status_label = QLabel('')
-        status_label.setAlignment(Qt.AlignCenter)
-        status_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        status_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         layout.addWidget(status_label)
 
         return self.tabs.indexOf(self.nbody_tab)
@@ -1902,7 +1902,7 @@ class LEDAWApp(QMainWindow):
         confirmation_dialog.setWindowTitle("Confirm Files")
 
         # Remove the "?" help button from the dialog window
-        confirmation_dialog.setWindowFlags(confirmation_dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        confirmation_dialog.setWindowFlags(confirmation_dialog.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
 
         layout = QVBoxLayout()
 
@@ -1916,11 +1916,11 @@ class LEDAWApp(QMainWindow):
         text_area.setHtml(files_overview)  # Use setHtml to apply rich text (bold)
 
         # Allow the text area to dynamically resize with the window
-        text_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        text_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout.addWidget(text_area)
 
         # Add OK and Cancel buttons
-        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         button_box.accepted.connect(confirmation_dialog.accept)
         button_box.rejected.connect(confirmation_dialog.reject)
         layout.addWidget(button_box)
@@ -1931,7 +1931,7 @@ class LEDAWApp(QMainWindow):
         confirmation_dialog.resize(670, 400)
 
         # Show the dialog and check user response
-        if confirmation_dialog.exec_() == QDialog.Accepted:
+        if confirmation_dialog.exec() == QDialog.DialogCode.Accepted:
             self.lock_tab(self.nbody_tab)
             self.switch_to_next_dynamic_tab()
 
@@ -1939,7 +1939,7 @@ class LEDAWApp(QMainWindow):
     def add_cps_nbody_layout(self, layout):
         """Create a CPS layout for the N-body tab"""
 
-        self.nbody_tab.setMinimumSize(700, 410)
+        self.nbody_tab.setMinimumSize(700, 400)
 
         # Initialize lists to hold file paths
         self.main_filenames_LPNO = ['']
@@ -1970,7 +1970,7 @@ class LEDAWApp(QMainWindow):
         layout.addLayout(info_layout)  # Info button on its own row
 
         # Spacer between Main and Alternative headers with a fixed size of 3px
-        header_spacer = QSpacerItem(3, 0, QSizePolicy.Fixed, QSizePolicy.Minimum)
+        header_spacer = QSpacerItem(3, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
 
 
         def select_file(button, file_type, row, section, is_supersystem=False):
@@ -2041,8 +2041,8 @@ class LEDAWApp(QMainWindow):
                 subsystem_main.setPlaceholderText("Subsystem Main File")
                 subsystem_alt.setPlaceholderText("Subsystem Alternative File")
 
-                subsystem_main.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-                subsystem_alt.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+                subsystem_main.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+                subsystem_alt.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
                 subsystem_main.setFixedHeight(30)
                 subsystem_alt.setFixedHeight(30)
 
@@ -2097,7 +2097,7 @@ class LEDAWApp(QMainWindow):
         # Adding the "Looser PNO" Section
         lpno_label = QLabel("Looser PNO")
         lpno_label.setStyleSheet("background-color: #d3e2f4; font-size: 12px; padding: 5px; text-align: center; font-weight: bold;")
-        lpno_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        lpno_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         layout.addWidget(lpno_label)
 
         # Add relabel mapping section right after the heading
@@ -2112,8 +2112,8 @@ class LEDAWApp(QMainWindow):
         alt_label.setStyleSheet("background-color: #ebedef; font-size: 11px; padding: 5px; text-align: center; font-weight: bold;")
 
         # Set equal size policy for dynamic resizing of both headers
-        main_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        alt_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        main_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        alt_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         # Match the height of the select boxes and headings (assuming 30px for the select buttons)
         select_button_height = 30
@@ -2140,8 +2140,8 @@ class LEDAWApp(QMainWindow):
         self.lpno_supersystem_alt.setPlaceholderText("Supersystem Alternative File")
 
         # Set size policy and height to match the heading size
-        self.lpno_supersystem_main.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.lpno_supersystem_alt.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.lpno_supersystem_main.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.lpno_supersystem_alt.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.lpno_supersystem_main.setFixedHeight(select_button_height)
         self.lpno_supersystem_alt.setFixedHeight(select_button_height)
 
@@ -2184,7 +2184,7 @@ class LEDAWApp(QMainWindow):
         # Adding the "Tighter PNO" Section
         tpno_label = QLabel("Tighter PNO")
         tpno_label.setStyleSheet("background-color: #d3e2f4; font-size: 12px; padding: 5px; text-align: center; font-weight: bold;")
-        tpno_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        tpno_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         layout.addWidget(tpno_label)
 
         # Add relabel mapping section right after the heading
@@ -2195,8 +2195,8 @@ class LEDAWApp(QMainWindow):
         alt_label = QLabel("Alternative ORCA Output Files (Optional)")
         main_label.setStyleSheet("background-color: #ebedef; font-size: 11px; padding: 5px; text-align: center; font-weight: bold;")
         alt_label.setStyleSheet("background-color: #ebedef; font-size: 11px; padding: 5px; text-align: center; font-weight: bold;")
-        main_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        alt_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        main_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        alt_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         main_label.setFixedHeight(select_button_height)
         alt_label.setFixedHeight(select_button_height)
 
@@ -2211,8 +2211,8 @@ class LEDAWApp(QMainWindow):
         self.tpno_supersystem_alt = QLineEdit()
         self.tpno_supersystem_main.setPlaceholderText("Supersystem Main File")
         self.tpno_supersystem_alt.setPlaceholderText("Supersystem Alternative File")
-        self.tpno_supersystem_main.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.tpno_supersystem_alt.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.tpno_supersystem_main.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.tpno_supersystem_alt.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.tpno_supersystem_main.setFixedHeight(select_button_height)
         self.tpno_supersystem_alt.setFixedHeight(select_button_height)
 
@@ -2257,12 +2257,12 @@ class LEDAWApp(QMainWindow):
         confirm_button.clicked.connect(self.confirm_cps_nbody_to_proceed)
         layout.addWidget(confirm_button)
 
-        layout.addSpacing(10)
+        layout.addSpacing(120)
 
         # Status label for the job process (error message can be copied)
         status_label = QLabel('')
-        status_label.setAlignment(Qt.AlignCenter)
-        status_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        status_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         layout.addWidget(status_label)
 
         return self.tabs.indexOf(self.nbody_tab)
@@ -2324,7 +2324,7 @@ class LEDAWApp(QMainWindow):
         confirmation_dialog.setWindowTitle("Confirm Files")
 
         # Remove the "?" help button from the dialog window
-        confirmation_dialog.setWindowFlags(confirmation_dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        confirmation_dialog.setWindowFlags(confirmation_dialog.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
 
         layout = QVBoxLayout()
 
@@ -2338,11 +2338,11 @@ class LEDAWApp(QMainWindow):
         text_area.setHtml(files_overview)  # Use setHtml to apply rich text (bold)
 
         # Allow the text area to dynamically resize with the window
-        text_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        text_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout.addWidget(text_area)
 
         # Add OK and Cancel buttons
-        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         button_box.accepted.connect(confirmation_dialog.accept)
         button_box.rejected.connect(confirmation_dialog.reject)
         layout.addWidget(button_box)
@@ -2353,7 +2353,7 @@ class LEDAWApp(QMainWindow):
         confirmation_dialog.resize(670, 400)
 
         # Show the dialog and check user response
-        if confirmation_dialog.exec_() == QDialog.Accepted:
+        if confirmation_dialog.exec() == QDialog.DialogCode.Accepted:
             self.lock_tab(self.nbody_tab)
             self.switch_to_next_dynamic_tab()
 
@@ -2361,7 +2361,7 @@ class LEDAWApp(QMainWindow):
     def add_cbs_nbody_layout(self, layout):
         """Create a CBS layout for the N-body tab"""
 
-        self.nbody_tab.setMinimumSize(700, 410)
+        self.nbody_tab.setMinimumSize(700, 400)
 
         # Initialize lists to hold file paths
         self.main_filenames_SB = ['']
@@ -2392,7 +2392,7 @@ class LEDAWApp(QMainWindow):
         layout.addLayout(info_layout)  # Info button on its own row
 
         # Spacer between Main and Alternative headers with a fixed size of 3px
-        header_spacer = QSpacerItem(3, 0, QSizePolicy.Fixed, QSizePolicy.Minimum)
+        header_spacer = QSpacerItem(3, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
 
 
         def select_file(button, file_type, row, section, is_supersystem=False):
@@ -2463,8 +2463,8 @@ class LEDAWApp(QMainWindow):
                 subsystem_main.setPlaceholderText("Subsystem Main File")
                 subsystem_alt.setPlaceholderText("Subsystem Alternative File")
 
-                subsystem_main.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-                subsystem_alt.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+                subsystem_main.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+                subsystem_alt.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
                 subsystem_main.setFixedHeight(30)
                 subsystem_alt.setFixedHeight(30)
 
@@ -2519,7 +2519,7 @@ class LEDAWApp(QMainWindow):
         # Adding the "Smaller Basis Set" Section
         sb_label = QLabel("Smaller Basis Set")
         sb_label.setStyleSheet("background-color: #d3e2f4; font-size: 12px; padding: 5px; text-align: center; font-weight: bold;")
-        sb_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        sb_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         layout.addWidget(sb_label)
 
         # Add relabel mapping section right after the heading
@@ -2534,8 +2534,8 @@ class LEDAWApp(QMainWindow):
         alt_label.setStyleSheet("background-color: #ebedef; font-size: 11px; padding: 5px; text-align: center; font-weight: bold;")
 
         # Set equal size policy for dynamic resizing of both headers
-        main_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        alt_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        main_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        alt_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         # Match the height of the select boxes and headings (assuming 30px for the select buttons)
         select_button_height = 30
@@ -2562,8 +2562,8 @@ class LEDAWApp(QMainWindow):
         self.sb_supersystem_alt.setPlaceholderText("Supersystem Alternative File")
 
         # Set size policy and height to match the heading size
-        self.sb_supersystem_main.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.sb_supersystem_alt.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.sb_supersystem_main.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.sb_supersystem_alt.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.sb_supersystem_main.setFixedHeight(select_button_height)
         self.sb_supersystem_alt.setFixedHeight(select_button_height)
 
@@ -2606,7 +2606,7 @@ class LEDAWApp(QMainWindow):
         # Adding the "Larger Basis Set" Section
         lb_label = QLabel("Larger Basis Set")
         lb_label.setStyleSheet("background-color: #d3e2f4; font-size: 12px; padding: 5px; text-align: center; font-weight: bold;")
-        lb_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        lb_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         layout.addWidget(lb_label)
 
         # Add relabel mapping section right after the heading
@@ -2617,8 +2617,8 @@ class LEDAWApp(QMainWindow):
         alt_label = QLabel("Alternative ORCA Output Files (Optional)")
         main_label.setStyleSheet("background-color: #ebedef; font-size: 11px; padding: 5px; text-align: center; font-weight: bold;")
         alt_label.setStyleSheet("background-color: #ebedef; font-size: 11px; padding: 5px; text-align: center; font-weight: bold;")
-        main_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        alt_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        main_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        alt_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         main_label.setFixedHeight(select_button_height)
         alt_label.setFixedHeight(select_button_height)
 
@@ -2633,8 +2633,8 @@ class LEDAWApp(QMainWindow):
         self.lb_supersystem_alt = QLineEdit()
         self.lb_supersystem_main.setPlaceholderText("Supersystem Main File")
         self.lb_supersystem_alt.setPlaceholderText("Supersystem Alternative File")
-        self.lb_supersystem_main.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.lb_supersystem_alt.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.lb_supersystem_main.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.lb_supersystem_alt.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.lb_supersystem_main.setFixedHeight(select_button_height)
         self.lb_supersystem_alt.setFixedHeight(select_button_height)
 
@@ -2679,12 +2679,12 @@ class LEDAWApp(QMainWindow):
         confirm_button.clicked.connect(self.confirm_cbs_nbody_to_proceed)
         layout.addWidget(confirm_button)
 
-        layout.addSpacing(10)
+        layout.addSpacing(120)
 
         # Status label for the job process (error message can be copied)
         status_label = QLabel('')
-        status_label.setAlignment(Qt.AlignCenter)
-        status_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        status_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         layout.addWidget(status_label)
 
         return self.tabs.indexOf(self.nbody_tab)
@@ -2746,7 +2746,7 @@ class LEDAWApp(QMainWindow):
         confirmation_dialog.setWindowTitle("Confirm Files")
 
         # Remove the "?" help button from the dialog window
-        confirmation_dialog.setWindowFlags(confirmation_dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        confirmation_dialog.setWindowFlags(confirmation_dialog.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
 
         layout = QVBoxLayout()
 
@@ -2760,11 +2760,11 @@ class LEDAWApp(QMainWindow):
         text_area.setHtml(files_overview)  # Use setHtml to apply rich text (bold)
 
         # Allow the text area to dynamically resize with the window
-        text_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        text_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout.addWidget(text_area)
 
         # Add OK and Cancel buttons
-        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         button_box.accepted.connect(confirmation_dialog.accept)
         button_box.rejected.connect(confirmation_dialog.reject)
         layout.addWidget(button_box)
@@ -2775,7 +2775,7 @@ class LEDAWApp(QMainWindow):
         confirmation_dialog.resize(670, 400)
 
         # Show the dialog and check user response
-        if confirmation_dialog.exec_() == QDialog.Accepted:
+        if confirmation_dialog.exec() == QDialog.DialogCode.Accepted:
             self.lock_tab(self.nbody_tab)
             self.switch_to_next_dynamic_tab()
 
@@ -2783,7 +2783,7 @@ class LEDAWApp(QMainWindow):
     def add_standard_nbody_layout(self, layout):
         """Create a standard layout for the N-body tab"""
 
-        self.nbody_tab.setMinimumSize(700, 410)
+        self.nbody_tab.setMinimumSize(700, 400)
 
         # Initialize lists to hold file paths
         self.main_filenames = ['']
@@ -2810,7 +2810,7 @@ class LEDAWApp(QMainWindow):
         layout.addLayout(info_layout)  # Info button on its own row
 
         # Spacer between Main and Alternative headers with a fixed size of 3px
-        header_spacer = QSpacerItem(3, 0, QSizePolicy.Fixed, QSizePolicy.Minimum)
+        header_spacer = QSpacerItem(3, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
 
 
         def select_file(button, file_type, row, section, is_supersystem=False):
@@ -2872,8 +2872,8 @@ class LEDAWApp(QMainWindow):
                 subsystem_main.setPlaceholderText("Subsystem Main File")
                 subsystem_alt.setPlaceholderText("Subsystem Alternative File")
 
-                subsystem_main.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-                subsystem_alt.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+                subsystem_main.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+                subsystem_alt.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
                 subsystem_main.setFixedHeight(30)
                 subsystem_alt.setFixedHeight(30)
 
@@ -2914,9 +2914,9 @@ class LEDAWApp(QMainWindow):
             select_multiple_files(section, current_index)
 
         line = QFrame()
-        line.setFrameShape(QFrame.HLine)
-        line.setFrameShadow(QFrame.Sunken)
-        line.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        line.setFrameShape(QFrame.Shape.HLine)
+        line.setFrameShadow(QFrame.Shadow.Sunken)
+        line.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         layout.addWidget(line)
 
         # Add relabel mapping section right after the heading
@@ -2931,8 +2931,8 @@ class LEDAWApp(QMainWindow):
         alt_label.setStyleSheet("background-color: #ebedef; font-size: 11px; padding: 5px; text-align: center; font-weight: bold;")
 
         # Set equal size policy for dynamic resizing of both headers
-        main_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        alt_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        main_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        alt_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         # Match the height of the select boxes and headings (assuming 30px for the select buttons)
         select_button_height = 30
@@ -2959,8 +2959,8 @@ class LEDAWApp(QMainWindow):
         self.supersystem_alt.setPlaceholderText("Supersystem Alternative File")
 
         # Set size policy and height to match the heading size
-        self.supersystem_main.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.supersystem_alt.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.supersystem_main.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.supersystem_alt.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.supersystem_main.setFixedHeight(select_button_height)
         self.supersystem_alt.setFixedHeight(select_button_height)
 
@@ -3012,8 +3012,8 @@ class LEDAWApp(QMainWindow):
 
         # Status label for the job process (error message can be copied)
         status_label = QLabel('')
-        status_label.setAlignment(Qt.AlignCenter)
-        status_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        status_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         layout.addWidget(status_label)
 
         return self.tabs.indexOf(self.nbody_tab)
@@ -3055,7 +3055,7 @@ class LEDAWApp(QMainWindow):
         confirmation_dialog.setWindowTitle("Confirm Files")
 
         # Remove the "?" help button from the dialog window
-        confirmation_dialog.setWindowFlags(confirmation_dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        confirmation_dialog.setWindowFlags(confirmation_dialog.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
 
         layout = QVBoxLayout()
 
@@ -3069,11 +3069,11 @@ class LEDAWApp(QMainWindow):
         text_area.setHtml(files_overview)  # Use setHtml to apply rich text (bold)
 
         # Allow the text area to dynamically resize with the window
-        text_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        text_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout.addWidget(text_area)
 
         # Add OK and Cancel buttons
-        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         button_box.accepted.connect(confirmation_dialog.accept)
         button_box.rejected.connect(confirmation_dialog.reject)
         layout.addWidget(button_box)
@@ -3084,7 +3084,7 @@ class LEDAWApp(QMainWindow):
         confirmation_dialog.resize(670, 400)
 
         # Show the dialog and check user response
-        if confirmation_dialog.exec_() == QDialog.Accepted:
+        if confirmation_dialog.exec() == QDialog.DialogCode.Accepted:
             self.lock_tab(self.nbody_tab)
             self.switch_to_next_dynamic_tab()
 
@@ -3214,7 +3214,7 @@ class LEDAWApp(QMainWindow):
             # File field (with existing file path if any)
             file_field = QLineEdit(file_path if file_path else "")
             file_field.setPlaceholderText("ORCA Output Files")
-            file_field.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+            file_field.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
             file_field.setFixedHeight(28)
 
             # Allow manual editing of the file field and update file list accordingly
@@ -3319,7 +3319,7 @@ class LEDAWApp(QMainWindow):
 
             # File selection button
             file_button = QPushButton("Select Files")
-            file_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)  # Dynamic button resizing with window
+            file_button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)  # Dynamic button resizing with window
             file_button.setFixedHeight(28)
 
 
@@ -3346,8 +3346,8 @@ class LEDAWApp(QMainWindow):
 
             # Adding a horizontal line (QFrame) for visual separation
             line = QFrame()
-            line.setFrameShape(QFrame.HLine)
-            line.setFrameShadow(QFrame.Sunken)
+            line.setFrameShape(QFrame.Shape.HLine)
+            line.setFrameShadow(QFrame.Shadow.Sunken)
             button_layout.addWidget(line)
 
             # Return this as a group
@@ -3411,7 +3411,7 @@ class LEDAWApp(QMainWindow):
             # File field (with existing file path if any)
             file_field = QLineEdit(file_path if file_path else "")
             file_field.setPlaceholderText("ORCA Output Files")
-            file_field.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+            file_field.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
             file_field.setFixedHeight(28)
 
             # Allow manual editing of the file field and update file list accordingly
@@ -3480,7 +3480,7 @@ class LEDAWApp(QMainWindow):
 
             # File selection button
             file_button = QPushButton("Select Files")
-            file_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)  # Dynamic button resizing with window
+            file_button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)  # Dynamic button resizing with window
             file_button.setFixedHeight(28)
 
 
@@ -3507,8 +3507,8 @@ class LEDAWApp(QMainWindow):
 
             # Adding a horizontal line (QFrame) for visual separation
             line = QFrame()
-            line.setFrameShape(QFrame.HLine)
-            line.setFrameShadow(QFrame.Sunken)
+            line.setFrameShape(QFrame.Shape.HLine)
+            line.setFrameShadow(QFrame.Shadow.Sunken)
             button_layout.addWidget(line)
 
             # Return this as a group
@@ -3620,8 +3620,8 @@ class LEDAWApp(QMainWindow):
 
         # Status label for the job process (error message can be copied)
         status_label = QLabel('')
-        status_label.setAlignment(Qt.AlignCenter)
-        status_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        status_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         layout.addWidget(status_label)
 
         return self.tabs.indexOf(self.twobody_tab)
@@ -3724,7 +3724,7 @@ class LEDAWApp(QMainWindow):
         confirmation_dialog.setWindowTitle("Confirm Files")
 
         # Remove the "?" help button from the dialog window
-        confirmation_dialog.setWindowFlags(confirmation_dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        confirmation_dialog.setWindowFlags(confirmation_dialog.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
 
         layout = QVBoxLayout()
 
@@ -3756,11 +3756,11 @@ class LEDAWApp(QMainWindow):
         text_area.setHtml(orcaout_files_overview)  # Use setHtml to apply rich text (bold)
 
         # Allow the text area to dynamically resize with the window
-        text_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        text_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout.addWidget(text_area)
 
         # Add OK and Cancel buttons
-        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         button_box.accepted.connect(confirmation_dialog.accept)
         button_box.rejected.connect(confirmation_dialog.reject)
         layout.addWidget(button_box)
@@ -3771,7 +3771,7 @@ class LEDAWApp(QMainWindow):
         confirmation_dialog.resize(670, 400)
 
         # Show the dialog and check user response
-        if confirmation_dialog.exec_() == QDialog.Accepted:
+        if confirmation_dialog.exec() == QDialog.DialogCode.Accepted:
             # Create a temporary directory in the output root, removing it first if it exists
             self.tmp_dir = os.path.join(self.ledaw_out_root, "tmp")
             if os.path.exists(self.tmp_dir):
@@ -3902,8 +3902,8 @@ class LEDAWApp(QMainWindow):
 
         # Status label for the job process (error message can be copied)
         status_label = QLabel('')
-        status_label.setAlignment(Qt.AlignCenter)
-        status_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        status_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         layout.addWidget(status_label)
 
         return self.tabs.indexOf(self.twobody_tab)
@@ -3980,7 +3980,7 @@ class LEDAWApp(QMainWindow):
         confirmation_dialog.setWindowTitle("Confirm Files")
 
         # Remove the "?" help button from the dialog window
-        confirmation_dialog.setWindowFlags(confirmation_dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        confirmation_dialog.setWindowFlags(confirmation_dialog.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
 
         layout = QVBoxLayout()
 
@@ -4008,11 +4008,11 @@ class LEDAWApp(QMainWindow):
         text_area.setHtml(orcaout_files_overview)  # Use setHtml to apply rich text (bold)
 
         # Allow the text area to dynamically resize with the window
-        text_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        text_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout.addWidget(text_area)
 
         # Add OK and Cancel buttons
-        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         button_box.accepted.connect(confirmation_dialog.accept)
         button_box.rejected.connect(confirmation_dialog.reject)
         layout.addWidget(button_box)
@@ -4023,7 +4023,7 @@ class LEDAWApp(QMainWindow):
         confirmation_dialog.resize(670, 400)
 
         # Show the dialog and check user response
-        if confirmation_dialog.exec_() == QDialog.Accepted:
+        if confirmation_dialog.exec() == QDialog.DialogCode.Accepted:
             # Define file mappings: map directory names to corresponding file lists
             file_mappings = {
                 self.onebody_orcaout_directory_LPNO: self.onebody_orcaout_files_LPNO,
@@ -4125,8 +4125,8 @@ class LEDAWApp(QMainWindow):
 
         # Status label for the job process (error message can be copied)
         status_label = QLabel('')
-        status_label.setAlignment(Qt.AlignCenter)
-        status_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        status_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         layout.addWidget(status_label)
 
         return self.tabs.indexOf(self.twobody_tab)
@@ -4199,7 +4199,7 @@ class LEDAWApp(QMainWindow):
         confirmation_dialog.setWindowTitle("Confirm Files")
 
         # Remove the "?" help button from the dialog window
-        confirmation_dialog.setWindowFlags(confirmation_dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        confirmation_dialog.setWindowFlags(confirmation_dialog.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
 
         layout = QVBoxLayout()
 
@@ -4225,11 +4225,11 @@ class LEDAWApp(QMainWindow):
         text_area.setHtml(orcaout_files_overview)  # Use setHtml to apply rich text (bold)
 
         # Allow the text area to dynamically resize with the window
-        text_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        text_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout.addWidget(text_area)
 
         # Add OK and Cancel buttons
-        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         button_box.accepted.connect(confirmation_dialog.accept)
         button_box.rejected.connect(confirmation_dialog.reject)
         layout.addWidget(button_box)
@@ -4240,7 +4240,7 @@ class LEDAWApp(QMainWindow):
         confirmation_dialog.resize(670, 400)
 
         # Show the dialog and check user response
-        if confirmation_dialog.exec_() == QDialog.Accepted:
+        if confirmation_dialog.exec() == QDialog.DialogCode.Accepted:
             # Define file mappings: map directory names to corresponding file lists
             file_mappings = {
                 self.onebody_orcaout_directory_SB: self.onebody_orcaout_files_SB,
@@ -4325,8 +4325,8 @@ class LEDAWApp(QMainWindow):
 
         # Status label for the job process (error message can be copied)
         status_label = QLabel('')
-        status_label.setAlignment(Qt.AlignCenter)
-        status_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        status_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         layout.addWidget(status_label)
 
         return self.tabs.indexOf(self.twobody_tab)
@@ -4382,7 +4382,7 @@ class LEDAWApp(QMainWindow):
         confirmation_dialog.setWindowTitle("Confirm Files")
 
         # Remove the "?" help button from the dialog window
-        confirmation_dialog.setWindowFlags(confirmation_dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        confirmation_dialog.setWindowFlags(confirmation_dialog.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
 
         layout = QVBoxLayout()
 
@@ -4406,11 +4406,11 @@ class LEDAWApp(QMainWindow):
         text_area.setHtml(orcaout_files_overview)  # Use setHtml to apply rich text (bold)
 
         # Allow the text area to dynamically resize with the window
-        text_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        text_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout.addWidget(text_area)
 
         # Add OK and Cancel buttons
-        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         button_box.accepted.connect(confirmation_dialog.accept)
         button_box.rejected.connect(confirmation_dialog.reject)
         layout.addWidget(button_box)
@@ -4421,7 +4421,7 @@ class LEDAWApp(QMainWindow):
         confirmation_dialog.resize(670, 400)
 
         # Show the dialog and check user response
-        if confirmation_dialog.exec_() == QDialog.Accepted:
+        if confirmation_dialog.exec() == QDialog.DialogCode.Accepted:
             # Define file mappings: map directory names to corresponding file lists
             file_mappings = {self.onebody_orcaout_directory: self.onebody_orcaout_files,
                              self.twobody_orcaout_directory: self.twobody_orcaout_files,}
@@ -4450,7 +4450,7 @@ class LEDAWApp(QMainWindow):
     def create_plot_tab(self):
             """Create the Plot tab with LED heat map parameters."""
             self.plot_tab = QWidget()  # Store the tab in self.plot_tab
-            self.plot_tab.setMinimumSize(700, 410)
+            self.plot_tab.setMinimumSize(700, 400)
     
             # Create a scroll area to make the tab content scrollable
             scroll_area = QScrollArea()
@@ -4459,7 +4459,7 @@ class LEDAWApp(QMainWindow):
 
             # Create a container widget for the content and set its layout
             scroll_content_widget = QWidget()
-            scroll_content_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.MinimumExpanding)
+            scroll_content_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
             layout = QVBoxLayout(scroll_content_widget)
     
             # Create the header for the parameters
@@ -4604,15 +4604,14 @@ class LEDAWApp(QMainWindow):
             validate_button.setStyleSheet("QPushButton {background-color: #ebedef;} QPushButton:hover {background-color: paleturquoise;}")
             validate_button.clicked.connect(self.confirm_plot_button_clicked)  # Connect to validation and confirmation
             layout.addWidget(validate_button)
-            layout.addStretch(1) 
 
             # Set the content widget for the scroll area
             scroll_area.setWidget(scroll_content_widget)
     
             # Create a main layout for the tab and add the scroll area to it
             main_layout = QVBoxLayout(self.plot_tab)
-            main_layout.addWidget(scroll_area, 1)
-#            main_layout.addStretch()
+            main_layout.addWidget(scroll_area)
+            main_layout.addStretch()
     
             # Insert Plot tab before Exit and About
             exit_index = self.tabs.count() - 2
@@ -4621,14 +4620,14 @@ class LEDAWApp(QMainWindow):
             return self.tabs.indexOf(self.plot_tab)
 
 
-    def toggle_diag_cells_for_fp_led(self, state):
+    def toggle_diag_cells_for_fp_led(self, checked: bool):
         """Toggle the flag for showing diagonal cells in fp-LED heat maps."""
-        self.show_diag_cells_for_fp_led = state == Qt.Checked
+        self.show_diag_cells_for_fp_led = checked
 
 
-    def toggle_delete_old_plots(self, state):
+    def toggle_delete_old_plots(self, checked: bool):
         """Toggle the flag for deleting old heat map directories."""
-        self.delete_old_plots = state == Qt.Checked
+        self.delete_old_plots = checked
 
 
     def show_info(self, text=None, fig_format_info=False):
@@ -4664,7 +4663,7 @@ class LEDAWApp(QMainWindow):
             text = f"Supported figure formats for saving plots include: {formatted_supported_formats}"
 
         msg.setText(text)
-        msg.exec_()
+        msg.exec()
 
 
     def confirm_plot_button_clicked(self):
@@ -4736,9 +4735,10 @@ class LEDAWApp(QMainWindow):
             # If validation passes, ask for confirmation and lock the tab
             reply = QMessageBox.question(self, "Confirm Parameters",
                                          "Do you want to confirm these settings and lock the Plot tab to proceed?",
-                                         QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+                                         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                                         QMessageBox.StandardButton.No)
 
-            if reply == QMessageBox.Yes:
+            if reply == QMessageBox.StandardButton.Yes:
                 # Store validated parameters for Standard LED
                 self.plot_params_for_std_led_matrices = {
                     "figsize": figsize_std,
@@ -4760,7 +4760,8 @@ class LEDAWApp(QMainWindow):
                     "set_dpi": dpi_fp,
                     "cutoff_annot": cutoff_fp,
                     "submatrix_coords_to_be_highlighted": submatrix_fp,
-                    "display_heatmap": False
+                    "display_heatmap": False,
+                    "show_diag_cells": self.show_diag_cells_for_fp_led
                 }
 
                 # Lock the Plot tab after confirming the parameters
@@ -4785,13 +4786,13 @@ class LEDAWApp(QMainWindow):
         layout = QVBoxLayout()
 
         # Align the content at the top
-        layout.setAlignment(Qt.AlignTop)
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         # Create the label with selectable text
         label = QLabel("\nWritten by Ahmet Altun ©\n\nIt is free for academic use. Contact with the author for commercial use.\nFor the full license information, see the LEDAW repository or its manual.\n\nIf you use any part of this code, in addition to original LED, CPS, and CBS studies, please cite:\n1) https://github.com/ahmetaltunfatih/LEDAW\n2) https://doi.org/10.1002/anie.202421922 (Angew. Chem. Int. Ed. 2025, e202421922)")
 
         # Enable text interaction for selecting the text
-        label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
 
         layout.addWidget(label)
 
@@ -4940,9 +4941,10 @@ class LEDAWApp(QMainWindow):
     def confirm_exit(self):
         """Display confirmation dialog for exit."""
         reply = QMessageBox.question(self, "Exit", "Are you sure you want to exit?",
-                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                                     QMessageBox.StandardButton.No)
 
-        if reply == QMessageBox.Yes:
+        if reply == QMessageBox.StandardButton.Yes:
             # Properly close the application
             self.close()
 
@@ -4997,6 +4999,12 @@ class LEDAWApp(QMainWindow):
 
     def delete_tmp_files(self):
         """Delete the temporary directory created during the LEDAW run."""
+
+        # Ensure self.ledaw_out_root is not None
+        if self.ledaw_out_root is None:
+            print("LEDAW output root directory is not set. No temporary files to delete.")
+            return
+
         tmp_directory = os.path.join(self.ledaw_out_root, "tmp")
 
         # Check if the tmp directory exists and remove it
@@ -5063,7 +5071,7 @@ class LEDAWApp(QMainWindow):
         self.cancel_run_button.setEnabled(False)
 
         # Disable the Cancel Run button from receiving focus entirely
-        self.cancel_run_button.setFocusPolicy(Qt.NoFocus)
+        self.cancel_run_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         # Create status labels for each button
         run_ledaw_status_label = QLabel("")
@@ -5071,9 +5079,9 @@ class LEDAWApp(QMainWindow):
         cancel_run_status_label = QLabel("")
 
         # Align the status label text to the center of the row
-        run_ledaw_status_label.setAlignment(Qt.AlignCenter)
-        rerun_plot_status_label.setAlignment(Qt.AlignCenter)
-        cancel_run_status_label.setAlignment(Qt.AlignCenter)
+        run_ledaw_status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        rerun_plot_status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        cancel_run_status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Add buttons to the layout along with status labels
         layout.addWidget(self.run_ledaw_button)

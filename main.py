@@ -1,7 +1,7 @@
-import PyQt5
-from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QFrame, QScrollArea, QDialog, QTextEdit, QProgressBar, QDialogButtonBox, QFileDialog, QVBoxLayout, QLabel, QPushButton, QLineEdit, QTabWidget, QFormLayout, QComboBox, QCheckBox, QMessageBox, QHBoxLayout, QSizePolicy, QSpacerItem
-from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal
+import PySide6
+from PySide6.QtWidgets import QMainWindow, QApplication, QWidget, QFrame, QScrollArea, QDialog, QTextEdit, QProgressBar, QDialogButtonBox, QFileDialog, QVBoxLayout, QLabel, QPushButton, QLineEdit, QTabWidget, QFormLayout, QComboBox, QCheckBox, QMessageBox, QHBoxLayout, QSizePolicy, QSpacerItem
+from PySide6.QtGui import QIcon
+from PySide6.QtCore import Qt, QTimer, QThread, Signal
 import matplotlib.pyplot as plt
 import seaborn as sns
 import openpyxl
@@ -22,4 +22,4 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = LEDAWApp()
     window.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())

@@ -6,7 +6,7 @@ from .twobody_engine import engine_LED_two_body
 from .cooperativity_engine import cooperativity_engine
 from .extrapolate_engine import extrapolate_engine
 from .plot_engine import heatmap_plot_engine
-from PyQt5.QtCore import QThread, pyqtSignal
+from PySide6.QtCore import QThread, Signal
 
 
 def normalize_twobody_path(path):
@@ -913,7 +913,7 @@ class JobWorker(QThread):
     """Worker class for managing the LEDAW job in a separate thread"""
 
     # Define signal for status updates
-    status_signal = pyqtSignal(str)
+    status_signal = Signal(str)
 
     def __init__(self, app_instance, parent=None):
         super().__init__(parent)
@@ -958,8 +958,8 @@ class PlotJobWorker(QThread):
     """Worker class for managing the plot job in a separate thread"""
 
     # Define signal for status updates
-    status_signal = pyqtSignal(str)
- 
+    status_signal = Signal(str)
+
     def __init__(self, app_instance, parent=None):
         super().__init__(parent)
         self.app_instance = app_instance
