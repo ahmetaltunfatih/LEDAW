@@ -4,7 +4,7 @@ import openpyxl
 import numpy as np
 import pandas as pd
 from .classes import *
-from .nbody_engine import extract_coords_from_line, normalize_path, extract_final_fragment_labels_from_summary
+from .nbody_engine import extract_coords_from_line, normalize_path, fragments_equal, extract_final_fragment_labels_from_summary
 from .nbody_to_twobody_engine import extract_coordinates_from_onebody_file
 
 
@@ -223,24 +223,6 @@ def extract_real_coords_from_twobody_file(filepath):
     return fragments[0], fragments[1]
 
 
-def coords_match(coords1, coords2, tol=1e-3):
-    """Compare two lists of coordinates to determine if they match within a tolerance. Order of atoms in different files does not matter."""
-    if len(coords1) != len(coords2):
-        return False
-
-    unmatched = list(coords2) 
-    for x in coords1:
-        found = False
-        for y in unmatched:
-            if all(abs(a - b) < tol for a, b in zip(x, y)):
-                unmatched.remove(y)
-                found = True
-                break
-        if not found:
-            return False
-    return True
-
-
 def generate_pairwise_fragment_index_map(one_body_orcaout_filenames, two_body_orcaout_directory, tolerance=1e-3):
     """Generates a mapping of two-body output filenames to fragment index pairs by matching coordinates from one-body files,
     and returns the mapping, index assignments, and ordered one-body filenames."""
@@ -261,7 +243,7 @@ def generate_pairwise_fragment_index_map(one_body_orcaout_filenames, two_body_or
     for filename, coords in filename_to_coords.items():
         found = False
         for known_coords in unique_fragments:
-            if coords_match(known_coords, coords, tol=tolerance):
+            if fragments_equal(known_coords, coords, tol=tolerance):
                 assigned_index = coords_to_index[tuple(map(tuple, known_coords))]
                 filename_to_index[filename] = assigned_index
                 found = True
@@ -316,7 +298,7 @@ def generate_pairwise_fragment_index_map(one_body_orcaout_filenames, two_body_or
         for coords in fragment_coords_list:
             matched_index = None
             for known_coords in unique_fragments:
-                if coords_match(coords, known_coords, tol=tolerance):
+                if fragments_equal(coords, known_coords, tol=tolerance):
                     matched_index = coords_to_index[tuple(map(tuple, known_coords))]
                     break
             if matched_index is not None:
@@ -335,7 +317,7 @@ def generate_pairwise_fragment_index_map(one_body_orcaout_filenames, two_body_or
     return two_body_labels, filename_to_index, ordered_filenames
 
 
-def generate_bsse_onebody_file_pair(two_body_files, one_body_files, fragment_index_map, extract_real_coords_from_twobody_file, extract_real_and_ghost_coords, coords_match, tol=1e-3):
+def generate_bsse_onebody_file_pair(two_body_files, one_body_files, fragment_index_map, extract_real_coords_from_twobody_file, extract_real_and_ghost_coords, fragments_equal, tol=1e-3):
     """For each two-body file (with two real fragments), find the corresponding one-body file pair using coordinate matching."""
 
     onebody_data = []
@@ -356,9 +338,9 @@ def generate_bsse_onebody_file_pair(two_body_files, one_body_files, fragment_ind
         match_B_real = None
 
         for one_body_file, real_coords, ghost_coords in onebody_data:
-            if coords_match(real_coords, fragA_coords, tol) and coords_match(ghost_coords, fragB_coords, tol):
+            if fragments_equal(real_coords, fragA_coords, tol) and fragments_equal(ghost_coords, fragB_coords, tol):
                 match_A_real = one_body_file
-            elif coords_match(real_coords, fragB_coords, tol) and coords_match(ghost_coords, fragA_coords, tol):
+            elif fragments_equal(real_coords, fragB_coords, tol) and fragments_equal(ghost_coords, fragA_coords, tol):
                 match_B_real = one_body_file
 
         if match_A_real and match_B_real:
@@ -2256,7 +2238,7 @@ def engine_LED_two_body(one_body_orcaout_filenames, two_body_orcaout_directory, 
         # Step 2: Find matching (real+ghost) file pairs
         bsse_file_pair_map = generate_bsse_onebody_file_pair(two_body_files=get_two_body_filenames(normalized_two_body_orcaout_directory), one_body_files=normalized_one_body_orcaout_filenames,
             fragment_index_map=fragment_index_map, extract_real_coords_from_twobody_file=extract_real_coords_from_twobody_file, extract_real_and_ghost_coords=extract_real_and_ghost_coords,
-            coords_match=coords_match, tol=1e-3)
+            fragments_equal=fragments_equal, tol=1e-3)
 
         # Step 3: BSSE-corrected solvation contribution and electronic preparation
         solvation_matrix, total_solvation_energy = populate_twobody_total_solvation_matrices_bsse(bsse_file_pair_map=bsse_file_pair_map, two_body_orcaout_directory=normalized_two_body_orcaout_directory,

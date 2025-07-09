@@ -66,10 +66,24 @@ def extract_real_coords_xyz_block(file_path, tag, debug_lines):
     return coords
 
 
-def fragments_equal(subsys_atoms, supersys_atoms, tol=1e-3):
-    for a, b in zip(subsys_atoms, supersys_atoms):
-        if any(abs(x - y) > tol for x, y in zip(a, b)):
-            return False
+def fragments_equal(frag1, frag2, tol=1e-3):
+    """Compare two lists of coordinates to determine if they match within a tolerance. Order of atoms in different files does not matter."""
+
+    # Check for the length of fragments
+    if len(frag1) != len(frag2):
+        return False
+
+    # Sort both lists of atom coordinates to make the comparison order-independent.
+    sorted_frag1 = sorted(frag1)
+    sorted_frag2 = sorted(frag2)
+
+    # Compare the sorted lists atom by atom.
+    for atom1, atom2 in zip(sorted_frag1, sorted_frag2):
+        # 'any' allows stopping on the first mismatch.
+        if any(abs(coord_a - coord_b) > tol for coord_a, coord_b in zip(atom1, atom2)):
+            return False # Mismatch found, fragments are not equal.
+
+    # If the loop completes, all atoms match.
     return True
 
 
