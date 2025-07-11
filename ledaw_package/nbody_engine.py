@@ -14,6 +14,9 @@ from openpyxl import load_workbook, Workbook
 from .classes import *
 
 
+patterns = Patterns()
+
+
 def normalize_path(path):
     return path.replace("\\", "/").rstrip("/")
 
@@ -569,14 +572,60 @@ def check_local_energy_decomposition(filename, patterns):
         return False
 
 
-def extract_numbers(pattern, content):
-    """Extracts a list of numbers based on the regex pattern from the content."""
+def extract_generic_numbers_from_regex(regex_str, content):
+    """Extracts a list of all numbers based on a direct regex string."""
     numbers = []
-    match = re.search(pattern, content)
+    if not regex_str:
+        return numbers
+
+    match = re.search(regex_str, content, re.DOTALL | re.UNICODE) 
     if match:
         number_pattern = r"([-]?\d*\.\d+)"
         numbers = [float(number) for number in re.findall(number_pattern, match.group(0))]
+            
     return numbers
+
+
+def extract_intra_ref_alt_numbers(content):
+    """Extracts numbers specifically for the 'intra_ref_alt' pattern."""
+    numbers = []
+    pattern_regex = patterns.PATTERNS.get("intra_ref_alt")
+    
+    if not pattern_regex:
+        return numbers
+
+    for match in re.finditer(pattern_regex, content, re.DOTALL | re.UNICODE): 
+        try:
+            total_energy = float(match.group(2)) 
+            numbers.append(total_energy)
+        except (ValueError, IndexError):
+            pass
+            
+    return numbers
+
+
+def extract_numbers(regex_str_input, content):
+    """Extracts numbers based on a provided regex string. Handles special fallback logic for the 'intra_ref' pattern."""
+    if not regex_str_input:
+        return []
+
+    # Get the specific regex strings for intra_ref and intra_ref_alt from the Patterns instance.
+    intra_ref_regex = patterns.PATTERNS.get("intra_ref")
+    intra_ref_alt_regex = patterns.PATTERNS.get("intra_ref_alt") # Needed for fallback
+
+    # Check if the input regex string is the specific 'intra_ref' pattern.
+    if regex_str_input == intra_ref_regex:
+        # First, try to extract using the intra_ref pattern itself.
+        results = extract_generic_numbers_from_regex(regex_str_input, content)
+        
+        # If no results are found from intra_ref, then try intra_ref_alt as a fallback.
+        if not results:
+            results = extract_intra_ref_alt_numbers(content)
+        return results
+    
+    # Use the generic regex extraction for any other regex string (e.g., intra_corr, intra_strong_pairs, etc.)
+    else:
+        return extract_generic_numbers_from_regex(regex_str_input, content)
 
 
 def extract_first_match_from_file(filename, patterns, method, use_ref_as_rhf_in_hfld=None):
@@ -689,10 +738,7 @@ def process_led_file(filename, patterns, intra_ref_list, intra_corr_list, intra_
         return
 
     # Extract intra-component values
-    intra_ref = extract_numbers(patterns.PATTERNS["intra_ref"], content)
-    if not intra_ref:
-        intra_ref = extract_numbers(patterns.PATTERNS["intra_ref_alt"], content)
-
+    intra_ref = extract_numbers(patterns.PATTERNS["intra_ref"], content) # automatically check intra_ref_alt when intra_ref is not present
     intra_corr = extract_numbers(patterns.PATTERNS["intra_corr"], content)
     intra_strong_pairs = extract_numbers(patterns.PATTERNS["intra_strong_pairs"], content)
     intra_triples = extract_numbers(patterns.PATTERNS["intra_triples"], content)
@@ -843,9 +889,6 @@ def multifrag_system_processing(main_filenames, alternative_filenames, LEDAW_out
     inter_weak_pairs_matrices = []
     dispersion_strong_pairs_matrices = []
 
-    # Instantiate patterns object
-    patterns = Patterns()
-
     # Process each main and alternative file using unified function
     for main_file, alt_file, system_label in zip(main_filenames, alternative_filenames, system_labels):
         process_led_file(
@@ -919,7 +962,6 @@ def multifrag_system_processing(main_filenames, alternative_filenames, LEDAW_out
 
 def singlefrag_system_processing(labeled_main_filenames, labeled_alt_filenames, LEDAW_output_path, method, use_ref_as_rhf_in_hfld=None):
 
-    patterns = Patterns()
     matrices = {}
 
     for main_file, system_label in labeled_main_filenames.items():

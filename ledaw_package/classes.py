@@ -9,14 +9,9 @@ class Patterns:
         self.PATTERNS = {
             "intra_ref": r"Intra REF\. energy\s+([-]?\d*\.\d+)(\s+[-]?\d*\.\d+)*\s+sum=",
             "intra_ref_alt": (
-                r"-------------------------------------------\n"
-                r"INTRA-FRAGMENT REF. ENERGY FOR FRAGMENT\s+(\d+)\n"
-                r"-------------------------------------------\n\n"
-                r"Nuclear repulsion\s+=\s+[-]?\d*\.\d+\n"
-                r"One electron energy\s+=\s+[-]?\d*\.\d+\s+\(.*?\)\n"
-                r"Two electron energy\s+=\s+[-]?\d*\.\d+\s+\(.*?\)\n"
-                r"\s+----------------------\n"
-                r"Total energy\s+=\s+([-]?\d*\.\d+)"
+                r"INTRA-FRAGMENT REF\. ENERGY FOR FRAGMENT\s+(\d+)" # Group 1: Fragment number
+                r"[\s\S]*?" # Non-greedy match for anything between the header and "Total energy"
+                r"Total energy\s+=\s+([-]?\d*\.\d+)" # Group 2: Total energy
             ),
             "intra_corr": r"Intra Correlation energy\s+([-]?\d*\.\d+)(\s+[-]?\d*\.\d+)*\s+sum=",
             "intra_strong_pairs": r"Intra strong pairs\s+([-]?\d*\.\d+)(\s+[-]?\d*\.\d+)*\s+sum=",

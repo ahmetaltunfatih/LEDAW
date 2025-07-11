@@ -8,6 +8,9 @@ from .nbody_engine import extract_coords_from_line, normalize_path, fragments_eq
 from .nbody_to_twobody_engine import extract_coordinates_from_onebody_file
 
 
+patterns = Patterns()
+
+
 def get_two_body_filenames(two_body_orcaout_directory):
     """Reads all files from the specified directory and saves their full paths to a list."""
     # Normalize the directory path to remove any trailing slashes
@@ -1051,7 +1054,6 @@ def populate_twobody_total_solvation_matrices_bsse(bsse_file_pair_map, two_body_
 
 def populate_twobody_inter_matrices(one_body_orcaout_filenames, two_body_orcaout_directory, conversion_factor, two_body_labels=None, LEDAW_output_path_two_body=None):
     results = {}
-    patterns = Patterns()
     patterns.PATTERNS['corr_inter_full'] = (
         r"Interaction correlation for Fragments\s+(\d+)\s+and\s+(\d+):\s+[-]+\s+"
         r"Inter strong pairs\s+([-]?\d*\.\d+)\s+\(.*?\)\s+"
@@ -1193,22 +1195,76 @@ def extract_twobody_values(two_body_directory, two_body_labels, pattern_key, pat
 
     for filename in os.listdir(two_body_directory):
         file_path = os.path.join(two_body_directory, filename)
-        with open(file_path, 'r') as file:
+        
+        # Ensure the file exists and is relevant to the two_body_labels before processing
+        if not os.path.exists(file_path):
+            print(f"Warning: File not found: {file_path}. Skipping.")
+            continue
+        if filename not in two_body_labels:
+            continue
+
+        # Get labels early as they are needed for the intra_ref_alt fallback
+        label1, label2 = two_body_labels[filename]
+
+        with open(file_path, 'r', encoding='utf-8') as file: # Added encoding for robustness
             content = file.read()
 
-            # Extract the section using the appropriate pattern
+        value1 = 0.0
+        value2 = 0.0
+        value3 = 0.0 
+
+        if pattern_key == 'intra_ref':
+            # First, find matches using the primary 'intra_ref' pattern
+            matches = re.findall(patterns.PATTERNS['intra_ref'], content)
+
+            if matches:
+                # If primary pattern found, extract values directly
+                value1 = float(matches[0][0].strip())
+                # Handle absence of second and third groups gracefully
+                value2 = float(matches[0][1].strip()) if len(matches[0]) > 1 else 0.0
+                value3 = float(matches[0][2].strip()) if len(matches[0]) > 2 else 0.0
+            else:
+                # If 'intra_ref' not found, fall back to 'intra_ref_alt'
+                alt_matches = re.findall(patterns.PATTERNS['intra_ref_alt'], content)
+
+                if alt_matches:
+                    # Initialize temporary variables to store found values for label1 and label2
+                    found_val1_for_label1 = 0.0
+                    found_val2_for_label2 = 0.0
+                    label1_energy_found = False
+                    label2_energy_found = False
+
+                    for fragment_num_str, total_energy_str in alt_matches:
+                        try:
+                            fragment_num = int(fragment_num_str)
+                            energy = float(total_energy_str)
+
+                            if fragment_num == label1:
+                                found_val1_for_label1 = energy
+                                label1_energy_found = True
+                            if fragment_num == label2:
+                                found_val2_for_label2 = energy
+                                label2_energy_found = True
+                        except ValueError:
+                            continue # Skip to next match if parsing fails
+
+                    # Assign the found energies to value1 and value2
+                    if label1_energy_found:
+                        value1 = found_val1_for_label1
+                    if label2_energy_found:
+                        value2 = found_val2_for_label2
+
+        else:
+            # Original logic for other pattern_keys (SP, WP, T, Singles)
             pattern = patterns.PATTERNS[pattern_key]
             matches = re.findall(pattern, content)
 
-            if matches and filename in two_body_labels:
-                label1, label2 = two_body_labels[filename]
-
-                # Default values for all potential corrections
+            if matches:
                 value1 = float(matches[0][0].strip())
-                value2 = float(matches[0][1].strip()) if len(matches[0]) > 1 else 0.0  # Handle absence of "Inter T"
-                value3 = float(matches[0][2].strip()) if len(matches[0]) > 2 else 0.0  # Handle absence of "Inter WP"
-
-                extracted_values[filename] = (label1, label2, value1, value2, value3)
+                value2 = float(matches[0][1].strip()) if len(matches[0]) > 1 else 0.0
+                value3 = float(matches[0][2].strip()) if len(matches[0]) > 2 else 0.0
+        
+        extracted_values[filename] = (label1, label2, value1, value2, value3)
 
     return extracted_values
 
@@ -1219,7 +1275,6 @@ def populate_twobody_elprep_matrices_non_bsse(one_body_orcaout_filenames, two_bo
     normalized_two_body_orcaout_directory = normalize_path(two_body_orcaout_directory)
     normalized_LEDAW_output_path_two_body = normalize_path(LEDAW_output_path_two_body)
 
-    patterns = Patterns()
     one_body_values = extract_onebody_values(one_body_orcaout_filenames, patterns, method)
 
     properties = {
@@ -1297,7 +1352,6 @@ def populate_twobody_elprep_matrices_bsse(one_body_orcaout_filenames, two_body_o
 
     normalized_two_body_orcaout_directory = normalize_path(two_body_orcaout_directory)
     normalized_LEDAW_output_path_two_body = normalize_path(LEDAW_output_path_two_body)
-    patterns = Patterns()
 
     n = max(max(pair) for pair in two_body_labels.values())
     results = {}
@@ -1313,12 +1367,43 @@ def populate_twobody_elprep_matrices_bsse(one_body_orcaout_filenames, two_body_o
             with open(file_path, 'r') as f:
                 content = f.read()
 
-            val1 = val2 = 0.0
+            val1 = val2 = 0.0 # Initialize val1 and val2 for the current file
             if prop_name == 'REF':
                 matches = re.findall(patterns.PATTERNS['intra_ref'], content)
+
                 if matches:
                     val1 = float(matches[0][0])
-                    val2 = float(matches[0][1]) if len(matches[0]) > 1 else 0.0
+                    val2 = float(matches[0][1]) if len(matches[0]) > 1 and matches[0][1].strip() else 0.0
+                else:
+                    alt_matches = re.findall(patterns.PATTERNS['intra_ref_alt'], content)
+
+                    # Initialize temporary variables to store found values for label1 and label2
+                    found_val1_for_label1 = 0.0
+                    found_val2_for_label2 = 0.0
+                    
+                    # Flags to track if values were actually found
+                    label1_energy_found = False
+                    label2_energy_found = False
+
+                    if alt_matches:
+                        for fragment_num_str, total_energy_str in alt_matches:
+                            fragment_num = int(fragment_num_str)
+                            energy = float(total_energy_str)
+
+                            if fragment_num == label1:
+                                found_val1_for_label1 = energy
+                                label1_energy_found = True
+                            if fragment_num == label2:
+                                found_val2_for_label2 = energy
+                                label2_energy_found = True
+                        
+                        # Assign to val1 and val2 only if the respective fragment energy was found
+                        if label1_energy_found:
+                            val1 = found_val1_for_label1
+                        if label2_energy_found:
+                            val2 = found_val2_for_label2
+                    else:
+                        pass
             elif prop_name == 'SP':
                 matches = re.findall(r"Intra strong pairs\s+([-]?\d*\.\d+)(?:\s+([-]?\d*\.\d+))?\s+sum=", content)
                 if matches:
