@@ -171,8 +171,7 @@ def merge_fragments(fragments, atoms, nonstandard_coordination_numbers):
     return list(root_to_frag.values())
 
 
-def fragmentation_engine(xyzfile, cutoff=1.80, cut_bonds=None,
-                         nonstandard_coordination_numbers=None):
+def fragmentation_engine(xyzfile, cutoff=1.80, cut_bonds=None, nonstandard_coordination_numbers=None):
 
     atoms_raw, original_comment = read_xyz(xyzfile) # atoms_raw is [(symbol_str_from_file, x,y,z), ...]
 
@@ -404,8 +403,7 @@ def fragmentation_engine(xyzfile, cutoff=1.80, cut_bonds=None,
         # 3. Sort all atoms (pre-labeled and newly labeled from unlabeled) for final output.
         all_atoms_final_tuples.sort(key=lambda atom_tuple: (atom_tuple[1], atom_tuple[5])) # Sort by label, then by original_idx
 
-        # 4. Update original `cut_bonds` and `nonstandard_coordination_numbers`
-        #    to reflect the new global atom ordering in `all_atoms_final_tuples`.
+        # 4. Update original `cut_bonds` and `nonstandard_coordination_numbers` to reflect the new global atom ordering in `all_atoms_final_tuples`.
         old_global_idx_to_new_sorted_idx = {
             atom_tuple[5]: new_idx for new_idx, atom_tuple in enumerate(all_atoms_final_tuples)
         }
