@@ -19,8 +19,8 @@ Department of Molecular Theory and Spectroscopy
 
 - Automates ORCA input file generation for LED calculations.
 - Supports **NBODY**, **TWOBODY**, and **BSSE-(un)corrected** setups.
-- Automatically fragments XYZ structures using `fragmentation_engine()` based on atom connectivity, recognizing partial fragment labels.
-- Provides a simple Python interface (`led_input_prep_engine()`) to generate `.inp` files for ORCA.
+- Automatically fragments structures using `fragmentation_engine()` based on atom connectivity, recognizing partial fragment labels in XYZ files.
+- Automatically generates ORCA `.inp` files using `led_input_prep_engine()`.
 - Organizes input files into clean directory structures (e.g., `NBODY`, `TWOBODY`, etc.) with proper naming.
 
 ### 🔹 LEDAW (Output Processing)
