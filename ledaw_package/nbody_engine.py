@@ -345,56 +345,53 @@ def construct_label_mappings(main_filenames, alternative_filenames, LEDAW_output
 
 
 def construct_label_mappings_singlefrag_bsse(main_filenames, alternative_filenames):
-    """Constructs label mappings for BSSE one-fragment-per-subsystem case."""
+    """Construct label mappings for BSSE: one real fragment per subsystem."""
 
-    system_labels = ['SUPERSYS'] + [f"SUBSYS{i+1}" for i in range(len(main_filenames) - 1)]
     supersystem_file = main_filenames[0]
     subsystem_files = main_filenames[1:]
     alt_subsystem_files = alternative_filenames[1:] if len(alternative_filenames) > 1 else []
 
-    # Extract fragments from SUPERSYS
-    supersys_fragments, _, _ = extract_fragments(supersystem_file)
-    supersys_identity = {i: i for i in supersys_fragments}
+    # SUPERSYS: take only non-ghost labels for the ghost-free identity
+    supersys_frags, super_ghost_flags, _ = extract_fragments(supersystem_file)
+    supersys_identity_ghost_free = {k: k for k, is_ghost in super_ghost_flags.items() if not is_ghost}
 
-    def build_mapping(subsystem_files):
-        mapping_dict = {}
-        for idx, subsystem_file in enumerate(subsystem_files):
-            label = system_labels[idx + 1]  # Always use correct label even if file is skipped
-            if not subsystem_file or not os.path.isfile(subsystem_file):
-                mapping_dict[label] = {}
+    def build_mapping(files):
+        out = {}
+        for idx, f in enumerate(files):
+            label = f"SUBSYS{idx+1}"
+            if not f or not os.path.isfile(f):
+                out[label] = {}
                 continue
 
-            subsys_fragments, ghost_flags, _ = extract_fragments(subsystem_file)
-            real_frags = [frag for frag, is_ghost in ghost_flags.items() if not is_ghost]
+            subsys_frags, ghost_flags, _ = extract_fragments(f)
+            real_frags = [fid for fid, is_ghost in ghost_flags.items() if not is_ghost]
             mapping = {}
 
             if len(real_frags) == 1:
-                real_frag_id = real_frags[0]
-                real_coords = subsys_fragments[real_frag_id]
+                real_id = real_frags[0]
+                real_coords = subsys_frags[real_id]
 
-                matched = False
-                for super_id, super_coords in supersys_fragments.items():
-                    if real_coords == super_coords:
-                        mapping[real_frag_id] = super_id
-                        matched = True
+                # Find the matched SUPERSYS fragment
+                matched_super = None
+                for super_id, super_coords in supersys_frags.items():
+                    if fragments_equal(real_coords, super_coords):
+                        matched_super = super_id
                         break
-                if not matched:
-                    mapping[real_frag_id] = None
 
-                for frag_id, is_ghost in ghost_flags.items():
-                    if is_ghost:
-                        mapping[frag_id] = -1
+                # IMPORTANT: map fabricated index 1 (the 1x1 sheet) to the matched SUPERSYS label
+                mapping[1] = matched_super  # may be None if no match
+                # ghosts are intentionally ignored for the ghost-free mapping
             else:
-                # More than one real frag not expected — return empty or partial map
+                # Unexpected in BSSE single-frag path; leave empty
                 mapping = {}
 
-            mapping_dict[label] = mapping
-        return mapping_dict
+            out[label] = mapping
+        return out
 
-    main_label_mappings_ghost_free = {'SUPERSYS': supersys_identity}
+    main_label_mappings_ghost_free = {"SUPERSYS": supersys_identity_ghost_free}
     main_label_mappings_ghost_free.update(build_mapping(subsystem_files))
 
-    alt_label_mappings_ghost_free = {'SUPERSYS': supersys_identity.copy()}
+    alt_label_mappings_ghost_free = {"SUPERSYS": supersys_identity_ghost_free.copy()}
     alt_label_mappings_ghost_free.update(build_mapping(alt_subsystem_files))
 
     return main_label_mappings_ghost_free, alt_label_mappings_ghost_free
@@ -1117,8 +1114,21 @@ def unify_labels(system_labels, alternative_labels, main_label_mappings_ghost_fr
             mappings = alternative_label_mappings_ghost_free if is_alt else main_label_mappings_ghost_free
             label_mapping = mappings.get(matched_label, {})
             if not label_mapping:
-                print(f"Skipping sheet '{sheet_name}': no label mapping found for {matched_label}.")
-                continue
+                if df.shape[0] == 1 and matched_label.startswith("SUBSYS"):
+                    # Handle single-fragment subsystem: map its single intra value
+                    extended_df = pd.DataFrame(0.0, index=full_label_range, columns=full_label_range)
+
+                    # Find the mapped SUPERSYS label (take the first available one)
+                    super_labels = list(main_label_mappings_ghost_free.get("SUPERSYS", {}).values())
+                    if super_labels:
+                        new_label = super_labels[0]
+                        extended_df.at[new_label, new_label] = df.iat[0, 0]
+
+                    extended_df.to_excel(writer, sheet_name=sheet_name)
+                    continue
+                else:
+                    print(f"Skipping sheet '{sheet_name}': no label mapping found for {matched_label}.")
+                    continue
 
             try:
                 # Ensure both index and columns are numeric
