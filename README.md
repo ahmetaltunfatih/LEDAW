@@ -39,6 +39,7 @@ Department of Molecular Theory and Spectroscopy
 - Supports specifying an **alternative file** if the primary ORCA output file lacks certain required energy terms for N-body LED.
 - Collects LED terms **method-specifically** (for DLPNO-CCSD(T), DLPNO-CCSD, and HFLD), including terms like London dispersion.
 - Detects the use of **implicit solvation schemes** (CPCM, SMD, etc.) and distributes solute-solvent interaction contributions (reference and correlation dielectric terms and nonelectrostatic CDS) across pairwise terms.
+- Supports QM/MM calculations with little adjustments on the ORCA output files.
 - Automatically detects whether **BSSE correction** is requested and handles subsystem files accordingly.
 - Writes **standard and fp-LED interaction energy matrices** into separate Excel files, with each matrix on a separate sheet.
 - Provides **heatmaps** of all interaction energy matrices for convenient data interpretation and presentation.
