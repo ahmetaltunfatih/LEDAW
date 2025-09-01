@@ -152,7 +152,7 @@ For code-oriented users, several example Python input scripts are provided for p
 If you use any part of this code or its results in your research, in addition to the original LED, CPS, and CBS studies, please cite:
 
 - **LEDAW Software Paper:**
-  [https://pubs.acs.org/doi/10.1021/acs.jcim.5c01561(https://pubs.acs.org/doi/10.1021/acs.jcim.5c01561)] (J. Chem. Inf. Model., DOI: 10.1021/acs.jcim.5c01561) 
+  [https://pubs.acs.org/doi/10.1021/acs.jcim.5c01561](https://pubs.acs.org/doi/10.1021/acs.jcim.5c01561) (J. Chem. Inf. Model., DOI: 10.1021/acs.jcim.5c01561) 
 
 - **LEDAW GitHub Repository:**  
   [https://github.com/ahmetaltunfatih/LEDAW](https://github.com/ahmetaltunfatih/LEDAW)  
