@@ -3,3 +3,4 @@ ORCA output files necessary to perform LED analyses on the interaction energy of
 - boat conformer of water hexamer
 - central mononer with its environment in a molecular crystal
 - two strands of a DNA duplex using DLPNO-CCSD(T) and HFLD with and without BSSE correction
+- di(1-adamantyl)carbene with water molecules (QM/MM setup)
