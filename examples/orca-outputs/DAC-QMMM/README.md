@@ -1,5 +1,7 @@
 #################################################################################
+
 PREPARATION OF SUPERSYSTEM OUTPUT FILE FOR QM/MM INTERACTION ENERGY ANALYSIS
+
 #################################################################################
 
 (1) Submit supersystem calculation in the "1ADDUCT" directory.
@@ -14,7 +16,9 @@ PREPARATION OF SUPERSYSTEM OUTPUT FILE FOR QM/MM INTERACTION ENERGY ANALYSIS
 
 
 #################################################################################
+
 PREPARATION OF SUBSYSTEM OUTPUT FILES FOR QM/MM INTERACTION ENERGY ANALYSIS
+
 #################################################################################
 
 (1) Submit subsystem calculations in the "3MONOMERS" directory.
