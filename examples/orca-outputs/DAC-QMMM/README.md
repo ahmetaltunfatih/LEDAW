@@ -1,8 +1,8 @@
-#################################################################################
+#####################################################################################################################
 
 PREPARATION OF SUPERSYSTEM OUTPUT FILE FOR QM/MM INTERACTION ENERGY ANALYSIS
 
-#################################################################################
+#####################################################################################################################
 
 (1) Submit supersystem calculation in the "1ADDUCT" directory.
 (2) Submit the calculation in the "2ADDUCT-wo-QM-MM-ELS" reading 
@@ -15,11 +15,11 @@ PREPARATION OF SUPERSYSTEM OUTPUT FILE FOR QM/MM INTERACTION ENERGY ANALYSIS
     as the supersystem output file in the LEDAW run.
 
 
-#################################################################################
+#####################################################################################################################
 
 PREPARATION OF SUBSYSTEM OUTPUT FILES FOR QM/MM INTERACTION ENERGY ANALYSIS
 
-#################################################################################
+#####################################################################################################################
 
 (1) Submit subsystem calculations in the "3MONOMERS" directory.
 (2) Submit the calculations in the "4MONOMERS-wo-QM-MM-ELS" reading the corresponding
