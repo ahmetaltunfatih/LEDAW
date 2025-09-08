@@ -153,12 +153,12 @@ For code-oriented users, several example Python input scripts are provided for p
 If you use any part of this code or its results in your research, in addition to the original LED, CPS, and CBS studies, please cite:
 
 - **LEDAW Software Paper:**
-  [https://pubs.acs.org/doi/10.1021/acs.jcim.5c01561](https://pubs.acs.org/doi/10.1021/acs.jcim.5c01561) (J. Chem. Inf. Model., DOI: 10.1021/acs.jcim.5c01561) 
+  [https://pubs.acs.org/doi/10.1021/acs.jcim.5c01561](https://pubs.acs.org/doi/10.1021/acs.jcim.5c01561) (J. Chem. Inf. Model., 65/17, 2025, 8917−8923 ) 
 
 - **LEDAW GitHub Repository:**  
   [https://github.com/ahmetaltunfatih/LEDAW](https://github.com/ahmetaltunfatih/LEDAW)  
 
-- **Main fp-LED Paper Summarizing the Theory behind LEDAW:**  
+- **Main fp-LED Paper Summarizing the Theory Behind LEDAW:**  
   [https://doi.org/10.1002/anie.202421922](https://doi.org/10.1002/anie.202421922) (Angew. Chemie. Int. Ed. 64/12, 2025, e202421922)
 ---
 
