@@ -4789,7 +4789,7 @@ class LEDAWApp(QMainWindow):
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         # Create the label with selectable text
-        label = QLabel("\nWritten by Ahmet Altun ©\n\nIt is free for academic use. Contact with the author for commercial use.\nFor the full license information, see the LEDAW repository or its manual.\n\nIf you use any part of this code, in addition to original LED, CPS, and CBS studies, please cite:\n1) https://pubs.acs.org/doi/full/10.1021/acs.jcim.5c01561 (J. Chem. Inf. Model. 65, 2025, 8917−8923) 2) https://github.com/ahmetaltunfatih/LEDAW\n3) https://doi.org/10.1002/anie.202421922 (Angew. Chem. Int. Ed. 64, 2025, e202421922)")
+        label = QLabel("\nWritten by Ahmet Altun ©\n\nIt is free for academic use. Contact with the author for commercial use.\nFor the full license information, see the LEDAW repository or its manual.\n\nIf you use any part of this code, in addition to original LED, CPS, and CBS studies, please cite:\n1) https://pubs.acs.org/doi/full/10.1021/acs.jcim.5c01561 (J. Chem. Inf. Model. 65, 2025, 8917−8923)\n2) https://github.com/ahmetaltunfatih/LEDAW\n3) https://doi.org/10.1002/anie.202421922 (Angew. Chem. Int. Ed. 64, 2025, e202421922)")
 
         # Enable text interaction for selecting the text
         label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
