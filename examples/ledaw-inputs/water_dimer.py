@@ -18,7 +18,7 @@
 #                    (J. Chem. Inf. Model. 65/17, 2025, 8917–8923)                     #
 #                 2) https://github.com/ahmetaltunfatih/LEDAW                          #
 #                 3) https://doi.org/10.1002/anie.202421922                            #
-#                    (Angew. Chemie. Int. Ed. 64/12, 2025, e202421922)                 ##                                                                                      #
+#                    (Angew. Chemie. Int. Ed. 64/12, 2025, e202421922)                 #
 #                                                                                      #
 #                                    License                                           #
 #                             Free for academic use.                                   #
