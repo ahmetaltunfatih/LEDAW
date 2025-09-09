@@ -20,7 +20,6 @@
 #                 3) https://doi.org/10.1002/anie.202421922                            #
 #                    (Angew. Chemie. Int. Ed. 64/12, 2025, e202421922)                 #
 #                                                                                      #
-#                                                                                      #
 #                                    License                                           #
 #                             Free for academic use.                                   #
 #           For commercial use or redistribution, contact the author.                  #
