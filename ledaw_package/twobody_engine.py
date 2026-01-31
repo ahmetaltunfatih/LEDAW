@@ -1607,7 +1607,9 @@ def set_diag_to_nan_if_zero(df):
     
     # Check if all diagonal elements are zero
     if np.all(diagonal == 0):
-        np.fill_diagonal(df.values, np.nan)
+        arr = np.array(df.values, copy=True)
+        np.fill_diagonal(arr, np.nan)
+        df.iloc[:, :] = arr
     
     return df
 
@@ -1639,7 +1641,10 @@ def calculate_twobody_standard_LED_summary_matrices(LEDAW_output_path_two_body, 
     summary_sheets['Exchange'] = inter_sheets['Exchange']
 
     ref_matrix = inter_sheets['Electrostat'] + inter_sheets['Exchange']
-    np.fill_diagonal(ref_matrix.values, np.diag(ref_matrix) + combined_diagonals['REF'])
+    ref_matrix = ref_matrix.astype(float)
+    arr = np.array(ref_matrix.values, copy=True)
+    np.fill_diagonal(arr, np.diag(ref_matrix) + combined_diagonals['REF'])
+    ref_matrix.iloc[:, :] = arr
     summary_sheets['REF'] = ref_matrix
 
     if method.lower() == 'dlpno-ccsd':
@@ -1649,7 +1654,10 @@ def calculate_twobody_standard_LED_summary_matrices(LEDAW_output_path_two_body, 
         summary_sheets['Inter-NonDisp-C-CCSD'] = set_diag_belowdiag_nan(inter_nondisp_ccsd)
 
         c_ccsd_matrix = inter_sheets['Inter SP'] + inter_sheets['Inter WP']
-        np.fill_diagonal(c_ccsd_matrix.values, np.diag(c_ccsd_matrix) + combined_diagonals['C-CCSD'])
+        c_ccsd_matrix = c_ccsd_matrix.astype(float)
+        arr = np.array(c_ccsd_matrix.values, copy=True)
+        np.fill_diagonal(arr, np.diag(c_ccsd_matrix) + combined_diagonals['C-CCSD'])
+        c_ccsd_matrix.iloc[:, :] = arr
         summary_sheets['C-CCSD'] = c_ccsd_matrix
 
     elif method.lower() == 'dlpno-ccsd(t)':
@@ -1666,7 +1674,10 @@ def calculate_twobody_standard_LED_summary_matrices(LEDAW_output_path_two_body, 
         summary_sheets['Inter-NonDisp-C-CCSD(T)'] = set_diag_belowdiag_nan(inter_nondisp_ccsd_t)
 
         c_ccsd_t_matrix = inter_sheets['Inter SP'] + inter_sheets['Inter WP'] + inter_sheets['Inter T']
-        np.fill_diagonal(c_ccsd_t_matrix.values, np.diag(c_ccsd_t_matrix) + combined_diagonals['C-CCSD(T)'])
+        c_ccsd_t_matrix = c_ccsd_t_matrix.astype(float)
+        arr = np.array(c_ccsd_t_matrix.values, copy=True)
+        np.fill_diagonal(arr, np.diag(c_ccsd_t_matrix) + combined_diagonals['C-CCSD(T)'])
+        c_ccsd_t_matrix.iloc[:, :] = arr
         summary_sheets['C-CCSD(T)'] = c_ccsd_t_matrix
 
     elif method.lower() == 'hfld':
@@ -1766,7 +1777,10 @@ def compute_and_write_solv_std(LEDAW_output_path_two_body, method, nonaggregated
             total = summary_sheets['REF'] + summary_sheets['C-CCSD(T)']
         elif method.lower() == 'hfld':
             disp_hfld = summary_sheets['Disp HFLD'].copy()
-            np.fill_diagonal(disp_hfld.values, 0.0) # treat as 0
+            disp_hfld = disp_hfld.astype(float)
+            arr = np.array(disp_hfld.values, copy=True)
+            np.fill_diagonal(arr, 0.0)  # treat as 0
+            disp_hfld.iloc[:, :] = arr
             total = summary_sheets['REF'] + disp_hfld
         else:
             raise ValueError(f"Unknown method: {method}")
@@ -1990,7 +2004,10 @@ def compute_and_write_solv_std(LEDAW_output_path_two_body, method, nonaggregated
         total = summary_sheets['REF'] + summary_sheets['C-CCSD(T)']
     elif method.lower() == 'hfld':
         disp_hfld = summary_sheets['Disp HFLD'].copy()
-        np.fill_diagonal(disp_hfld.values, 0.0)
+        disp_hfld = disp_hfld.astype(float) 
+        arr = np.array(disp_hfld.values, copy=True)
+        np.fill_diagonal(arr, 0.0)
+        disp_hfld.iloc[:, :] = arr
         total = summary_sheets['REF'] + disp_hfld
     else:
         raise ValueError(f"Unknown method: {method}")
