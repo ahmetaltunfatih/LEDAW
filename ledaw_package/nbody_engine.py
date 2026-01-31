@@ -1341,8 +1341,10 @@ def compute_all_standard_led_int_en_matrices(system_labels, conversion_factor, m
     # Handle Dispersion matrices for DLPNO-CCSD(T), DLPNO-CCSD, and HFLD methods
     if 'Disp SP' in matrices:
         df_disp_wp = matrices.get('WP', pd.DataFrame(np.nan, index=matrices['SP'].index, columns=matrices['SP'].columns)).copy()
-        np.fill_diagonal(df_disp_wp.values, np.nan)
-        matrices['Disp WP'] = df_disp_wp
+        arr = np.array(df_disp_wp.values, copy=True)
+        np.fill_diagonal(arr, np.nan)
+        df_disp_wp.iloc[:, :] = arr
+		matrices['Disp WP'] = df_disp_wp
 
         df_disp_sp = matrices['Disp SP']
         df_disp_ccsd = df_disp_sp + df_disp_wp
@@ -1471,7 +1473,9 @@ def relabel_and_sort_fragments(relabel_mapping, LEDAW_output_path, method):
 
                 # Set diagonal of Electrostat and Exchange to None
                 if sheet_name in ['Electrostat', 'Exchange']:
-                    np.fill_diagonal(df.values, None)
+                    arr = np.array(df.values, copy=True)
+                    np.fill_diagonal(arr, None)
+                    df.iloc[:, :] = arr
 
                 # Ensure symmetry: copy upper to lower triangle
                 for i in range(df.shape[0]):
@@ -1611,8 +1615,9 @@ def compute_fp_el_prep(df_ref):
 
     # Convert to DataFrame and set diagonal and below-diagonal elements to NaN
     distributed_df = pd.DataFrame(distributed_matrix, index=df_ref.index, columns=df_ref.columns)
-    np.fill_diagonal(distributed_df.values, np.nan)
-    distributed_df = distributed_df.where(np.triu(np.ones(distributed_df.shape), k=1).astype(bool))
+    arr = np.array(distributed_df.values, copy=True)
+    arr[~np.triu(np.ones(arr.shape, dtype=bool), k=1)] = np.nan
+    distributed_df.iloc[:, :] = arr
 
     return distributed_df
 
@@ -1964,3 +1969,4 @@ def engine_LED_N_body(main_filenames, alternative_filenames, conversion_factor, 
     print('*'*120)
     print(f"  N-body LED analyses were terminated NORMALLY. Standard and fp-LED matrices are at {normalized_LEDAW_output_path}")
     print('*'*120)
+
