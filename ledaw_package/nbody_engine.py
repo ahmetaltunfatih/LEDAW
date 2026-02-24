@@ -1335,7 +1335,7 @@ def compute_all_standard_led_int_en_matrices(system_labels, conversion_factor, m
                     df_result = (df_supersystem - df_sum_subsystems) * conversion_factor
                 
                 # Keep only upper triangle
-                df_result = df_result.where(np.triu(np.ones(df_result.shape), k=0).astype(bool))
+                df_result = df_result.where(np.triu(np.ones(df_result.shape), k=0).astype(bool)).copy()
                 matrices[new_sheet_name] = df_result
 
     # Handle Dispersion matrices for DLPNO-CCSD(T), DLPNO-CCSD, and HFLD methods
@@ -1362,10 +1362,12 @@ def compute_all_standard_led_int_en_matrices(system_labels, conversion_factor, m
         df_disp_wp = matrices['Disp WP']
         
         with np.errstate(divide='ignore', invalid='ignore'):
-            df_disp_t = np.divide(df_disp_sp * df_disp_t, matrices['SP'])
-            df_disp_t[np.isnan(df_disp_t)] = 0
+            arr = np.divide(np.array(df_disp_sp.values, copy=True)*np.array(df_disp_t.values, copy=True),np.array(matrices['SP'].values, copy=True))
+            arr = np.array(arr, copy=True)
+            arr[np.isnan(arr)] = 0
 
-        df_disp_t = df_disp_t.where(np.triu(np.ones(df_disp_t.shape), k=0).astype(bool))
+        df_disp_t = pd.DataFrame(arr, index=df_disp_sp.index, columns=df_disp_sp.columns)
+        df_disp_t = df_disp_t.where(np.triu(np.ones(df_disp_t.shape), k=0).astype(bool)).copy()
         matrices['Disp T'] = df_disp_t
         
         df_disp_ccsd_t = df_disp_sp + df_disp_wp + df_disp_t
@@ -1507,7 +1509,7 @@ def clean_redundant_frags(LEDAW_output_path, method):
 
     # Ensure symmetry and float dtype
     df_total = df_total.astype(float)
-    df_total = df_total.where(np.triu(np.ones(df_total.shape)).astype(bool))
+    df_total = df_total.where(np.triu(np.ones(df_total.shape)).astype(bool)).copy()
 
     # Identify redundant rows/columns (all zeros in upper triangle including diagonal)
     mask_upper = np.triu(np.ones(df_total.shape), k=0).astype(bool)
@@ -1785,7 +1787,7 @@ def write_nbody_solv_files(LEDAW_output_path, total_solv_int_energy, ref_diel_in
             return df
         # Create a boolean mask for the upper triangle (k=0 includes diagonal)
         mask = np.triu(np.ones(df.shape), k=0).astype(bool)
-        return df.where(mask)
+        return df.where(mask).copy()
 
     # Helper to apply the masking (diagonal and below NaN)
     def mask_diagonal_and_below(df):
@@ -1793,7 +1795,7 @@ def write_nbody_solv_files(LEDAW_output_path, total_solv_int_energy, ref_diel_in
             return df
         # Create a boolean mask for the upper triangle (k=1 excludes diagonal)
         mask = np.triu(np.ones(df.shape), k=1).astype(bool)
-        return df.where(mask)
+        return df.where(mask).copy()
 
     # --- Process and Write SOLV-fp.xlsx ---
     try:
@@ -1969,5 +1971,3 @@ def engine_LED_N_body(main_filenames, alternative_filenames, conversion_factor, 
     print('*'*120)
     print(f"  N-body LED analyses were terminated NORMALLY. Standard and fp-LED matrices are at {normalized_LEDAW_output_path}")
     print('*'*120)
-
-
