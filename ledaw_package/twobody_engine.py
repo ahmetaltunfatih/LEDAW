@@ -417,6 +417,7 @@ def populate_twobody_ref_diel_matrices_non_bsse(one_body_orcaout_filenames, two_
 
     n = len(one_body_orcaout_filenames)
     ref_diel_matrix = np.zeros((n, n))
+    ref_diel_matrix = np.array(ref_diel_matrix, copy=True)
 
     all_diel_found = True
     for idx in range(1, n + 1):
@@ -461,10 +462,7 @@ def populate_twobody_ref_diel_matrices_non_bsse(one_body_orcaout_filenames, two_
         else:
             ref_diel_matrix[label1 - 1, label2 - 1] = np.nan
 
-    for i in range(1, n):
-        for j in range(i):
-            ref_diel_matrix[i, j] = 0
-
+    ref_diel_matrix = np.triu(ref_diel_matrix, k=0)
     ref_diel_int_energy = np.nansum(ref_diel_matrix)
 
     if ref_diel_int_energy != 0:
@@ -499,6 +497,7 @@ def populate_twobody_ref_cds_matrices_non_bsse(one_body_orcaout_filenames, two_b
 
     n = len(one_body_orcaout_filenames)
     ref_cds_matrix = np.zeros((n, n))
+    ref_cds_matrix = np.array(ref_cds_matrix, copy=True)
 
     all_cds_found = True
     for idx in range(1, n + 1):
@@ -543,10 +542,7 @@ def populate_twobody_ref_cds_matrices_non_bsse(one_body_orcaout_filenames, two_b
         else:
             ref_cds_matrix[label1 - 1, label2 - 1] = np.nan
 
-    for i in range(1, n):
-        for j in range(i):
-            ref_cds_matrix[i, j] = 0
-
+    ref_cds_matrix = np.triu(ref_cds_matrix)
     ref_cds_int_energy = np.nansum(ref_cds_matrix)
 
     if ref_cds_int_energy != 0:
@@ -588,6 +584,7 @@ def populate_twobody_corr_dielectric_matrices_non_bsse(one_body_orcaout_filename
     two_body_corr_dielectric_values = extract_twobody_dielectric_or_cds_values(two_body_orcaout_directory, two_body_labels, dielectric_pattern)
     n = len(one_body_orcaout_filenames)
     corr_diel_matrix = np.zeros((n, n))
+    corr_diel_matrix = np.array(corr_diel_matrix, copy=True)
 
     for filename, (label1, label2) in two_body_labels.items():
         two_body_entry = two_body_corr_dielectric_values.get(filename)
@@ -606,10 +603,7 @@ def populate_twobody_corr_dielectric_matrices_non_bsse(one_body_orcaout_filename
         else:
             corr_diel_matrix[label1 - 1, label2 - 1] = np.nan
 
-    for i in range(1, n):
-        for j in range(i):
-            corr_diel_matrix[i, j] = 0
-
+    corr_diel_matrix = np.triu(corr_diel_matrix)
     corr_diel_int_energy = np.nansum(corr_diel_matrix)
 
     if corr_diel_int_energy != 0:
@@ -641,6 +635,7 @@ def populate_twobody_total_solvation_matrices_non_bsse(one_body_orcaout_filename
         one_body_orcaout_filenames, two_body_orcaout_directory, conversion_factor, two_body_labels, LEDAW_output_path_two_body, method)
 
     total_solv_matrix = ref_cpcm_matrix + ref_cds_matrix + corr_diel_matrix
+    total_solv_matrix = np.array(total_solv_matrix, copy=True)
     solv_int_energy = ref_cpcm_int_energy + ref_cds_int_energy + corr_diel_int_energy
 
     output_file_path = os.path.join(normalize_path(LEDAW_output_path_two_body), 'SOLV-fp.xlsx')
@@ -669,6 +664,7 @@ def populate_twobody_ref_diel_matrices_bsse(bsse_file_pair_map, two_body_orcaout
     # Determine matrix size (n) from the maximum label in two_body_labels
     n = max(max(pair) for pair in two_body_labels.values())
     ref_cpcm_matrix = np.zeros((n, n))
+    ref_cpcm_matrix = np.array(ref_cpcm_matrix, copy=True)
 
     # --- Collect all unique relevant ORCA output file paths for global check ---
     all_relevant_filepaths = set()
@@ -701,6 +697,7 @@ def populate_twobody_ref_diel_matrices_bsse(bsse_file_pair_map, two_body_orcaout
     # If any DIEL is missing, zero the entire matrix and return.
     if is_diel_issue:
         print("Warning: At least one Dielectric component was not found in required files for BSSE-corrected REF CPCM calculation. Hence, the entire REF CPCM matrix will be set to zero.")
+        ref_cpcm_matrix = np.array(ref_cpcm_matrix, copy=True)
         ref_cpcm_matrix[:] = 0.0
         ref_cpcm_int_energy = 0.0
 
@@ -780,9 +777,7 @@ def populate_twobody_ref_diel_matrices_bsse(bsse_file_pair_map, two_body_orcaout
             ref_cpcm_matrix[i, i] = np.nan # Diagonal elements are NaN for interaction energy
 
     # Set values below the diagonal to zero as per convention
-    for i in range(1, n):
-        for j in range(i):
-            ref_cpcm_matrix[i, j] = 0
+    ref_cpcm_matrix = np.triu(ref_cpcm_matrix)
 
     # Compute ref_cpcm_int_energy as the sum of all elements in the matrix (ignoring NaNs and zeros below diagonal)
     ref_cpcm_int_energy = np.nansum(ref_cpcm_matrix)
@@ -820,6 +815,7 @@ def populate_twobody_ref_cds_matrices_bsse(bsse_file_pair_map, two_body_orcaout_
     # Determine matrix size (n) from the maximum label in two_body_labels
     n = max(max(pair) for pair in two_body_labels.values())
     ref_cds_matrix = np.zeros((n, n))
+    ref_cds_matrix = np.array(ref_cds_matrix, copy=True)
 
     # --- Collect all unique relevant ORCA output file paths for global check ---
     all_relevant_filepaths = set()
@@ -862,6 +858,10 @@ def populate_twobody_ref_cds_matrices_bsse(bsse_file_pair_map, two_body_orcaout_
     elif not any_cds_found: # If no CDS found anywhere at all
         force_zero_all_cds_contribution = True
         print("Note: No CDS components were found in any required files. The REF CDS matrix will be zero.")
+
+    if force_zero_all_cds_contribution:
+        ref_cds_matrix = np.array(ref_cds_matrix, copy=True)
+        ref_cds_matrix[:] = 0.0
 
     # --- Main calculation loop: Populating the matrix ---
     for filename, (label1, label2) in two_body_labels.items():
@@ -926,10 +926,8 @@ def populate_twobody_ref_cds_matrices_bsse(bsse_file_pair_map, two_body_orcaout_
             ref_cds_matrix[i, i] = np.nan # Diagonal elements are NaN for interaction energy
 
     # Set values below the diagonal to zero as per convention
-    for i in range(1, n):
-        for j in range(i):
-            ref_cds_matrix[i, j] = 0
-
+    ref_cds_matrix = np.triu(ref_cds_matrix)
+	
     # Compute ref_cds_int_energy as the sum of all elements in the matrix (ignoring NaNs and zeros below diagonal)
     ref_cds_int_energy = np.nansum(ref_cds_matrix)
 
@@ -962,6 +960,7 @@ def populate_twobody_corr_dielectric_matrices_bsse(bsse_file_pair_map, two_body_
     dielectric_pattern = r"C-PCM corr\. term \(included in E\(CORR\)\).*?([-+]?\d*\.\d+)"
     n = max(max(pair) for pair in two_body_labels.values())
     corr_diel_matrix = np.zeros((n, n))
+    orr_diel_matrix = np.array(corr_diel_matrix, copy=True)
 
     for filename, (label1, label2) in two_body_labels.items():
         file_path = os.path.join(normalized_two_body_orcaout_directory, filename)
@@ -1008,10 +1007,7 @@ def populate_twobody_corr_dielectric_matrices_bsse(bsse_file_pair_map, two_body_
         else:
             corr_diel_matrix[i, i] = np.nan
 
-    for i in range(1, n):
-        for j in range(i):
-            corr_diel_matrix[i, j] = 0
-
+    corr_diel_matrix = np.triu(corr_diel_matrix)
     corr_diel_int_energy = np.nansum(corr_diel_matrix)
 
     if corr_diel_int_energy != 0:
@@ -1078,6 +1074,7 @@ def populate_twobody_inter_matrices(one_body_orcaout_filenames, two_body_orcaout
     for sheet_name, props in property_mapping.items():
         n = max(max(pair) for pair in two_body_labels.values())
         matrix = np.zeros((n, n))
+        matrix = np.array(matrix, copy=True)
         pattern = patterns.PATTERNS[props['pattern']]
         group_num = props['group']
 
@@ -1294,9 +1291,10 @@ def populate_twobody_elprep_matrices_non_bsse(one_body_orcaout_filenames, two_bo
             normalized_two_body_orcaout_directory,
             two_body_labels,
             pattern_key,
-            patterns
-        )
+            patterns)
+
         matrix = np.zeros((n, n))
+        matrix = np.array(matrix, copy=True)
 
         one_body_key = {
             'REF': 'ref',
@@ -1361,6 +1359,7 @@ def populate_twobody_elprep_matrices_bsse(one_body_orcaout_filenames, two_body_o
 
     for prop_name in properties:
         matrix = np.zeros((n, n))
+        matrix = np.array(matrix, copy=True)
 
         for filename, (label1, label2) in two_body_labels.items():
             file_path = os.path.join(normalized_two_body_orcaout_directory, filename)
@@ -1596,7 +1595,7 @@ def set_belowdiag_nan(df):
     """Set the values below the diagonal in the matrix to NaN."""
     df = df.astype(float) 
     mask = np.tril(np.ones(df.shape), k=-1).astype(bool)
-    df.values[mask] = np.nan
+    df = df.mask(mask)
     return df
 
 
@@ -1718,15 +1717,15 @@ def calculate_twobody_standard_LED_summary_matrices(LEDAW_output_path_two_body, 
             if sheet_name in summary_sheets:
                 summary_sheets[sheet_name].to_excel(writer, sheet_name=sheet_name)
 
-    workbook = openpyxl.load_workbook(summary_file)
-    for sheet_name in sheet_order:
-        if sheet_name in workbook.sheetnames:
-            sheet = workbook[sheet_name]
-            for row in sheet.iter_rows():
-                for cell in row:
-                    if cell.row > cell.column and cell.value == 0:
-                        cell.value = None
-    workbook.save(summary_file)
+    # Mask zeros below diagonal for all sheets before writing
+    for name, df in summary_sheets.items():
+        summary_sheets[name] = df.where(np.triu(np.ones(df.shape), k=0).astype(bool))
+
+    # Write all sheets to Excel
+    with pd.ExcelWriter(summary_file, engine='openpyxl') as writer:
+        for sheet_name in sheet_order:
+            if sheet_name in summary_sheets:
+                summary_sheets[sheet_name].to_excel(writer, sheet_name=sheet_name)
 
     normalized_summary_file = normalize_path(summary_file)
     print(f"Standard LED two-body summary interaction energy matrices were written to '{normalized_summary_file}'")
@@ -1802,14 +1801,7 @@ def compute_and_write_solv_std(LEDAW_output_path_two_body, method, nonaggregated
                     summary_sheets[sheet_name].to_excel(writer, sheet_name=sheet_name)
 
         # Mask zeros below diagonal for TOTAL (and potentially others if logic changes for them)
-        workbook = openpyxl.load_workbook(summary_file)
-        if 'TOTAL' in workbook.sheetnames:
-            sheet = workbook['TOTAL']
-            for row in sheet.iter_rows():
-                for cell in row:
-                    if cell.row > cell.column and cell.value == 0:
-                        cell.value = None
-        workbook.save(summary_file)
+        summary_sheets['TOTAL'] = summary_sheets['TOTAL'].where(np.triu(np.ones(summary_sheets['TOTAL'].shape), k=0).astype(bool))
 
         print(f"'TOTAL' sheet written without SOLV to '{normalize_path(summary_file)}'.")
         return # Exit the function here if full computation is skipped
@@ -2030,15 +2022,8 @@ def compute_and_write_solv_std(LEDAW_output_path_two_body, method, nonaggregated
                 summary_sheets[sheet_name].to_excel(writer, sheet_name=sheet_name)
 
     # Mask zeros below diagonal as None for SOLV and TOTAL sheets in summary file
-    workbook = openpyxl.load_workbook(summary_file)
-    for sheet_name in ['SOLV', 'TOTAL']:
-        if sheet_name in workbook.sheetnames: # Only process if sheet actually exists
-            sheet = workbook[sheet_name]
-            for row in sheet.iter_rows():
-                for cell in row:
-                    if cell.row > cell.column and cell.value == 0:
-                        cell.value = None
-    workbook.save(summary_file)
+    summary_sheets['SOLV'] = summary_sheets['SOLV'].where(np.triu(np.ones(summary_sheets['SOLV'].shape), k=0).astype(bool))
+    summary_sheets['TOTAL'] = summary_sheets['TOTAL'].where(np.triu(np.ones(summary_sheets['TOTAL'].shape), k=0).astype(bool))
 
     print(f"Updated '{normalize_path(summary_file)}' with SOLV and TOTAL sheets.")
 
@@ -2176,7 +2161,7 @@ def calculate_twobody_fpLED_matrices(LEDAW_output_path_two_body, method):
         # Create a mask for diagonal and below-diagonal elements
         mask = np.tril(np.ones(df.shape), k=0).astype(bool)
         # Set these elements to NaN
-        df.values[mask] = np.nan
+        df = df.mask(mask)
         # Update the summary_sheets with the modified DataFrame
         summary_sheets[sheet_name] = df
 
