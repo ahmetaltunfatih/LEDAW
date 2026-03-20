@@ -54,7 +54,7 @@ Download (and then, unzip) or clone the entire LEDAW directory, including:
 - `ledaw_package` directory  
 - `main.py`  
 - `ledaw.spec`  
-- `docs` directory (LEDAW manual)  
+- `docs` directory (LEDAW manual and LEDAW paper)  
 - `examples` directory containing:
   - `orca-outputs`: ORCA output files for several interaction types  
   - `ledaw-inputs`: Example Python scripts to run LEDAW on the `orca-outputs` files (intended for code-oriented users)
